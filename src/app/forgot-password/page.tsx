@@ -40,14 +40,14 @@ export default function ForgotPasswordPage() {
             B
           </div>
           <h1 className="text-2xl font-bold text-white font-heading">Reset Password</h1>
-          <p className="text-navy-200 text-sm mt-1">Enter your service number and we'll email you a reset link</p>
+          <p className="text-navy-200 text-sm mt-1">Enter your service number and we&apos;ll email you a reset link</p>
         </div>
 
         <Card>
           <CardHeader>
             <CardTitle>Forgot your password?</CardTitle>
             <CardDescription>
-              We'll send a password-reset link to the email on file.
+              We&apos;ll send a password-reset link to the email on file.
             </CardDescription>
           </CardHeader>
           <CardContent>
