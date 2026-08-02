@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm install)",
+      "Bash(pnpm prisma:generate:*)",
+      "Bash(pnpm prisma:seed:*)",
+      "Bash(pnpm test)",
+      "Bash(pnpm build:*)",
+      "Bash(pnpm test:*)",
+      "Bash(curl:*)",
+      "Bash(powershell.exe:*)",
+      "Bash(pnpm remove:*)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm prisma migrate status:*)",
+      "Bash(tasklist)",
+      "Bash(findstr:*)",
+      "Bash(pnpm list:*)",
+      "Bash(ls:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

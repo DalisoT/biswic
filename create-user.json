@@ -1,0 +1,11 @@
+{
+  "email": "chair-001@biswic.coop",
+  "password": "ChangeMe123!",
+  "email_confirm": true,
+  "user_metadata": {
+    "service_number": "CHAIR-001",
+    "full_name": "Col. James Mwamba",
+    "role": "CHAIRPERSON",
+    "phone": "+260971000001"
+  }
+}

@@ -1,0 +1,632 @@
+// =============================================================================
+// BISWIC Member Platform - Prisma Schema (PostgreSQL / Supabase)
+// =============================================================================
+// All financial totals, projections, and member counts are computed at runtime
+// from queries against this schema. NEVER hardcode member counts in code.
+//
+// Switched from SQLite to PostgreSQL on 2026-08-01.
+// IMPORTANT: this schema is managed by Prisma for the application-shaped
+// tables only. The auth schema (auth.users, auth.*) and storage schema
+// (storage.buckets, storage.objects) are managed by Supabase directly via
+// SQL migrations under supabase/migrations/.
+// =============================================================================
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgcrypto]
+}
+
+// =============================================================================
+// ROLES
+// =============================================================================
+// Roles are a real PostgreSQL enum. The Zod schema and TS types in
+// src/lib/permissions.ts enforce valid transitions at the application layer.
+// =============================================================================
+
+enum Role {
+  MEMBER
+  CHAIRPERSON
+  VICE_CHAIRPERSON
+  CCD
+  FW
+  SECRETARY
+  TREASURER
+  DEPUTY_TREASURER
+  TRUSTEE
+  LSC_MEMBER
+  BUSINESS_MEMBER
+  FINANCE_MEMBER
+  WELFARE_OFFICER
+  INTERNAL_AUDITOR
+  IT_COMMS_LEAD
+}
+
+// =============================================================================
+// USER
+// =============================================================================
+// id  matches auth.users.id (UUID) when the user has a Supabase Auth account.
+// For purely-internal users (test accounts, bootstrapped by the seed), we
+// generate a UUID via gen_random_uuid() (pgcrypto).
+// serviceNumber is the human-facing identifier used for login.
+// =============================================================================
+
+model User {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  serviceNumber String   @unique
+  fullName      String
+  rank          String?
+  unit          String?
+  phone         String   @unique
+  email         String?  @unique
+  role          Role     @default(MEMBER)
+  nextOfKin     Json? // { name, relationship, phone }
+  isActive      Boolean  @default(true)
+  joinedAt      DateTime @default(now())
+  leftAt        DateTime?
+
+  // 2FA
+  twoFactorSecret  String?
+  twoFactorEnabled Boolean  @default(false)
+
+  // Profile preferences
+  notificationPrefs Json? // { inApp, sms, email, whatsapp }
+  theme             String  @default("light") // "light" | "dark"
+  language          String  @default("en")
+
+  // Failed login tracking
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+
+  // Relations
+  contributions         Contribution[]    @relation("MemberContributions")
+  recordedContributions Contribution[]    @relation("RecordedContributions")
+  claims                WelfareClaim[]    @relation("MemberClaims")
+  approvedByFwClaims    WelfareClaim[]    @relation("ApprovedByFw")
+  approvedByChairClaims WelfareClaim[]    @relation("ApprovedByChair")
+  auditLogs             AuditLog[]
+  uploadedDocs          Document[]        @relation("UploadedDocs")
+  uploadedDocVersions   DocumentVersion[] @relation("UploadedVersions")
+  notifications         Notification[]
+  meetingAttendance     MeetingAttendance[]
+  actionItems           ActionItem[]
+  landOpportunities     LandOpportunity[]
+  plots                 Plot[]
+  eventRsvps            EventRSVP[]
+  createdMeetings       Meeting[]         @relation("MeetingCreator")
+  createdEvents         Event[]           @relation("EventCreator")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([role, isActive])
+  @@index([isActive])
+}
+
+// =============================================================================
+// BUCKETS
+// =============================================================================
+// Percentage is stored as a decimal (0.50 = 50%). Balance is the rolling
+// forward sum across all BucketTransaction rows.
+// =============================================================================
+
+model Bucket {
+  id          String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String  @unique
+  code        String  @unique // LAND, BUSINESS, FUNERAL, MEDICAL, ADMIN, EDUCATION
+  percentage  Decimal @db.Decimal(5, 4) // 0.5000, 0.2000, etc.
+  balance     Decimal @default(0) @db.Decimal(14, 2)
+  description String?
+
+  allocations        BucketAllocation[]
+  claims             WelfareClaim[]
+  bucketTransactions BucketTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Append-only ledger - source of truth for every balance change.
+model BucketTransaction {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bucketId      String   @db.Uuid
+  bucket        Bucket   @relation(fields: [bucketId], references: [id])
+  amount        Decimal  @db.Decimal(14, 2) // Positive = credit, negative = debit
+  type          String // "CONTRIBUTION_ALLOCATION" | "WELFARE_PAYOUT" | "ADMIN_EXPENSE" | "YEAR_CARRYOVER" | "ADJUSTMENT"
+  referenceType String? // "Contribution" | "WelfareClaim" | etc.
+  referenceId   String?
+  note          String?
+  recordedById  String?  @db.Uuid
+  createdAt     DateTime @default(now())
+
+  @@index([bucketId, createdAt])
+}
+
+// =============================================================================
+// CONTRIBUTIONS
+// =============================================================================
+
+enum ContributionType {
+  PAYROLL_DEDUCTION
+  CASH
+  MOBILE_MONEY
+  BANK_TRANSFER
+}
+
+model Contribution {
+  id            String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  memberId      String           @db.Uuid
+  member        User             @relation("MemberContributions", fields: [memberId], references: [id])
+  amount        Decimal          @db.Decimal(14, 2)
+  month         Int // 1-12
+  year          Int
+  paymentMethod ContributionType
+  receiptNumber String?          @unique
+  receivedAt    DateTime
+  recordedById  String           @db.Uuid
+  recordedBy    User             @relation("RecordedContributions", fields: [recordedById], references: [id])
+
+  allocations BucketAllocation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([memberId, month, year])
+  @@index([year, month])
+}
+
+model BucketAllocation {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contributionId String       @db.Uuid
+  contribution   Contribution @relation(fields: [contributionId], references: [id], onDelete: Cascade)
+  bucketId       String       @db.Uuid
+  bucket         Bucket       @relation(fields: [bucketId], references: [id])
+  amount         Decimal      @db.Decimal(14, 2)
+
+  @@index([contributionId])
+}
+
+// =============================================================================
+// WELFARE CLAIMS
+// =============================================================================
+
+enum ClaimType {
+  FUNERAL
+  MEDICAL
+}
+
+enum ClaimStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
+}
+
+model WelfareClaim {
+  id              String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  memberId        String      @db.Uuid
+  member          User        @relation("MemberClaims", fields: [memberId], references: [id])
+  type            ClaimType
+  beneficiary     String // self / parent / spouse / child / father / mother
+  eventDate       DateTime
+  amountRequested Decimal     @db.Decimal(14, 2)
+  amountApproved  Decimal?    @db.Decimal(14, 2)
+  bucketId        String?     @db.Uuid
+  bucket          Bucket?     @relation(fields: [bucketId], references: [id])
+  status          ClaimStatus @default(PENDING)
+  supportingDocUrl String?
+  description     String?
+
+  // Two-signature approval
+  approvedByFwId    String?   @db.Uuid
+  approvedByFw      User?     @relation("ApprovedByFw", fields: [approvedByFwId], references: [id])
+  approvedByFwAt    DateTime?
+  approvedByChairId String?   @db.Uuid
+  approvedByChair   User?     @relation("ApprovedByChair", fields: [approvedByChairId], references: [id])
+  approvedByChairAt DateTime?
+
+  // Override
+  capOverrideNote String?
+  rejectedReason  String?
+  paidAt          DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([memberId, createdAt])
+  @@index([status])
+  @@index([type, createdAt])
+}
+
+// =============================================================================
+// MEETINGS
+// =============================================================================
+
+enum MeetingType {
+  MONTHLY
+  QUARTERLY
+  AGM
+  SPECIAL
+  EMERGENCY
+}
+
+enum MeetingStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model Meeting {
+  id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title        String
+  type         MeetingType
+  scheduledAt  DateTime
+  venue        String
+  agenda       String?
+  minutes      String? // markdown/rich text
+  minutesDocUrl String?
+  status       MeetingStatus @default(SCHEDULED)
+
+  attendees   MeetingAttendance[]
+  actionItems ActionItem[]
+  createdById String             @db.Uuid
+  createdBy   User               @relation("MeetingCreator", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([scheduledAt])
+  @@index([status])
+}
+
+model MeetingAttendance {
+  id        String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  meetingId String  @db.Uuid
+  meeting   Meeting @relation(fields: [meetingId], references: [id])
+  memberId  String  @db.Uuid
+  member    User    @relation(fields: [memberId], references: [id])
+  attended  Boolean @default(false)
+
+  @@unique([meetingId, memberId])
+}
+
+enum ActionItemStatus {
+  OPEN
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+model ActionItem {
+  id          String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  meetingId   String           @db.Uuid
+  meeting     Meeting          @relation(fields: [meetingId], references: [id])
+  description String
+  ownerId     String           @db.Uuid
+  owner       User             @relation(fields: [ownerId], references: [id])
+  dueDate     DateTime?
+  status      ActionItemStatus @default(OPEN)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// =============================================================================
+// DOCUMENTS
+// =============================================================================
+// Documents are catalogued here. The actual file lives in Supabase Storage
+// (bucket: "documents"). fileUrl is the path inside the bucket, not a public
+// URL. Signed URLs are generated on demand via src/lib/supabase/storage.ts.
+// =============================================================================
+
+enum DocumentCategory {
+  CONSTITUTION
+  MEETING_MINUTES
+  AUDIT_REPORT
+  LAND_DEED
+  BUSINESS_CONTRACT
+  ANNUAL_REPORT
+  POLICY
+  OTHER
+}
+
+enum AccessLevel {
+  PUBLIC
+  MEMBER
+  OFFICER
+  EXECUTIVE
+  RESTRICTED
+}
+
+model Document {
+  id            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title         String
+  description   String?
+  fileUrl       String // path inside the 'documents' Supabase Storage bucket
+  fileType      String
+  fileSize      Int
+  category      DocumentCategory
+  accessLevel   AccessLevel     @default(MEMBER)
+  uploadedById  String          @db.Uuid
+  uploadedBy    User            @relation("UploadedDocs", fields: [uploadedById], references: [id])
+  version       Int             @default(1)
+
+  versions DocumentVersion[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([accessLevel])
+}
+
+model DocumentVersion {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  documentId  String   @db.Uuid
+  document    Document @relation(fields: [documentId], references: [id])
+  version     Int
+  fileUrl     String
+  uploadedById String  @db.Uuid
+  uploadedBy  User     @relation("UploadedVersions", fields: [uploadedById], references: [id])
+  notes       String?
+
+  createdAt DateTime @default(now())
+}
+
+// =============================================================================
+// LAND
+// =============================================================================
+
+enum LandStatus {
+  SCOUTED
+  SHORTLIST
+  DUE_DILIGENCE
+  RECOMMENDED
+  APPROVED
+  PURCHASED
+  SUBDIVIDED
+  REJECTED
+}
+
+model LandOpportunity {
+  id             String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title          String
+  location       String
+  gpsCoords      String?
+  sizeHectares   Decimal    @db.Decimal(10, 4)
+  sizeSqm        Decimal    @db.Decimal(12, 2)
+  askingPrice    Decimal    @db.Decimal(14, 2)
+  valuationPrice Decimal?   @db.Decimal(14, 2)
+  status         LandStatus @default(SCOUTED)
+  photosJson     Json? // JSON array of photo URLs
+  documentsJson  Json? // JSON array of document URLs
+  dueDiligence   Json? // JSON checklist
+  notes          String?
+
+  addedById String    @db.Uuid
+  addedBy   User      @relation(fields: [addedById], references: [id])
+  purchase  LandPurchase?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model LandPurchase {
+  id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  opportunityId  String           @unique @db.Uuid
+  opportunity    LandOpportunity  @relation(fields: [opportunityId], references: [id])
+  purchasePrice  Decimal          @db.Decimal(14, 2)
+  purchaseDate   DateTime
+  deedUrl        String?
+  totalPlots     Int
+  plotsAllocated Int              @default(0)
+  communityPlots Int              @default(1)
+  chairPlot      Boolean          @default(false)
+
+  plots Plot[]
+}
+
+enum PlotStatus {
+  UNALLOCATED
+  ALLOCATED
+  TRANSFERRED
+  REPOSSESSED
+}
+
+model Plot {
+  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  purchaseId  String       @db.Uuid
+  purchase    LandPurchase @relation(fields: [purchaseId], references: [id])
+  plotNumber  Int
+  memberId    String?      @db.Uuid
+  member      User?        @relation(fields: [memberId], references: [id])
+  allocatedAt DateTime?
+  status      PlotStatus   @default(UNALLOCATED)
+  notes       String?
+
+  @@index([purchaseId])
+}
+
+// =============================================================================
+// BUSINESS
+// =============================================================================
+
+enum BusinessStatus {
+  PLANNING
+  ACTIVE
+  PAUSED
+  CLOSED
+}
+
+model Business {
+  id                   String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                 String
+  type                 String
+  status               BusinessStatus         @default(PLANNING)
+  startDate            DateTime?
+  capitalInvested      Decimal                @default(0) @db.Decimal(14, 2)
+  currentMonthlyProfit Decimal                @default(0) @db.Decimal(14, 2)
+  description          String?
+
+  transactions BusinessTransaction[]
+  decisions    BusinessDecision[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum BusinessTransactionType {
+  INCOME
+  EXPENSE
+  CAPITAL_INJECTION
+  PROFIT_DISTRIBUTION
+}
+
+model BusinessTransaction {
+  id          String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId  String                  @db.Uuid
+  business    Business                @relation(fields: [businessId], references: [id])
+  date        DateTime
+  type        BusinessTransactionType
+  amount      Decimal                 @db.Decimal(14, 2)
+  description String
+  receiptUrl  String?
+
+  recordedById String   @db.Uuid
+  createdAt    DateTime @default(now())
+}
+
+model BusinessDecision {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId  String   @db.Uuid
+  business    Business @relation(fields: [businessId], references: [id])
+  decision    String
+  rationale   String
+  decidedById String   @db.Uuid
+  decidedAt   DateTime
+}
+
+// =============================================================================
+// EVENTS & CHARITY
+// =============================================================================
+
+enum EventType {
+  MEETING
+  AGM
+  FAMILY_DAY
+  SPORTS_DAY
+  COMMUNITY_EVENT
+  CHARITY_DRIVE
+  OTHER
+}
+
+model Event {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title       String
+  description String
+  type        EventType
+  startAt     DateTime
+  endAt       DateTime?
+  venue       String
+  isPublic    Boolean   @default(false)
+  photosJson  Json?
+  report      String?
+
+  rsvps EventRSVP[]
+
+  createdById String   @db.Uuid
+  createdBy   User     @relation("EventCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+}
+
+enum RsvpStatus {
+  PENDING
+  YES
+  NO
+  MAYBE
+}
+
+model EventRSVP {
+  id      String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventId String     @db.Uuid
+  event   Event      @relation(fields: [eventId], references: [id])
+  memberId String    @db.Uuid
+  member  User       @relation(fields: [memberId], references: [id])
+  status  RsvpStatus @default(PENDING)
+
+  @@unique([eventId, memberId])
+}
+
+enum CharityStatus {
+  PLANNING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+model CharityProject {
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name          String
+  description   String
+  budget        Decimal       @db.Decimal(14, 2)
+  spent         Decimal       @default(0) @db.Decimal(14, 2)
+  startDate     DateTime
+  endDate       DateTime?
+  status        CharityStatus @default(PLANNING)
+  beneficiaries String?
+  impact        String?
+  photosJson    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// =============================================================================
+// AUDIT LOG (append-only - enforced by DB trigger in supabase/migrations)
+// =============================================================================
+
+model AuditLog {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String?  @db.Uuid
+  user        User?    @relation(fields: [userId], references: [id])
+  action      String
+  entity      String
+  entityId    String?
+  beforeValue Json?
+  afterValue  Json?
+  ipAddress   String?
+  userAgent   String?
+  notes       String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([entity, entityId])
+  @@index([action, createdAt])
+  @@index([createdAt])
+}
+
+// =============================================================================
+// NOTIFICATIONS
+// =============================================================================
+
+model Notification {
+  id     String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id])
+  type   String
+  title  String
+  body   String
+  link   String?
+  read   Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, read, createdAt])
+}
