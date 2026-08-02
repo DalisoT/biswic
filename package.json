@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "BISWIC Member Platform - PWA for the Brothers in Service Welfare, Land & Investment Cooperative",
+  "packageManager": "pnpm@9.15.0",
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
