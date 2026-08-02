@@ -224,7 +224,7 @@ async function main() {
       const allocationInput = buckets.map((b) => ({
         bucketId: b.id,
         bucketCode: b.code,
-        percentage: b.percentage * 100,
+        percentage: Number(b.percentage) * 100,
       }));
 
       const allocations = allocateToBuckets(amount, allocationInput);
