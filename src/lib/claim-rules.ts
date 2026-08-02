@@ -11,9 +11,17 @@
  */
 
 import { config, isInInitialPeriod, getFuncFalFuneralMaxPerYear } from './config';
+import type { Prisma } from '@prisma/client';
 
 export type ClaimType = 'FUNERAL' | 'MEDICAL';
 export type ClaimStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'PAID';
+
+/**
+ * Anything that acts like a number. Prisma's Decimal satisfies this via its
+ * valueOf(); plain numbers work directly. Used in function signatures so the
+ * rules can be called with either Prisma row data or pre-converted numbers.
+ */
+type NumericLike = number | Prisma.Decimal;
 
 export interface ClaimCheckInput {
   type: ClaimType;
@@ -133,12 +141,12 @@ export function checkWelfareClaim(input: ClaimCheckInput): ClaimCheckResult {
  * Determine if a claim has both required signatures (for amounts > K1,000)
  */
 export function hasBothSignatures(claim: {
-  amountRequested: number;
-  amountApproved: number | null;
+  amountRequested: NumericLike;
+  amountApproved: NumericLike | null;
   approvedByFwId: string | null;
   approvedByChairId: string | null;
 }): boolean {
-  const amount = claim.amountApproved ?? claim.amountRequested;
+  const amount = Number(claim.amountApproved ?? claim.amountRequested);
   if (amount <= config.governance.twoSignatureThreshold) return true;
   return !!(claim.approvedByFwId && claim.approvedByChairId);
 }
