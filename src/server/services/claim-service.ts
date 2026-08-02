@@ -197,7 +197,7 @@ export async function approveClaim(input: ApproveClaimInput) {
   });
 
   // Check if both signatures are now in place (S3)
-  const needsTwoSigs = input.amountApproved > config.governance.twoSignatureThreshold;
+  const needsTwoSigs = Number(input.amountApproved) > config.governance.twoSignatureThreshold;
   const hasBoth = updated.approvedByFwId && updated.approvedByChairId;
   if (needsTwoSigs && !hasBoth) {
     // Still PENDING validation - notify the OTHER approver

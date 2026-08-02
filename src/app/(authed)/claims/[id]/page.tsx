@@ -36,7 +36,7 @@ export default async function ClaimDetailPage({ params }: { params: { id: string
   }
 
   const canApprove = canApproveWelfare(user.role) && claim.status === 'PENDING';
-  const needsTwoSigs = (claim.amountApproved ?? claim.amountRequested) > config.governance.twoSignatureThreshold;
+  const needsTwoSigs = Number(claim.amountApproved ?? claim.amountRequested) > config.governance.twoSignatureThreshold;
   const sigsOk = hasBothSignatures(claim);
 
   const myApprovedThis = claim.approvedByFwId === user.id || claim.approvedByChairId === user.id;

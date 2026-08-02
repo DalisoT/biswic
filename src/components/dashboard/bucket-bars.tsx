@@ -50,7 +50,7 @@ export function BucketBars({ buckets }: { buckets: Bucket[] }) {
               <span className="text-xs font-medium text-muted-foreground">{b.code}</span>
             </div>
             <div className="mt-1 font-semibold">{formatCurrency(b.balance)}</div>
-            <div className="text-xs text-muted-foreground">{b.percentage * 100}% allocation</div>
+            <div className="text-xs text-muted-foreground">{Number(b.percentage) * 100}% allocation</div>
           </div>
         ))}
       </div>

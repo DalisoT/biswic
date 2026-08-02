@@ -139,7 +139,7 @@ export default async function ClaimsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {c.amountRequested > config.governance.twoSignatureThreshold ? (
+                        {Number(c.amountRequested) > config.governance.twoSignatureThreshold ? (
                           <span className="text-xs">
                             {c.approvedByFwId ? '✓' : '✗'} FW · {c.approvedByChairId ? '✓' : '✗'} Chair
                           </span>
