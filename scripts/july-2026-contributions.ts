@@ -114,41 +114,94 @@ async function recordOneContribution(
   const receiptNumber = `RCT-${YEAR}-${String(MONTH).padStart(2, '0')}-${member.id.slice(-6).toUpperCase()}`;
   const receivedAt = new Date(YEAR, MONTH - 1, 15);
 
-  const c = await prisma.contribution.create({
-    data: {
-      memberId: member.id,
-      amount: AMOUNT,
-      month: MONTH,
-      year: YEAR,
-      paymentMethod: PAYMENT_METHOD,
-      receiptNumber,
-      receivedAt,
-      recordedById: treasurerId,
-      allocations: {
-        create: allocs.map((a) => ({ bucketId: a.bucketId, amount: a.amount })),
+  // Wrap the 13 queries per contribution in a short transaction. This keeps
+  // the connection "in use" so pgbouncer's idle timeout (which was killing
+  // the connection between awaits) doesn't bite. Each tx is ~3-5s.
+  await prisma.$transaction(async (tx) => {
+    const c = await tx.contribution.create({
+      data: {
+        memberId: member.id,
+        amount: AMOUNT,
+        month: MONTH,
+        year: YEAR,
+        paymentMethod: PAYMENT_METHOD,
+        receiptNumber,
+        receivedAt,
+        recordedById: treasurerId,
+        allocations: {
+          create: allocs.map((a) => ({ bucketId: a.bucketId, amount: a.amount })),
+        },
       },
+    });
+
+    for (const a of allocs) {
+      await tx.bucket.update({
+        where: { id: a.bucketId },
+        data: { balance: { increment: a.amount } },
+      });
+      await tx.bucketTransaction.create({
+        data: {
+          bucketId: a.bucketId,
+          amount: a.amount,
+          type: 'CONTRIBUTION_ALLOCATION',
+          referenceType: 'Contribution',
+          referenceId: c.id,
+          recordedById: treasurerId,
+          note: `July 2026 contribution from ${member.serviceNumber} ${member.fullName}`,
+        },
+      });
+    }
+  }, { timeout: 30000 }); // 30s per contribution should be plenty
+
+  return 'recorded';
+}
+
+async function fixPartialContributions() {
+  // Find all July 2026 contributions and check that each has 6 BucketTransactions.
+  // If any are missing, create the missing ones + increment the bucket balance.
+  // This repairs contributions that were left half-done by a pgbouncer timeout.
+  const contribs = await prisma.contribution.findMany({
+    where: { month: MONTH, year: YEAR },
+    include: {
+      allocations: true,
+      _count: { select: { allocations: true } },
     },
   });
 
-  for (const a of allocs) {
-    await prisma.bucket.update({
-      where: { id: a.bucketId },
-      data: { balance: { increment: a.amount } },
+  let fixedCount = 0;
+  for (const c of contribs) {
+    // Get the existing BucketTransaction referenceIds for this contribution
+    const existingTx = await prisma.bucketTransaction.findMany({
+      where: { referenceType: 'Contribution', referenceId: c.id },
+      select: { bucketId: true },
     });
-    await prisma.bucketTransaction.create({
-      data: {
-        bucketId: a.bucketId,
-        amount: a.amount,
-        type: 'CONTRIBUTION_ALLOCATION',
-        referenceType: 'Contribution',
-        referenceId: c.id,
-        recordedById: treasurerId,
-        note: `July 2026 contribution from ${member.serviceNumber} ${member.fullName}`,
-      },
-    });
-  }
+    const existingBucketIds = new Set(existingTx.map((t) => t.bucketId));
+    if (existingBucketIds.size >= 6) continue; // Complete
 
-  return 'recorded';
+    fixedCount++;
+    console.log(`  Fixing partial contribution ${c.id} (member ${c.memberId}) - has ${existingBucketIds.size}/6 BucketTransactions`);
+
+    // Find missing allocations
+    const missing = c.allocations.filter((a) => !existingBucketIds.has(a.bucketId));
+    for (const a of missing) {
+      await prisma.bucket.update({
+        where: { id: a.bucketId },
+        data: { balance: { increment: Number(a.amount) } },
+      });
+      await prisma.bucketTransaction.create({
+        data: {
+          bucketId: a.bucketId,
+          amount: a.amount,
+          type: 'CONTRIBUTION_ALLOCATION',
+          referenceType: 'Contribution',
+          referenceId: c.id,
+          recordedById: c.recordedById,
+          note: `July 2026 contribution (fixed from partial)`,
+        },
+      });
+    }
+  }
+  return fixedCount;
 }
 
 async function recomputeBucketBalances() {
@@ -269,6 +322,14 @@ async function main() {
   console.log('Phase 1: setup (buckets + promotions + deactivations)...');
   await ensureSetup();
   console.log('  Buckets ensured, 106147 -> CHAIRPERSON, 105152 -> VICE_CHAIRPERSON, placeholders deactivated.');
+
+  console.log(`\nPhase 1b: fix any partial July 2026 contributions (left half-done by pgbouncer timeout)...`);
+  const fixed = await fixPartialContributions();
+  if (fixed > 0) {
+    console.log(`  Fixed ${fixed} partial contribution(s).`);
+  } else {
+    console.log(`  None to fix.`);
+  }
 
   console.log(`\nPhase 2: record ${members.length} July 2026 contributions (one at a time, resumable)...`);
   let recorded = 0;
