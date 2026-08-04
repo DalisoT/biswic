@@ -10,9 +10,10 @@
  */
 
 import { prisma } from '@/lib/db';
-import { checkWelfareClaim, bucketCodeForClaimType } from '@/lib/claim-rules';
+import { checkWelfareClaim, bucketCodeForClaimType, hasRequiredSignatures } from '@/lib/claim-rules';
 import { logAudit, AUDIT_ACTIONS } from '@/lib/audit';
 import { config } from '@/lib/config';
+import type { Role } from '@/lib/permissions';
 
 export interface SubmitClaimInput {
   memberId: string;
@@ -97,7 +98,7 @@ export async function submitClaim(input: SubmitClaimInput) {
 export interface ApproveClaimInput {
   claimId: string;
   approverId: string;
-  approverRole: 'FW' | 'CHAIRPERSON';
+  approverRole: Extract<Role, 'WELFARE_OFFICER' | 'FW' | 'CHAIRPERSON'>;
   amountApproved: number;
   capOverrideNote?: string;
 }
@@ -145,14 +146,35 @@ export async function approveClaim(input: ApproveClaimInput) {
     );
   }
 
-  // Record this approver's signature
+  // Constitution Art. 5.3: if a Welfare Officer is currently appointed, the
+  // 3-sig rule applies. Otherwise the legacy 2-sig rule (FW + Chair) holds.
+  const welfareOfficerAppointed =
+    (await prisma.user.count({
+      where: { role: 'WELFARE_OFFICER', isActive: true },
+    })) > 0;
+
+  // Prevent the same approver from signing twice in a different role
+  if (input.approverRole === 'WELFARE_OFFICER' && claim.approvedByWelfareOfficerId) {
+    throw new Error('A Welfare Officer has already approved this claim.');
+  }
+  if (input.approverRole === 'FW' && claim.approvedByFwId) {
+    throw new Error('The Finance Warrant has already approved this claim.');
+  }
+  if (input.approverRole === 'CHAIRPERSON' && claim.approvedByChairId) {
+    throw new Error('The Chairperson has already approved this claim.');
+  }
+
+  // Record this approver's signature in the role-specific field
   const updateData: any = {
     amountApproved: input.amountApproved,
     capOverrideNote: input.capOverrideNote,
     status: 'APPROVED',
   };
 
-  if (input.approverRole === 'FW') {
+  if (input.approverRole === 'WELFARE_OFFICER') {
+    updateData.approvedByWelfareOfficerId = input.approverId;
+    updateData.approvedByWelfareOfficerAt = new Date();
+  } else if (input.approverRole === 'FW') {
     updateData.approvedByFwId = input.approverId;
     updateData.approvedByFwAt = new Date();
   } else if (input.approverRole === 'CHAIRPERSON') {
@@ -196,26 +218,34 @@ export async function approveClaim(input: ApproveClaimInput) {
     return c;
   });
 
-  // Check if both signatures are now in place (S3)
-  const needsTwoSigs = Number(input.amountApproved) > config.governance.twoSignatureThreshold;
-  const hasBoth = updated.approvedByFwId && updated.approvedByChairId;
-  if (needsTwoSigs && !hasBoth) {
-    // Still PENDING validation - notify the OTHER approver
-    const otherRole = input.approverRole === 'FW' ? 'CHAIRPERSON' : 'FW';
-    const others = await prisma.user.findMany({
-      where: { role: otherRole, isActive: true },
-      select: { id: true },
-    });
-    for (const u of others) {
-      await prisma.notification.create({
-        data: {
-          userId: u.id,
-          type: 'CLAIM_PENDING_2ND_SIG',
-          title: `Claim awaiting your co-signature`,
-          body: `K${input.amountApproved} claim requires ${otherRole} approval.`,
-          link: `/claims/${claim.id}`,
-        },
+  // Re-evaluate the signature requirement after this approval.
+  const needsApprovalLimit = Number(input.amountApproved) > config.governance.twoSignatureThreshold;
+  const allRequiredSigsIn = hasRequiredSignatures(updated, welfareOfficerAppointed);
+  const stillNeedsMoreSigs = needsApprovalLimit && !allRequiredSigsIn;
+
+  if (stillNeedsMoreSigs) {
+    // Notify the remaining required approvers
+    const remainingRoles: Array<'WELFARE_OFFICER' | 'FW' | 'CHAIRPERSON'> = [];
+    if (welfareOfficerAppointed && !updated.approvedByWelfareOfficerId) remainingRoles.push('WELFARE_OFFICER');
+    if (!updated.approvedByFwId) remainingRoles.push('FW');
+    if (!updated.approvedByChairId) remainingRoles.push('CHAIRPERSON');
+
+    for (const role of remainingRoles) {
+      const others = await prisma.user.findMany({
+        where: { role, isActive: true },
+        select: { id: true },
       });
+      for (const u of others) {
+        await prisma.notification.create({
+          data: {
+            userId: u.id,
+            type: 'CLAIM_PENDING_2ND_SIG',
+            title: `Claim awaiting your co-signature`,
+            body: `K${input.amountApproved} claim requires ${role} approval.`,
+            link: `/claims/${claim.id}`,
+          },
+        });
+      }
     }
   }
 
@@ -247,12 +277,12 @@ export async function approveClaim(input: ApproveClaimInput) {
       userId: claim.memberId,
       type: 'CLAIM_APPROVED',
       title: `Your claim was approved`,
-      body: `K${input.amountApproved} approved${needsTwoSigs && !hasBoth ? ' (awaiting co-signature)' : ''}.`,
+      body: `K${input.amountApproved} approved${stillNeedsMoreSigs ? ' (awaiting more signatures)' : ''}.`,
       link: `/claims/${claim.id}`,
     },
   });
 
-  return { claim: updated, needsTwoSigs, hasBoth };
+  return { claim: updated, needsApprovalLimit, allRequiredSigsIn };
 }
 
 export async function rejectClaim(claimId: string, rejecterId: string, reason: string) {

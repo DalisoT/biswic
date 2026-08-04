@@ -9,7 +9,6 @@ import { canApproveWelfare, canViewAllMembers } from '@/lib/permissions';
 import { config } from '@/lib/config';
 import { Heart, Plus } from 'lucide-react';
 import Link from 'next/link';
-import { hasBothSignatures } from '@/lib/claim-rules';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +24,11 @@ export default async function ClaimsPage() {
     orderBy: { createdAt: 'desc' },
     include: { member: { select: { serviceNumber: true, fullName: true } } },
   });
+
+  // Constitution Art. 5.3: when a Welfare Officer is appointed, the 3-sig
+  // rule applies to all claims. Otherwise the legacy 2-sig rule holds.
+  const welfareOfficerAppointed =
+    (await prisma.user.count({ where: { role: 'WELFARE_OFFICER', isActive: true } })) > 0;
 
   const pendingCount = claims.filter((c) => c.status === 'PENDING').length;
   const myApprovedCount = claims.filter((c) => c.status === 'APPROVED' || c.status === 'PAID').length;
@@ -111,7 +115,7 @@ export default async function ClaimsPage() {
               </TableHeader>
               <TableBody>
                 {claims.map((c) => {
-                  const sigsOk = hasBothSignatures(c);
+                  const overThreshold = Number(c.amountRequested) > config.governance.twoSignatureThreshold;
                   return (
                     <TableRow key={c.id}>
                       <TableCell>
@@ -139,8 +143,11 @@ export default async function ClaimsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {Number(c.amountRequested) > config.governance.twoSignatureThreshold ? (
-                          <span className="text-xs">
+                        {overThreshold ? (
+                          <span className="text-xs whitespace-nowrap">
+                            {welfareOfficerAppointed && (
+                              <>{c.approvedByWelfareOfficerId ? '✓' : '✗'} WO · </>
+                            )}
                             {c.approvedByFwId ? '✓' : '✗'} FW · {c.approvedByChairId ? '✓' : '✗'} Chair
                           </span>
                         ) : (

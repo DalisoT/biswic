@@ -138,7 +138,45 @@ export function checkWelfareClaim(input: ClaimCheckInput): ClaimCheckResult {
 }
 
 /**
- * Determine if a claim has both required signatures (for amounts > K1,000)
+ * Determine if a claim has all the required signatures for its amount.
+ *
+ * Constitution Art. 5.3:
+ *   - Welfare Officer + Finance Warrant + Chairperson  (when an Officer is
+ *     appointed per Art. 6.6)
+ *   - Finance Warrant + Chairperson  (otherwise; the legacy 2-sig rule)
+ *
+ * Below the two-signature threshold (K1,000), no signatures are required.
+ *
+ * `welfareOfficerAppointed` is computed at call time by the caller (the
+ * service layer queries for an active WELFARE_OFFICER user). Keeping the
+ * rule pure (no DB call) makes it easy to test and reason about.
+ */
+export function hasRequiredSignatures(
+  claim: {
+    amountRequested: NumericLike;
+    amountApproved: NumericLike | null;
+    approvedByWelfareOfficerId: string | null;
+    approvedByFwId: string | null;
+    approvedByChairId: string | null;
+  },
+  welfareOfficerAppointed: boolean,
+): boolean {
+  const amount = Number(claim.amountApproved ?? claim.amountRequested);
+  if (amount <= config.governance.twoSignatureThreshold) return true;
+
+  if (welfareOfficerAppointed) {
+    return !!(
+      claim.approvedByWelfareOfficerId &&
+      claim.approvedByFwId &&
+      claim.approvedByChairId
+    );
+  }
+  return !!(claim.approvedByFwId && claim.approvedByChairId);
+}
+
+/**
+ * Back-compat alias for callers that don't yet know about the Welfare
+ * Officer role. Treats the claim as 2-sig (FW + Chair) only.
  */
 export function hasBothSignatures(claim: {
   amountRequested: NumericLike;
@@ -146,9 +184,10 @@ export function hasBothSignatures(claim: {
   approvedByFwId: string | null;
   approvedByChairId: string | null;
 }): boolean {
-  const amount = Number(claim.amountApproved ?? claim.amountRequested);
-  if (amount <= config.governance.twoSignatureThreshold) return true;
-  return !!(claim.approvedByFwId && claim.approvedByChairId);
+  return hasRequiredSignatures(
+    { ...claim, approvedByWelfareOfficerId: null },
+    false,
+  );
 }
 
 /**

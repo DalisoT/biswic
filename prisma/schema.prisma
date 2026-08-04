@@ -89,6 +89,7 @@ model User {
   claims                WelfareClaim[]    @relation("MemberClaims")
   approvedByFwClaims    WelfareClaim[]    @relation("ApprovedByFw")
   approvedByChairClaims WelfareClaim[]    @relation("ApprovedByChair")
+  approvedByWelfareOfficerClaims WelfareClaim[] @relation("ApprovedByWelfareOfficer")
   auditLogs             AuditLog[]
   uploadedDocs          Document[]        @relation("UploadedDocs")
   uploadedDocVersions   DocumentVersion[] @relation("UploadedVersions")
@@ -222,13 +223,20 @@ model WelfareClaim {
   supportingDocUrl String?
   description     String?
 
-  // Two-signature approval
-  approvedByFwId    String?   @db.Uuid
-  approvedByFw      User?     @relation("ApprovedByFw", fields: [approvedByFwId], references: [id])
-  approvedByFwAt    DateTime?
-  approvedByChairId String?   @db.Uuid
-  approvedByChair   User?     @relation("ApprovedByChair", fields: [approvedByChairId], references: [id])
-  approvedByChairAt DateTime?
+  // Three-signature approval (Constitution Art. 5.3)
+  // - Welfare Claims Officer (where one has been appointed, Art. 6.6)
+  // - Finance Warrant (countersignature)
+  // - Chairperson (final sign-off)
+  // approvedByWelfareOfficerId/At stays NULL if no Welfare Officer is appointed.
+  approvedByWelfareOfficerId String?   @db.Uuid
+  approvedByWelfareOfficer   User?     @relation("ApprovedByWelfareOfficer", fields: [approvedByWelfareOfficerId], references: [id])
+  approvedByWelfareOfficerAt DateTime?
+  approvedByFwId             String?   @db.Uuid
+  approvedByFw               User?     @relation("ApprovedByFw", fields: [approvedByFwId], references: [id])
+  approvedByFwAt             DateTime?
+  approvedByChairId          String?   @db.Uuid
+  approvedByChair            User?     @relation("ApprovedByChair", fields: [approvedByChairId], references: [id])
+  approvedByChairAt          DateTime?
 
   // Override
   capOverrideNote String?

@@ -64,7 +64,7 @@ export async function approveClaimAction(formData: FormData) {
     await approveClaim({
       claimId: parsed.data.claimId,
       approverId: user.id,
-      approverRole: user.role as 'FW' | 'CHAIRPERSON',
+      approverRole: user.role as 'WELFARE_OFFICER' | 'FW' | 'CHAIRPERSON',
       amountApproved: parsed.data.amountApproved,
       capOverrideNote: parsed.data.capOverrideNote,
     });

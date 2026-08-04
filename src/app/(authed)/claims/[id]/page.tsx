@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { canApproveWelfare, canViewAllMembers } from '@/lib/permissions';
-import { hasBothSignatures } from '@/lib/claim-rules';
+import { hasRequiredSignatures } from '@/lib/claim-rules';
 import { config } from '@/lib/config';
 import { ApprovalForm } from '@/components/claims/approval-form';
 import { RejectForm } from '@/components/claims/reject-form';
@@ -23,6 +23,7 @@ export default async function ClaimDetailPage({ params }: { params: { id: string
     where: { id: params.id },
     include: {
       member: { select: { serviceNumber: true, fullName: true, rank: true, unit: true } },
+      approvedByWelfareOfficer: { select: { serviceNumber: true, fullName: true } },
       approvedByFw: { select: { serviceNumber: true, fullName: true } },
       approvedByChair: { select: { serviceNumber: true, fullName: true } },
     },
@@ -35,14 +36,25 @@ export default async function ClaimDetailPage({ params }: { params: { id: string
     return <div className="text-center py-12"><p>You do not have permission to view this claim.</p></div>;
   }
 
+  // Constitution Art. 5.3: when a Welfare Officer is appointed, the 3-sig
+  // rule applies. Otherwise the legacy 2-sig rule (FW + Chair) holds.
+  const welfareOfficerAppointed =
+    (await prisma.user.count({ where: { role: 'WELFARE_OFFICER', isActive: true } })) > 0;
+
   const canApprove = canApproveWelfare(user.role) && claim.status === 'PENDING';
   const needsTwoSigs = Number(claim.amountApproved ?? claim.amountRequested) > config.governance.twoSignatureThreshold;
-  const sigsOk = hasBothSignatures(claim);
+  const sigsOk = hasRequiredSignatures(claim, welfareOfficerAppointed);
 
-  const myApprovedThis = claim.approvedByFwId === user.id || claim.approvedByChairId === user.id;
+  const myApprovedThis =
+    claim.approvedByWelfareOfficerId === user.id ||
+    claim.approvedByFwId === user.id ||
+    claim.approvedByChairId === user.id;
 
-  const fwUser = await prisma.user.findUnique({ where: { serviceNumber: claim.approvedByFw?.serviceNumber ?? '' } }).catch(() => null);
-  const chairUser = claim.approvedByChair;
+  const roleDisplay: Record<string, string> = {
+    WELFARE_OFFICER: 'Welfare Claims Officer',
+    FW: 'Finance Warrant',
+    CHAIRPERSON: 'Chairperson',
+  };
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -96,15 +108,37 @@ export default async function ClaimDetailPage({ params }: { params: { id: string
       {/* Signatures */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Two-signature approval</CardTitle>
+          <CardTitle className="text-base">
+            {welfareOfficerAppointed ? 'Three-signature approval' : 'Two-signature approval'}
+          </CardTitle>
           <CardDescription>
             {needsTwoSigs
-              ? `This claim requires both FW and Chairperson signatures (amount > ${formatCurrency(config.governance.twoSignatureThreshold)}).`
+              ? welfareOfficerAppointed
+                ? `Constitution Art. 5.3: this claim requires Welfare Claims Officer + Finance Warrant + Chairperson signatures (amount > ${formatCurrency(config.governance.twoSignatureThreshold)}).`
+                : `This claim requires both FW and Chairperson signatures (amount > ${formatCurrency(config.governance.twoSignatureThreshold)}).`
               : `This claim is below the two-signature threshold (${formatCurrency(config.governance.twoSignatureThreshold)}).`}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-4">
+          <div className={`grid gap-4 ${welfareOfficerAppointed ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-1 md:grid-cols-2'}`}>
+            {welfareOfficerAppointed && (
+              <div className="flex items-center gap-2 p-3 border rounded-md">
+                {claim.approvedByWelfareOfficer ? (
+                  <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                ) : (
+                  <Clock className="h-5 w-5 text-muted-foreground" />
+                )}
+                <div>
+                  <div className="text-xs text-muted-foreground">Welfare Claims Officer</div>
+                  <div className="text-sm font-medium">
+                    {claim.approvedByWelfareOfficer?.fullName ?? 'Pending'}
+                  </div>
+                  {claim.approvedByWelfareOfficerAt && (
+                    <div className="text-xs text-muted-foreground">{formatDate(claim.approvedByWelfareOfficerAt)}</div>
+                  )}
+                </div>
+              </div>
+            )}
             <div className="flex items-center gap-2 p-3 border rounded-md">
               {claim.approvedByFw ? (
                 <CheckCircle2 className="h-5 w-5 text-emerald-600" />
@@ -151,10 +185,12 @@ export default async function ClaimDetailPage({ params }: { params: { id: string
       {canApprove && !myApprovedThis && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Approve as {user.role === 'FW' ? 'Finance Warrant' : 'Chairperson'}</CardTitle>
+            <CardTitle className="text-base">Approve as {roleDisplay[user.role] ?? user.role}</CardTitle>
             {needsTwoSigs && !sigsOk && (
               <CardDescription>
-                This will be your signature. {user.role === 'FW' ? 'Chair' : 'FW'} must also approve.
+                {welfareOfficerAppointed
+                  ? `This will be your signature. The other ${!claim.approvedByWelfareOfficerId ? 'Welfare Claims Officer, ' : ''}${!claim.approvedByFwId ? 'Finance Warrant, ' : ''}${!claim.approvedByChairId ? 'Chairperson' : ''} must also approve.`
+                  : `This will be your signature. ${user.role === 'FW' ? 'Chair' : 'FW'} must also approve.`}
               </CardDescription>
             )}
           </CardHeader>
