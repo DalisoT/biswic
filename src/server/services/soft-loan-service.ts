@@ -581,3 +581,165 @@ export async function recordRepayment(input: RecordRepaymentInput) {
 
   return { newBalance, fullyRepaid: remaining === 0 };
 }
+
+// ---------------------------------------------------------------------------
+// Default detection (Constitution Art. 5.5(f))
+// ---------------------------------------------------------------------------
+// Sacred rule S7c: a loan is in default after 2 missed monthly payments.
+// Defaults also: ineligible for new loans (enforced in checkLoanEligibility),
+// reported to the Committee (DisputeCase queue), and welfare payouts may
+// be reduced by the outstanding balance with the member's written consent
+// (handled in claim-service.ts via the WelfareClaim.writtenConsent flag).
+//
+// This function is designed to be called by a monthly cron (or manually by
+// the Deputy Treasurer / FW). It:
+//   1. Marks all past-due unpaid repayments as missed.
+//   2. If a loan now has 2+ missed repayments, transitions it to DEFAULTED
+//      and creates a DisputeCase (type=LOAN_DEFAULT) for the Committee.
+//   3. Returns a summary so the caller can show what was changed.
+// ---------------------------------------------------------------------------
+
+export interface DetectDefaultsResult {
+  loansChecked: number;
+  repaymentsMarked: number;
+  loansDefaulted: string[]; // loan IDs that transitioned to DEFAULTED
+  casesOpened: number;
+}
+
+export async function detectDefaults(
+  now: Date = new Date(),
+  actorId: string = 'SYSTEM_CRON',
+): Promise<DetectDefaultsResult> {
+  // 1) Mark all past-due unpaid repayments as missed
+  const overdue = await prisma.softLoanRepayment.findMany({
+    where: { missed: false, paidAt: null, dueDate: { lt: now } },
+    select: { id: true, loanId: true },
+  });
+
+  if (overdue.length > 0) {
+    await prisma.softLoanRepayment.updateMany({
+      where: { id: { in: overdue.map((o) => o.id) } },
+      data: { missed: true },
+    });
+  }
+
+  // 2) Find loans with 2+ missed repayments that are still active
+  const candidates = await prisma.softLoan.findMany({
+    where: {
+      status: { in: ['DISBURSED', 'REPAYING'] },
+      defaultedAt: null,
+      repayments: { some: { missed: true } },
+    },
+    include: {
+      applicant: { select: { id: true, serviceNumber: true, fullName: true } },
+      repayments: { where: { missed: true }, select: { id: true } },
+    },
+  });
+
+  const threshold = config.softLoans.defaultAfterMissedPayments;
+  const defaultedLoans: string[] = [];
+  let casesOpened = 0;
+
+  for (const loan of candidates) {
+    if (loan.repayments.length < threshold) continue;
+    // Transition to DEFAULTED
+    const reason = `${loan.repayments.length} missed monthly payments (threshold: ${threshold})`;
+    await prisma.softLoan.update({
+      where: { id: loan.id },
+      data: {
+        status: 'DEFAULTED',
+        defaultedAt: now,
+        defaultedReason: reason,
+      },
+    });
+    defaultedLoans.push(loan.id);
+
+    // Create a DisputeCase for the Committee to handle
+    const existing = await prisma.disputeCase.findFirst({
+      where: {
+        relatedEntityType: 'SoftLoan',
+        relatedEntityId: loan.id,
+        status: { in: ['OPEN', 'COMMITTEE_REVIEW'] },
+      },
+    });
+    if (!existing) {
+      await prisma.disputeCase.create({
+        data: {
+          type: 'LOAN_DEFAULT',
+          subjectMemberId: loan.applicantId,
+          relatedEntityType: 'SoftLoan',
+          relatedEntityId: loan.id,
+          status: 'COMMITTEE_REVIEW',
+          notes: `Loan defaulted: ${reason}. Applicant: ${loan.applicant.serviceNumber} ${loan.applicant.fullName}. Outstanding balance: K${Number(loan.balance).toFixed(2)}. Per Constitution Art. 5.5(f), the Committee must decide on (i) ineligibility for new loans (already enforced in checkLoanEligibility), (ii) welfare offset, and (iii) escalation to the Dispute Resolution Panel if repayment cannot be agreed.`,
+        },
+      });
+      casesOpened++;
+    }
+
+    // Notify the FW, Chair, and the applicant
+    const officers = await prisma.user.findMany({
+      where: { role: { in: ['FW', 'CHAIRPERSON'] }, isActive: true },
+      select: { id: true },
+    });
+    for (const u of officers) {
+      await prisma.notification.create({
+        data: {
+          userId: u.id,
+          type: 'LOAN_DEFAULTED',
+          title: 'Soft Loan in default',
+          body: `${loan.applicant.serviceNumber} ${loan.applicant.fullName}: ${reason}. Outstanding K${Number(loan.balance).toFixed(2)}.`,
+          link: `/finance/soft-loan-defaults`,
+        },
+      });
+    }
+    await prisma.notification.create({
+      data: {
+        userId: loan.applicantId,
+        type: 'LOAN_DEFAULTED',
+        title: 'Your soft loan is in default',
+        body: `${reason}. You are ineligible for new soft loans until this is cleared. Constitution Art. 5.5(f).`,
+        link: `/soft-loans/${loan.id}`,
+      },
+    });
+
+    await logAudit({
+      userId: actorId,
+      action: AUDIT_ACTIONS.UPDATE,
+      entity: 'SoftLoan',
+      entityId: loan.id,
+      afterValue: { event: 'DEFAULTED', reason, missedRepayments: loan.repayments.length },
+    });
+  }
+
+  return {
+    loansChecked: candidates.length,
+    repaymentsMarked: overdue.length,
+    loansDefaulted: defaultedLoans,
+    casesOpened,
+  };
+}
+
+/**
+ * Apply a welfare offset (Constitution Art. 5.5(f)(iii)).
+ * Returns the actual amount the member receives from the welfare bucket
+ * (capped at 0) and the amount that is credited to the loan.
+ * Caller is responsible for wrapping the bucket + loan updates in a
+ * transaction and for NOT calling this if the written consent flag is false.
+ */
+export async function applyWelfareOffset(
+  memberId: string,
+  approvedAmount: number,
+): Promise<{ welfareAmount: number; offsetAmount: number; loanId: string | null }> {
+  const outstanding = await getOutstandingLoan(memberId);
+  if (!outstanding || outstanding.status !== 'DEFAULTED') {
+    return { welfareAmount: approvedAmount, offsetAmount: 0, loanId: null };
+  }
+  const outstandingBal = Number(outstanding.balance);
+  if (outstandingBal <= 0) {
+    return { welfareAmount: approvedAmount, offsetAmount: 0, loanId: null };
+  }
+  const offset = Math.min(outstandingBal, approvedAmount);
+  const welfareAmount = Math.max(0, approvedAmount - offset);
+
+  return { welfareAmount, offsetAmount: offset, loanId: outstanding.id };
+}

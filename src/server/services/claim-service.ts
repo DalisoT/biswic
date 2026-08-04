@@ -14,6 +14,7 @@ import { checkWelfareClaim, bucketCodeForClaimType, hasRequiredSignatures } from
 import { logAudit, AUDIT_ACTIONS } from '@/lib/audit';
 import { config } from '@/lib/config';
 import type { Role } from '@/lib/permissions';
+import { applyWelfareOffset } from '@/server/services/soft-loan-service';
 
 export interface SubmitClaimInput {
   memberId: string;
@@ -23,6 +24,7 @@ export interface SubmitClaimInput {
   amountRequested: number;
   description: string;
   supportingDocUrl?: string;
+  writtenConsent?: boolean;
 }
 
 export async function submitClaim(input: SubmitClaimInput) {
@@ -63,6 +65,7 @@ export async function submitClaim(input: SubmitClaimInput) {
       status: 'PENDING',
       description: input.description,
       supportingDocUrl: input.supportingDocUrl,
+      writtenConsent: input.writtenConsent ?? false,
     },
   });
 
@@ -188,7 +191,15 @@ export async function approveClaim(input: ApproveClaimInput) {
   });
   if (!bucket) throw new Error('Bucket not found');
 
-  if (bucket.balance < input.amountApproved) {
+  // Constitution Art. 5.5(f)(iii): if the claimant gave written consent and
+  // has a defaulted soft loan, the welfare payout is reduced by the
+  // outstanding loan balance. The "saved" amount goes back to the loan.
+  let offset = { welfareAmount: input.amountApproved, offsetAmount: 0, loanId: null as string | null };
+  if (claim.writtenConsent) {
+    offset = await applyWelfareOffset(claim.memberId, input.amountApproved);
+  }
+
+  if (bucket.balance < offset.welfareAmount) {
     throw new Error(`Bucket ${bucket.code} has insufficient balance (K${bucket.balance.toFixed(2)}).`);
   }
 
@@ -200,20 +211,48 @@ export async function approveClaim(input: ApproveClaimInput) {
       data: updateData,
     });
 
+    // Debit the welfare bucket by the (possibly reduced) amount
     await tx.bucket.update({
       where: { id: bucket.id },
-      data: { balance: { decrement: input.amountApproved } },
+      data: { balance: { decrement: offset.welfareAmount } },
     });
 
     await tx.bucketTransaction.create({
       data: {
         bucketId: bucket.id,
-        amount: -input.amountApproved,
+        amount: -offset.welfareAmount,
         type: 'WELFARE_PAYOUT',
         referenceType: 'WelfareClaim',
         referenceId: c.id,
       },
     });
+
+    // If there was an offset, credit the SOFT_LOANS bucket and decrement
+    // the loan balance. The loan balance decrement is the canonical record;
+    // the bucket credit is the corresponding ledger entry.
+    if (offset.offsetAmount > 0 && offset.loanId) {
+      const softLoansBucket = await tx.bucket.findUnique({ where: { code: 'SOFT_LOANS' } });
+      if (softLoansBucket) {
+        await tx.bucket.update({
+          where: { id: softLoansBucket.id },
+          data: { balance: { increment: offset.offsetAmount } },
+        });
+        await tx.bucketTransaction.create({
+          data: {
+            bucketId: softLoansBucket.id,
+            amount: offset.offsetAmount,
+            type: 'SOFT_LOAN_REPAYMENT',
+            referenceType: 'WelfareClaim',
+            referenceId: c.id,
+            note: `Welfare offset per Constitution Art. 5.5(f)(iii) for loan ${offset.loanId}`,
+          },
+        });
+      }
+      await tx.softLoan.update({
+        where: { id: offset.loanId },
+        data: { balance: { decrement: offset.offsetAmount } },
+      });
+    }
 
     return c;
   });

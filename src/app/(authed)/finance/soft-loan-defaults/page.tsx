@@ -7,6 +7,7 @@ import { formatCurrency, formatDate } from '@/lib/utils';
 import { canViewAllMembers } from '@/lib/permissions';
 import { AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
+import { RunDefaultDetectionButton } from '@/components/soft-loans/run-default-detection-button';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,6 +41,19 @@ export default async function SoftLoanDefaultsPage() {
           outstanding balance with their written consent; the case is referred to the Committee.
         </p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Monthly default detection</CardTitle>
+          <CardDescription>
+            Run on the 6th of each month (after salary-deducted repayments have cleared). When a Supabase
+            cron is wired up, this button becomes a fallback.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <RunDefaultDetectionButton />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader className="pb-2">

@@ -108,6 +108,21 @@ export function SubmitClaimForm() {
         />
       </div>
 
+      <div className="border-t pt-3 flex items-start gap-2">
+        <input
+          id="writtenConsent"
+          name="writtenConsent"
+          type="checkbox"
+          value="true"
+          className="mt-0.5"
+        />
+        <Label htmlFor="writtenConsent" className="text-xs leading-snug">
+          If I have an outstanding defaulted soft loan, I consent to having this welfare payout
+          reduced by the outstanding loan balance (Constitution Art. 5.5(f)(iii)). The
+          "saved" amount will be credited back to the Soft Loans bucket against my loan.
+        </Label>
+      </div>
+
       {msg && (
         <div className={`flex items-start gap-2 p-3 rounded-md text-sm ${msg.ok ? 'bg-emerald-50 text-emerald-700' : 'bg-destructive/10 text-destructive'}`}>
           {msg.ok ? <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" /> : <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />}

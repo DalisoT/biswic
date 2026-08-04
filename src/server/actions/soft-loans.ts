@@ -17,6 +17,7 @@ import {
   applyForLoan,
   approveLoan,
   checkLoanEligibility,
+  detectDefaults,
   disburseLoan,
   getOutstandingLoan,
   recordRepayment,
@@ -159,6 +160,27 @@ export async function recordRepaymentAction(formData: FormData) {
     return { success: true };
   } catch (err: any) {
     return { error: err.message ?? 'Failed to record repayment.' };
+  }
+}
+
+/**
+ * Run the monthly default-detection pass manually. The Deputy Treasurer / FW
+ * runs this on the 6th of each month (when the salary-deducted repayments
+ * have cleared). Once a Supabase cron is wired up, this can be replaced by
+ * a scheduled call to detectDefaults().
+ */
+export async function detectDefaultsAction() {
+  const user = await requireUser();
+  if (user.role !== 'FW' && user.role !== 'TREASURER' && user.role !== 'DEPUTY_TREASURER' && user.role !== 'CHAIRPERSON') {
+    return { error: 'Only the FW, Treasurer, Deputy Treasurer, or Chair may run this.' };
+  }
+  try {
+    const result = await detectDefaults(new Date(), user.id);
+    revalidatePath('/finance/soft-loan-defaults');
+    revalidatePath('/governance/disputes');
+    return { success: true, ...result };
+  } catch (err: any) {
+    return { error: err.message ?? 'Failed to run default detection.' };
   }
 }
 

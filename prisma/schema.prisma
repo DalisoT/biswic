@@ -718,12 +718,12 @@ model LendingSubCommittee {
 model DisputeCase {
   id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   caseNumber      Int       @default(autoincrement()) // human-friendly sequential number
-  type            String    // 'LOAN_DEFAULT' | 'EXPULSION' | 'OTHER'
+  type            String    // values: LOAN_DEFAULT, EXPULSION, OTHER
   subjectMemberId String?   @db.Uuid
   subjectMember   User?     @relation("DisputeSubject", fields: [subjectMemberId], references: [id])
-  relatedEntityType String? // 'SoftLoan' | 'WelfareClaim' | etc.
+  relatedEntityType String? // SoftLoan, WelfareClaim, etc.
   relatedEntityId   String?
-  status          String    @default('OPEN') // 'OPEN' | 'COMMITTEE_REVIEW' | 'PANEL_REVIEW' | 'RESOLVED' | 'REJECTED'
+  status          String    @default("OPEN") // OPEN, COMMITTEE_REVIEW, PANEL_REVIEW, RESOLVED, REJECTED
   openedAt        DateTime  @default(now())
   resolvedAt      DateTime?
   notes           String?

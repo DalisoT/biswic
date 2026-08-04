@@ -13,6 +13,7 @@ const submitSchema = z.object({
   amountRequested: z.coerce.number().positive(),
   description: z.string().min(1),
   supportingDocUrl: z.string().optional(),
+  writtenConsent: z.coerce.boolean().optional().default(false),
 });
 
 export async function submitClaimAction(formData: FormData) {
@@ -32,6 +33,7 @@ export async function submitClaimAction(formData: FormData) {
       amountRequested: parsed.data.amountRequested,
       description: parsed.data.description,
       supportingDocUrl: parsed.data.supportingDocUrl,
+      writtenConsent: parsed.data.writtenConsent,
     });
   } catch (err: any) {
     return { error: err.message ?? 'Failed to submit claim.' };
