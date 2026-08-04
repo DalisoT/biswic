@@ -21,6 +21,7 @@ const profileSchema = z.object({
   email: z.string().email().optional().or(z.literal('')),
   rank: z.string().optional(),
   unit: z.string().optional(),
+  nationalRegistrationNumber: z.string().optional().or(z.literal('')),
   nextOfKinName: z.string().optional(),
   nextOfKinRelationship: z.string().optional(),
   nextOfKinPhone: z.string().optional(),
@@ -52,6 +53,7 @@ export async function updateProfileAction(
       email: parsed.data.email || null,
       rank: parsed.data.rank || null,
       unit: parsed.data.unit || null,
+      nationalRegistrationNumber: parsed.data.nationalRegistrationNumber || null,
       nextOfKin: nextOfKin ? JSON.stringify(nextOfKin) : null,
     },
   });

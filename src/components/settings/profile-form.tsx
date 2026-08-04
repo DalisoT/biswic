@@ -14,6 +14,7 @@ interface ProfileFormProps {
     email: string;
     rank: string;
     unit: string;
+    nationalRegistrationNumber: string;
     nextOfKin: { name: string; relationship: string; phone: string } | null;
   };
 }
@@ -57,6 +58,20 @@ export function ProfileForm({ initial }: ProfileFormProps) {
         <div className="space-y-1">
           <Label htmlFor="unit">Unit</Label>
           <Input id="unit" name="unit" defaultValue={initial.unit} />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <Label htmlFor="nationalRegistrationNumber">
+            National Registration Number (NRC)
+            <span className="text-xs text-muted-foreground ml-1">Constitution Art. 2.6</span>
+          </Label>
+          <Input
+            id="nationalRegistrationNumber"
+            name="nationalRegistrationNumber"
+            defaultValue={initial.nationalRegistrationNumber}
+            placeholder="e.g. 123456/78/9"
+          />
         </div>
       </div>
 

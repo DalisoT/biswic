@@ -64,6 +64,14 @@ model User {
   unit          String?
   phone         String   @unique
   email         String?  @unique
+
+  // Constitution Art. 2.2 + Art. 2.6 — membership register fields
+  isFoundingMember           Boolean   @default(false)
+  foundingSignedAt           DateTime?
+  nationalRegistrationNumber String?  @unique // NRC
+  membershipRegisterSignedAt DateTime? // when the register was signed
+  membershipRegisterSignatureUrl String? // path in 'membership-register' storage bucket
+
   role          Role     @default(MEMBER)
   nextOfKin     Json? // { name, relationship, phone }
   isActive      Boolean  @default(true)

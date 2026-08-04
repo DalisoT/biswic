@@ -37,6 +37,9 @@ const OFFICER_PASSWORD = process.env.SEED_OFFICER_PASSWORD || 'ChangeMe123!';
 const MEMBER_PASSWORD = process.env.SEED_MEMBER_PASSWORD || 'ChangeMe123!';
 const SEED_DOMAIN = process.env.SEED_EMAIL_DOMAIN || 'biswic.coop';
 
+// Constitution Art. 2.2: founding register signed 22 July 2026.
+const FOUNDING_REGISTER_DATE = new Date('2026-07-22');
+
 type SeedRole =
   | 'CHAIRPERSON'
   | 'VICE_CHAIRPERSON'
@@ -56,6 +59,8 @@ interface SeedUserInput {
   phone: string;
   rank?: string;
   unit?: string;
+  isFoundingMember?: boolean;
+  foundingSignedAt?: Date;
 }
 
 /**
@@ -110,6 +115,8 @@ async function ensureUser(input: SeedUserInput): Promise<string> {
       unit: input.unit ?? null,
       phone: input.phone,
       isActive: true,
+      isFoundingMember: input.isFoundingMember ?? false,
+      foundingSignedAt: input.foundingSignedAt ?? null,
     },
     create: {
       id: userId,
@@ -121,6 +128,8 @@ async function ensureUser(input: SeedUserInput): Promise<string> {
       unit: input.unit ?? null,
       phone: input.phone,
       isActive: true,
+      isFoundingMember: input.isFoundingMember ?? false,
+      foundingSignedAt: input.foundingSignedAt ?? null,
     },
   });
 
@@ -162,16 +171,16 @@ async function main() {
   console.log('\n--- Creating committee users ---');
 
   const committee: SeedUserInput[] = [
-    { serviceNumber: 'CHAIR-001', fullName: 'Col. James Mwamba', role: 'CHAIRPERSON', rank: 'Colonel', unit: 'HQ', phone: '+260971000001', password: OFFICER_PASSWORD },
-    { serviceNumber: 'VICE-001', fullName: 'Maj. Sylvia Banda', role: 'VICE_CHAIRPERSON', rank: 'Major', unit: 'HQ', phone: '+260971000002', password: OFFICER_PASSWORD },
-    { serviceNumber: 'CCD-001', fullName: 'Maj. Peter Zulu', role: 'CCD', rank: 'Major', unit: 'HQ', phone: '+260971000003', password: OFFICER_PASSWORD },
-    { serviceNumber: 'FW-001', fullName: 'Capt. Grace Mutale', role: 'FW', rank: 'Captain', unit: 'Finance', phone: '+260971000004', password: OFFICER_PASSWORD },
-    { serviceNumber: 'SEC-001', fullName: 'Lt. David Phiri', role: 'SECRETARY', rank: 'Lieutenant', unit: 'Admin', phone: '+260971000005', password: OFFICER_PASSWORD },
-    { serviceNumber: 'TR-001', fullName: 'WO2 Mary Tembo', role: 'TREASURER', rank: 'Warrant Officer 2', unit: 'Finance', phone: '+260971000006', password: OFFICER_PASSWORD },
-    { serviceNumber: 'DTR-001', fullName: 'Sgt. John Lungu', role: 'DEPUTY_TREASURER', rank: 'Sergeant', unit: 'Finance', phone: '+260971000007', password: OFFICER_PASSWORD },
-    { serviceNumber: 'TRUSTEE-001', fullName: 'Maj. Robert Chileshe', role: 'TRUSTEE', rank: 'Major', unit: 'HQ', phone: '+260971000008', password: OFFICER_PASSWORD },
-    { serviceNumber: 'TRUSTEE-002', fullName: 'Capt. Elizabeth Sakala', role: 'TRUSTEE', rank: 'Captain', unit: 'HQ', phone: '+260971000009', password: OFFICER_PASSWORD },
-    { serviceNumber: 'TRUSTEE-003', fullName: 'WO1 Thomas Mwanza', role: 'TRUSTEE', rank: 'Warrant Officer 1', unit: 'HQ', phone: '+260971000010', password: OFFICER_PASSWORD },
+    { serviceNumber: 'CHAIR-001', fullName: 'Col. James Mwamba', role: 'CHAIRPERSON', rank: 'Colonel', unit: 'HQ', phone: '+260971000001', password: OFFICER_PASSWORD, isFoundingMember: true, foundingSignedAt: FOUNDING_REGISTER_DATE },
+    { serviceNumber: 'VICE-001', fullName: 'Maj. Sylvia Banda', role: 'VICE_CHAIRPERSON', rank: 'Major', unit: 'HQ', phone: '+260971000002', password: OFFICER_PASSWORD, isFoundingMember: true, foundingSignedAt: FOUNDING_REGISTER_DATE },
+    { serviceNumber: 'CCD-001', fullName: 'Maj. Peter Zulu', role: 'CCD', rank: 'Major', unit: 'HQ', phone: '+260971000003', password: OFFICER_PASSWORD, isFoundingMember: true, foundingSignedAt: FOUNDING_REGISTER_DATE },
+    { serviceNumber: 'FW-001', fullName: 'Capt. Grace Mutale', role: 'FW', rank: 'Captain', unit: 'Finance', phone: '+260971000004', password: OFFICER_PASSWORD, isFoundingMember: true, foundingSignedAt: FOUNDING_REGISTER_DATE },
+    { serviceNumber: 'SEC-001', fullName: 'Lt. David Phiri', role: 'SECRETARY', rank: 'Lieutenant', unit: 'Admin', phone: '+260971000005', password: OFFICER_PASSWORD, isFoundingMember: true, foundingSignedAt: FOUNDING_REGISTER_DATE },
+    { serviceNumber: 'TR-001', fullName: 'WO2 Mary Tembo', role: 'TREASURER', rank: 'Warrant Officer 2', unit: 'Finance', phone: '+260971000006', password: OFFICER_PASSWORD, isFoundingMember: true, foundingSignedAt: FOUNDING_REGISTER_DATE },
+    { serviceNumber: 'DTR-001', fullName: 'Sgt. John Lungu', role: 'DEPUTY_TREASURER', rank: 'Sergeant', unit: 'Finance', phone: '+260971000007', password: OFFICER_PASSWORD, isFoundingMember: true, foundingSignedAt: FOUNDING_REGISTER_DATE },
+    { serviceNumber: 'TRUSTEE-001', fullName: 'Maj. Robert Chileshe', role: 'TRUSTEE', rank: 'Major', unit: 'HQ', phone: '+260971000008', password: OFFICER_PASSWORD, isFoundingMember: true, foundingSignedAt: FOUNDING_REGISTER_DATE },
+    { serviceNumber: 'TRUSTEE-002', fullName: 'Capt. Elizabeth Sakala', role: 'TRUSTEE', rank: 'Captain', unit: 'HQ', phone: '+260971000009', password: OFFICER_PASSWORD, isFoundingMember: true, foundingSignedAt: FOUNDING_REGISTER_DATE },
+    { serviceNumber: 'TRUSTEE-003', fullName: 'WO1 Thomas Mwanza', role: 'TRUSTEE', rank: 'Warrant Officer 1', unit: 'HQ', phone: '+260971000010', password: OFFICER_PASSWORD, isFoundingMember: true, foundingSignedAt: FOUNDING_REGISTER_DATE },
   ];
 
   // Make sure FW and CHAIR exist first because the rest of the seed
@@ -206,6 +215,8 @@ async function main() {
       unit: fm.unit,
       phone: fm.phone,
       password: MEMBER_PASSWORD,
+      isFoundingMember: true,
+      foundingSignedAt: FOUNDING_REGISTER_DATE,
     });
     memberIds.push(userId);
   }

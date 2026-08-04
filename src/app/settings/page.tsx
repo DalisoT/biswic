@@ -64,6 +64,23 @@ export default async function SettingsPage() {
               <div className="col-span-2">{user.email ?? '—'}</div>
             </div>
             <div className="grid grid-cols-3 gap-2">
+              <div className="text-muted-foreground">NRC</div>
+              <div className="col-span-2">{user.nationalRegistrationNumber ?? <span className="text-amber-700">Not set — required by Constitution Art. 2.6</span>}</div>
+            </div>
+            {user.isFoundingMember && (
+              <div className="grid grid-cols-3 gap-2">
+                <div className="text-muted-foreground">Founding member</div>
+                <div className="col-span-2">
+                  <Badge variant="success">Yes</Badge>
+                  {user.foundingSignedAt && (
+                    <span className="text-xs text-muted-foreground ml-2">
+                      Signed {formatDate(user.foundingSignedAt)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+            <div className="grid grid-cols-3 gap-2">
               <div className="text-muted-foreground">Member since</div>
               <div className="col-span-2">{formatDate(user.joinedAt)}</div>
             </div>
@@ -90,6 +107,7 @@ export default async function SettingsPage() {
             email: user.email ?? '',
             rank: user.rank ?? '',
             unit: user.unit ?? '',
+            nationalRegistrationNumber: user.nationalRegistrationNumber ?? '',
             nextOfKin,
           }} />
         </CardContent>
