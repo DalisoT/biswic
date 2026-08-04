@@ -87,6 +87,13 @@ export const config = {
     attendanceReviewRatio: 0.5, // Below 50% = flagged for review
     twoSignatureThreshold: 1000, // Welfare payouts > K1,000 need TWO signatures
     capOverrideRequiresNote: true, // 2/3 override note required if cap exceeded
+
+    // Constitution Art. 2.2: "No additional members may be admitted before
+    // the Cooperative's formal registration as a Cooperative under the laws
+    // of [Country]."  Set this to `true` ONLY after the Cooperative has
+    // been formally registered. Until then, any in-app "add member" flow
+    // (the Secretary's UI, when built) must reject new admissions.
+    foundingLockReleased: false,
   },
 
   // Land acquisition parameters
@@ -108,6 +115,14 @@ export const config = {
 } as const;
 
 export type BucketCode = (typeof config.buckets)[keyof typeof config.buckets]['code'];
+
+/**
+ * Helper: is the founding lock still active? (Constitution Art. 2.2)
+ * Returns true while the cooperative has not been formally registered.
+ */
+export function isFoundingLockActive(now: Date = new Date()): boolean {
+  return !config.governance.foundingLockReleased;
+}
 
 /**
  * Helper: get bucket by code
