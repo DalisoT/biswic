@@ -119,7 +119,7 @@ export function SubmitClaimForm() {
         <Label htmlFor="writtenConsent" className="text-xs leading-snug">
           If I have an outstanding defaulted soft loan, I consent to having this welfare payout
           reduced by the outstanding loan balance (Constitution Art. 5.5(f)(iii)). The
-          "saved" amount will be credited back to the Soft Loans bucket against my loan.
+          &ldquo;saved&rdquo; amount will be credited back to the Soft Loans bucket against my loan.
         </Label>
       </div>
 
