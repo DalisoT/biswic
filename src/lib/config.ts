@@ -24,6 +24,10 @@ export const config = {
   monthlyContributionPerMember: 100, // K100 per member per month
 
   // Bucket allocation percentages (must sum to 100)
+  // Source of truth: Constitution Article 4.1
+  //   50% Land & Capital Reserve | 20% Business Seed | 15% Funeral |
+  //    8% Soft Loans           |  4% Admin & Audit  |  3% Medical Emergency
+  // At 74 members × K100/month: 3,700 + 1,480 + 1,110 + 592 + 296 + 222 = K7,400.
   buckets: {
     LAND_CAPITAL: {
       name: 'Land & Capital Reserve',
@@ -40,9 +44,9 @@ export const config = {
       code: 'FUNERAL',
       percentage: 15,
     },
-    MEDICAL: {
-      name: 'Medical Emergency',
-      code: 'MEDICAL',
+    SOFT_LOANS: {
+      name: 'Soft Loans',
+      code: 'SOFT_LOANS',
       percentage: 8,
     },
     ADMIN: {
@@ -50,14 +54,15 @@ export const config = {
       code: 'ADMIN',
       percentage: 4,
     },
-    EDUCATION: {
-      name: 'Education Levy',
-      code: 'EDUCATION',
+    MEDICAL: {
+      name: 'Medical Emergency',
+      code: 'MEDICAL',
       percentage: 3,
     },
   } as const,
 
   // Welfare payout caps (absolute amounts in K, NOT percentages)
+  // Source of truth: Constitution Articles 5.1 (funeral) and 5.2 (medical).
   welfareCaps: {
     funeral: {
       amountPerEvent: 8000, // K8,000 max per funeral event
@@ -66,8 +71,13 @@ export const config = {
       initialCapPeriodMonths: 24, // K8,000 cap applies for first 24 months
     },
     medical: {
-      amountPerEvent: 3000, // K3,000 max per medical event
-      maxPerYear: 2, // 2 medical payouts/year max
+      // Constitution Art. 5.2: K2,000 per event, 1 event/year.
+      // (Reduced from the original K3,000 / 2 events/year when the Medical
+      // bucket allocation was cut from 8% to 3% to fund Soft Loans.)
+      // May be reviewed upward by 2/3 GM vote once the bucket has a
+      // sustained balance.
+      amountPerEvent: 2000,
+      maxPerYear: 1,
     },
   },
 

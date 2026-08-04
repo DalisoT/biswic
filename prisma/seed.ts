@@ -29,6 +29,7 @@ import { createAdminClient } from '../src/lib/supabase/admin';
 import { config, isInInitialPeriod } from '../src/lib/config';
 import { allocateToBuckets, assertAllocationsSumExactly } from '../src/lib/buckets';
 import { logAudit, AUDIT_ACTIONS } from '../src/lib/audit';
+import { FOUNDING_MEMBERS } from './founding-members';
 
 const prisma = new PrismaClient();
 
@@ -184,20 +185,26 @@ async function main() {
   }
 
   // ---------------------------------------------------------------------------
-  // 3. Members (config.defaultSeedMemberCount)
+  // 3. Members (the 63 non-officer founding members from the nominal roll)
   // ---------------------------------------------------------------------------
-  console.log(`\n--- Creating ${config.defaultSeedMemberCount} members ---`);
+  // Constitution Art. 2.2: the 74 founding members are the persons who signed
+  // the founding register. The 10 officers are in the committee list above;
+  // these 63 are the non-officer members. (1 founding member is missing from
+  // the source roll -- see founding-members.ts header for the count note.)
+  //
+  // The roles for some of these members will be assigned later by the
+  // Chairperson/Secretary via the in-app "Edit Member" UI. Until then, all
+  // roll members default to role: MEMBER.
+  console.log(`\n--- Creating ${FOUNDING_MEMBERS.length} founding members from the nominal roll ---`);
   const memberIds: string[] = [];
-  for (let i = 1; i <= config.defaultSeedMemberCount; i++) {
-    const serviceNumber = `MEMBER-${String(i).padStart(3, '0')}`;
-    const phone = `+26097200000${String(i).padStart(2, '0')}`; // deterministic, no Math.random()
+  for (const fm of FOUNDING_MEMBERS) {
     const userId = await ensureUser({
-      serviceNumber,
-      fullName: `Member ${i} ${surname(i)}`,
+      serviceNumber: fm.serviceNumber,
+      fullName: fm.fullName,
       role: 'MEMBER',
-      rank: ranksByIndex(i),
-      unit: unitsByIndex(i),
-      phone,
+      rank: fm.rank,
+      unit: fm.unit,
+      phone: fm.phone,
       password: MEMBER_PASSWORD,
     });
     memberIds.push(userId);
@@ -497,62 +504,16 @@ async function main() {
   await logAudit({
     action: AUDIT_ACTIONS.CREATE,
     entity: 'Seed',
-    notes: `Initial seed: ${config.defaultSeedMemberCount} members, 10 committee, 6 buckets`,
+    notes: `Initial seed: ${FOUNDING_MEMBERS.length} founding members, 10 committee, 6 buckets (Constitution Art. 4.1 mix)`,
   });
 
   console.log('\nSeed complete!');
   console.log('\n--- LOGIN CREDENTIALS ---');
   console.log(`Officers: service number [CHAIR-001 / FW-001 / etc] + password: ${OFFICER_PASSWORD}`);
-  console.log(
-    `Members:  service number [MEMBER-001 ... MEMBER-${String(
-      config.defaultSeedMemberCount
-    ).padStart(3, '0')}] + password: ${MEMBER_PASSWORD}`
-  );
+  console.log(`Members:  service number [real 6-digit service number from the roll] + password: ${MEMBER_PASSWORD}`);
   console.log(`\nEmails are: <service-number-lowercase>@${SEED_DOMAIN}`);
-}
-
-// =============================================================================
-// Helper: deterministic placeholder data
-// =============================================================================
-
-function surname(i: number): string {
-  const surnames = [
-    'Banda',
-    'Mutale',
-    'Zulu',
-    'Phiri',
-    'Tembo',
-    'Mwamba',
-    'Lungu',
-    'Chileshe',
-    'Sakala',
-    'Mwanza',
-    'Kunda',
-    'Nyirenda',
-    'Mbewe',
-    'Himoonga',
-    'Simukonda',
-  ];
-  return surnames[i % surnames.length];
-}
-
-function ranksByIndex(i: number): string {
-  const ranks = ['Pte', 'Cpl', 'Sgt', 'WO2', 'Lt', 'Capt', 'Maj', 'Col'];
-  return ranks[i % ranks.length];
-}
-
-function unitsByIndex(i: number): string {
-  const units = [
-    'Alpha Coy',
-    'Bravo Coy',
-    'Charlie Coy',
-    'Support Coy',
-    'HQ',
-    'Logistics',
-    'Signals',
-    'Engineers',
-  ];
-  return units[i % units.length];
+  console.log(`\nNOTE: Constitution Art. 2.2 says 74 founding members. The roll has 63; plus 10 officers = 73.`);
+  console.log(`      The 74th member is missing from the source document. Add their row to founding-members.ts and re-seed.`);
 }
 
 main()

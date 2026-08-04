@@ -95,7 +95,7 @@ export function bucketColor(code: string): string {
     FUNERAL: '#475569',    // slate
     MEDICAL: '#0891b2',    // cyan
     ADMIN: '#64748b',      // slate-light
-    EDUCATION: '#7c3aed',  // violet
+    SOFT_LOANS: '#10b981', // emerald (money in / out)
   };
   return colors[code] ?? '#64748b';
 }

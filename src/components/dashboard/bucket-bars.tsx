@@ -13,9 +13,9 @@ const COLORS: Record<string, string> = {
   LAND: '#0a3a5c',
   BUSINESS: '#b45309',
   FUNERAL: '#475569',
-  MEDICAL: '#0891b2',
+  SOFT_LOANS: '#10b981',
   ADMIN: '#64748b',
-  EDUCATION: '#7c3aed',
+  MEDICAL: '#0891b2',
 };
 
 export function BucketBars({ buckets }: { buckets: Bucket[] }) {
