@@ -17,6 +17,7 @@ import {
   Shield,
   BarChart3,
   HandCoins,
+  AlertCircle,
   type LucideIcon,
 } from 'lucide-react';
 import { roleLabel } from '@/lib/permissions';
@@ -42,6 +43,9 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Events & Charity', href: '/events', icon: CalendarDays },
   { label: 'Audit Log', href: '/audit', icon: Shield, roles: ['FW', 'CHAIRPERSON', 'TRUSTEE', 'INTERNAL_AUDITOR'] },
   { label: 'Reports', href: '/reports', icon: BarChart3, roles: ['FW', 'CHAIRPERSON', 'TREASURER', 'DEPUTY_TREASURER'] },
+  { label: 'Loan Applications', href: '/finance/soft-loan-applications', icon: HandCoins, roles: ['FW', 'CHAIRPERSON', 'TREASURER', 'DEPUTY_TREASURER', 'CCD'] },
+  { label: 'Loan Register', href: '/finance/soft-loan-register', icon: FileText, roles: ['FW', 'CHAIRPERSON', 'TREASURER', 'DEPUTY_TREASURER'] },
+  { label: 'Loan Defaults', href: '/finance/soft-loan-defaults', icon: AlertCircle, roles: ['FW', 'CHAIRPERSON', 'TREASURER', 'DEPUTY_TREASURER', 'CCD'] },
   { label: 'Settings', href: '/settings', icon: Settings },
 ];
 
