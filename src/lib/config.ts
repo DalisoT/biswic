@@ -90,10 +90,11 @@ export const config = {
 
     // Constitution Art. 2.2: "No additional members may be admitted before
     // the Cooperative's formal registration as a Cooperative under the laws
-    // of [Country]."  Set this to `true` ONLY after the Cooperative has
-    // been formally registered. Until then, any in-app "add member" flow
-    // (the Secretary's UI, when built) must reject new admissions.
-    foundingLockReleased: false,
+    // of [Country]."  Default: locked. Set the env var
+    // FOUNDING_LOCK_RELEASED=true in Vercel to release the lock AFTER the
+    // Cooperative has been formally registered. Until then, the in-app
+    // "add member" flow rejects new admissions.
+    foundingLockReleased: process.env.FOUNDING_LOCK_RELEASED === 'true',
   },
 
   // Land acquisition parameters
