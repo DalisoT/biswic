@@ -30,8 +30,8 @@ export default async function NewMemberPage() {
               Founding lock is active
             </div>
             <p className="text-sm text-amber-700">
-              Constitution Art. 2.2: <em>"No additional members may be admitted before the Cooperative's
-              formal registration as a Cooperative."</em>
+              Constitution Art. 2.2: <em>&ldquo;No additional members may be admitted before the Cooperative&rsquo;s
+              formal registration as a Cooperative.&rdquo;</em>
             </p>
             <p className="text-sm text-amber-700">
               After the Cooperative is registered with the relevant Zambian authority, the Secretary
