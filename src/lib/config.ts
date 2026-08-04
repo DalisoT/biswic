@@ -100,6 +100,16 @@ export const config = {
   totalProjectedLandAcquisitionHectares: { min: 1, max: 2 },
   totalProjectedLandPlotsPerHectare: 45, // ~450 sqm per plot
 
+  // Soft Loans (Constitution Art. 5.5)
+  softLoans: {
+    maxPrincipal: 3000,            // K3,000 per member at any one time (Art. 5.5(c)(i))
+    maxTermMonths: 6,              // 6-month max term (Art. 5.5(c)(ii))
+    interestRatePerAnnum: 0.05,    // 5% p.a. (Art. 5.5(c)(iii))
+    minMembershipMonths: 6,        // eligibility: 6+ months (Art. 5.5(b)(i))
+    defaultAfterMissedPayments: 2, // 2 missed = default (Art. 5.5(f))
+    requiredApprovals: 2,          // 2 of 3 sub-committee (Art. 5.5(d))
+  },
+
   // Security
   security: {
     maxFailedLoginAttempts: 5,

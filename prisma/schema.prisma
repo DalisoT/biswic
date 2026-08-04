@@ -110,6 +110,14 @@ model User {
   createdMeetings       Meeting[]         @relation("MeetingCreator")
   createdEvents         Event[]           @relation("EventCreator")
 
+  // Soft Loans (Constitution Art. 5.5)
+  loans                 SoftLoan[]              @relation("LoanApplicant")
+  loanRepaymentRecords  SoftLoanRepayment[]     @relation("LoanRepaymentRecorder")
+  lendingChairOf        LendingSubCommittee[]   @relation("LendingChair")
+  lendingMember1Of      LendingSubCommittee[]   @relation("LendingMember1")
+  lendingMember2Of      LendingSubCommittee[]   @relation("LendingMember2")
+  disputeCasesAsSubject DisputeCase[]           @relation("DisputeSubject")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -584,6 +592,148 @@ enum CharityStatus {
   ACTIVE
   COMPLETED
   CANCELLED
+}
+
+// =============================================================================
+// SOFT LOANS (Constitution Art. 5.5)
+// =============================================================================
+// Interest-bearing loans from the SOFT_LOANS bucket to members in good
+// standing. Sacred rules:
+//   S7a - Member must be active 6+ months, not in arrears, no outstanding
+//         loan, no prior default
+//   S7b - Max K3,000 principal, 6-month term, 5% p.a. interest
+//   S7c - Default after 2 missed monthly payments
+//   S7d - Defaulted members ineligible for new loans; welfare payouts may
+//         be reduced by the outstanding balance with their written consent
+//         (Constitution Art. 5.5(f)(iii))
+//   S7e - No self-approval (Constitution Art. 5.5(h))
+// =============================================================================
+
+enum LoanStatus {
+  PENDING       // submitted, awaiting sub-committee approval
+  APPROVED      // 2 of 3 sub-committee members have approved
+  REJECTED      // sub-committee rejected
+  DISBURSED     // principal paid out, repayment schedule active
+  REPAYING      // at least one repayment made, more expected
+  COMPLETED     // all repayments made
+  DEFAULTED     // 2+ missed payments (Constitution Art. 5.5(f))
+}
+
+model SoftLoan {
+  id              String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  applicantId     String     @db.Uuid
+  applicant       User       @relation("LoanApplicant", fields: [applicantId], references: [id])
+
+  principal       Decimal    @db.Decimal(14, 2)
+  interestRate    Decimal    @db.Decimal(5, 4) // 0.0500 = 5% per annum (Constitution Art. 5.5(c)(iii))
+  termMonths      Int        // 1-6 (Constitution Art. 5.5(c)(ii))
+  monthlyPayment  Decimal    @db.Decimal(14, 2) // computed at approval
+  totalRepayment  Decimal    @db.Decimal(14, 2) // computed at approval
+  balance         Decimal    @default(0) @db.Decimal(14, 2) // outstanding (decremented on each repayment)
+
+  status          LoanStatus @default(PENDING)
+
+  purpose         String     // free text per Art. 5.5(e) - personal/family emergency
+  conflictDeclared Boolean   @default(false) // applicant declared COI w/ an approver
+
+  // Standing Lending Sub-Committee approvals (Constitution Art. 5.5(d))
+  // 3 members: chair (FW, ex officio) + 2 others
+  // 2 of 3 required to approve.
+  chairApprovedAt   DateTime?
+  member1ApprovedAt DateTime?
+  member2ApprovedAt DateTime?
+
+  appliedAt        DateTime  @default(now())
+  approvedAt       DateTime? // when 2nd of 3 approvals came in
+  rejectedAt       DateTime?
+  rejectionReason  String?
+  disbursedAt      DateTime?
+  completedAt      DateTime?
+  defaultedAt      DateTime? // Constitution Art. 5.5(f): 2+ missed payments
+  defaultedReason  String?
+  writtenOff       Boolean   @default(false) // if the Committee wrote off the debt
+
+  notes            String?
+
+  repayments       SoftLoanRepayment[]
+
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([applicantId, status])
+  @@index([status])
+  @@index([defaultedAt])
+}
+
+model SoftLoanRepayment {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  loanId         String    @db.Uuid
+  loan           SoftLoan  @relation(fields: [loanId], references: [id], onDelete: Cascade)
+
+  dueDate        DateTime
+  paidAt         DateTime?
+  expectedPrincipal Decimal @db.Decimal(14, 2)
+  expectedInterest  Decimal @db.Decimal(14, 2)
+  paidPrincipal     Decimal? @db.Decimal(14, 2)
+  paidInterest      Decimal? @db.Decimal(14, 2)
+  missed        Boolean   @default(false) // set by detectDefaults() cron
+
+  recordedById  String?   @db.Uuid
+  recordedBy    User?     @relation("LoanRepaymentRecorder", fields: [recordedById], references: [id])
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([loanId, dueDate])
+  @@index([loanId, dueDate])
+  @@index([missed, dueDate])
+}
+
+// Standing Lending Sub-Committee (Constitution Art. 5.5(d))
+// 3 members: chair (FW, ex officio per Art. 6.5 pattern) + 2 others
+// Established by General Meeting resolution; until then the 2-person panel
+// (FW + 1 other signatory) handles approvals.
+model LendingSubCommittee {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  chairId         String   @db.Uuid
+  chair           User     @relation("LendingChair", fields: [chairId], references: [id])
+  member1Id       String   @db.Uuid
+  member1         User     @relation("LendingMember1", fields: [member1Id], references: [id])
+  member2Id       String   @db.Uuid
+  member2         User     @relation("LendingMember2", fields: [member2Id], references: [id])
+
+  establishedAt   DateTime @default(now())
+  establishedByGmResolutionId String? // optional link to a future GeneralMeetingResolution
+  isActive        Boolean  @default(true)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// Minimal Dispute Case model (Constitution Art. 6.7, 14.3)
+// Full Panel + Election models come in Session 4. For now: just enough to
+// record cases (e.g. soft loan defaults escalated to the Committee) and
+// track their status until the Panel workflow is built.
+model DisputeCase {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  caseNumber      Int       @default(autoincrement()) // human-friendly sequential number
+  type            String    // 'LOAN_DEFAULT' | 'EXPULSION' | 'OTHER'
+  subjectMemberId String?   @db.Uuid
+  subjectMember   User?     @relation("DisputeSubject", fields: [subjectMemberId], references: [id])
+  relatedEntityType String? // 'SoftLoan' | 'WelfareClaim' | etc.
+  relatedEntityId   String?
+  status          String    @default('OPEN') // 'OPEN' | 'COMMITTEE_REVIEW' | 'PANEL_REVIEW' | 'RESOLVED' | 'REJECTED'
+  openedAt        DateTime  @default(now())
+  resolvedAt      DateTime?
+  notes           String?
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([status])
+  @@index([subjectMemberId])
+  @@index([type, status])
 }
 
 model CharityProject {
