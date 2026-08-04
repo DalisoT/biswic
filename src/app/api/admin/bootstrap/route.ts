@@ -38,10 +38,16 @@ interface OfficerSeed {
 // The 10 Main Committee officers (Constitution Art. 6.1). Kept inline here
 // because the seed script's password defaults differ from the bootstrap
 // route's; we don't want a behaviour coupling between the two.
+//
+// CCD-001 has been replaced by the REAL CCD: SGT TEMBO R, service number
+// 106759 (from the nominal roll). The placeholder 'Maj. Peter Zulu' on
+// service number CCD-001 was wrong -- TEMBO R is on the roll instead.
+// To keep the total at 10, 106759 is removed from the FOUNDING_MEMBERS
+// list in prisma/founding-members.ts.
 const OFFICERS: OfficerSeed[] = [
   { serviceNumber: 'CHAIR-001', fullName: 'Col. James Mwamba',     role: 'CHAIRPERSON',      rank: 'Colonel',         unit: 'HQ',       phone: '+260971000001' },
   { serviceNumber: 'VICE-001', fullName: 'Maj. Sylvia Banda',    role: 'VICE_CHAIRPERSON', rank: 'Major',           unit: 'HQ',       phone: '+260971000002' },
-  { serviceNumber: 'CCD-001',  fullName: 'Maj. Peter Zulu',       role: 'CCD',              rank: 'Major',           unit: 'HQ',       phone: '+260971000003' },
+  { serviceNumber: '106759',   fullName: 'Sgt. Tembo R',         role: 'CCD',              rank: 'SGT',             unit: 'TBD',     phone: '+260950106759' },
   { serviceNumber: 'FW-001',   fullName: 'Capt. Grace Mutale',   role: 'FW',               rank: 'Captain',         unit: 'Finance', phone: '+260971000004' },
   { serviceNumber: 'SEC-001',  fullName: 'Lt. David Phiri',      role: 'SECRETARY',        rank: 'Lieutenant',       unit: 'Admin',    phone: '+260971000005' },
   { serviceNumber: 'TR-001',   fullName: 'WO2 Mary Tembo',       role: 'TREASURER',        rank: 'Warrant Officer 2', unit: 'Finance', phone: '+260971000006' },

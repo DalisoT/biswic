@@ -173,7 +173,9 @@ async function main() {
   const committee: SeedUserInput[] = [
     { serviceNumber: 'CHAIR-001', fullName: 'Col. James Mwamba', role: 'CHAIRPERSON', rank: 'Colonel', unit: 'HQ', phone: '+260971000001', password: OFFICER_PASSWORD, isFoundingMember: true, foundingSignedAt: FOUNDING_REGISTER_DATE },
     { serviceNumber: 'VICE-001', fullName: 'Maj. Sylvia Banda', role: 'VICE_CHAIRPERSON', rank: 'Major', unit: 'HQ', phone: '+260971000002', password: OFFICER_PASSWORD, isFoundingMember: true, foundingSignedAt: FOUNDING_REGISTER_DATE },
-    { serviceNumber: 'CCD-001', fullName: 'Maj. Peter Zulu', role: 'CCD', rank: 'Major', unit: 'HQ', phone: '+260971000003', password: OFFICER_PASSWORD, isFoundingMember: true, foundingSignedAt: FOUNDING_REGISTER_DATE },
+    // CCD: real person from the nominal roll -- 106759 SGT TEMBO R
+    // (was previously a placeholder 'Maj. Peter Zulu' on service number CCD-001)
+    { serviceNumber: '106759', fullName: 'Sgt. Tembo R', role: 'CCD', rank: 'SGT', unit: 'TBD', phone: '+260950106759', password: OFFICER_PASSWORD, isFoundingMember: true, foundingSignedAt: FOUNDING_REGISTER_DATE },
     { serviceNumber: 'FW-001', fullName: 'Capt. Grace Mutale', role: 'FW', rank: 'Captain', unit: 'Finance', phone: '+260971000004', password: OFFICER_PASSWORD, isFoundingMember: true, foundingSignedAt: FOUNDING_REGISTER_DATE },
     { serviceNumber: 'SEC-001', fullName: 'Lt. David Phiri', role: 'SECRETARY', rank: 'Lieutenant', unit: 'Admin', phone: '+260971000005', password: OFFICER_PASSWORD, isFoundingMember: true, foundingSignedAt: FOUNDING_REGISTER_DATE },
     { serviceNumber: 'TR-001', fullName: 'WO2 Mary Tembo', role: 'TREASURER', rank: 'Warrant Officer 2', unit: 'Finance', phone: '+260971000006', password: OFFICER_PASSWORD, isFoundingMember: true, foundingSignedAt: FOUNDING_REGISTER_DATE },

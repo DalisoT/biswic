@@ -73,7 +73,6 @@ export const FOUNDING_MEMBERS: FoundingMemberEntry[] = [
   { serviceNumber: '106641', fullName: 'SILUME K', rank: 'SGT', unit: 'TBD', phone: '+260950106641' },
   { serviceNumber: '106645', fullName: 'SILUPYA R', rank: 'SGT', unit: 'TBD', phone: '+260950106645' },
   { serviceNumber: '106691', fullName: 'SINYANGWE K', rank: 'SGT', unit: 'TBD', phone: '+260950106691' },
-  { serviceNumber: '106759', fullName: 'TEMBO R', rank: 'SGT', unit: 'TBD', phone: '+260950106759' },
   { serviceNumber: '106788', fullName: 'YASINI J', rank: 'SGT', unit: 'TBD', phone: '+260950106788' },
   { serviceNumber: '106809', fullName: 'ZULU E', rank: 'SGT', unit: 'TBD', phone: '+260950106809' },
   { serviceNumber: '1051301', fullName: 'CHUNGU I', rank: 'SGT', unit: 'TBD', phone: '+260951051301' },
