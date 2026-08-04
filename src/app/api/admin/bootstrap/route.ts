@@ -72,11 +72,20 @@ async function ensureUser(opts: {
   // 1) Find existing auth user
   let userId: string | null = null;
   const { data: listData, error: listError } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
-  if (listError) throw listError;
+  if (listError) {
+    const msg = listError.message || JSON.stringify(listError);
+    throw new Error(`listUsers failed: ${msg}`);
+  }
   const existing = listData?.users.find((u) => u.email === email);
   if (existing) {
     userId = existing.id;
   } else {
+    // CRITICAL: user_metadata MUST include all fields the handle_new_auth_user()
+    // trigger reads (migration 0003). The trigger RAISES if any required field
+    // is missing -- the resulting Supabase admin error message is "{}", which
+    // is impossible to debug without knowing this. Required fields:
+    //   service_number, full_name, role (defaults to 'MEMBER'), phone (RAISES)
+    // We also include rank, unit, is_founding_member for downstream consumers.
     const { data, error } = await admin.auth.admin.createUser({
       email,
       password: opts.password,
@@ -85,9 +94,16 @@ async function ensureUser(opts: {
         service_number: opts.serviceNumber,
         full_name: opts.fullName,
         role: opts.role,
+        phone: opts.phone,
+        rank: opts.rank ?? '',
+        unit: opts.unit ?? '',
+        is_founding_member: opts.isFoundingMember ? 'true' : 'false',
       },
     });
-    if (error) throw error;
+    if (error) {
+      const msg = error.message || JSON.stringify(error);
+      throw new Error(`createUser(${email}) failed: ${msg}`);
+    }
     if (!data.user) throw new Error('createUser returned no user');
     userId = data.user.id;
   }
@@ -169,7 +185,9 @@ export async function GET(request: NextRequest) {
       });
       created.push({ serviceNumber: o.serviceNumber, id });
     } catch (err: any) {
-      errors.push({ serviceNumber: o.serviceNumber, message: err.message ?? String(err) });
+      const message = err?.message ?? (typeof err === 'string' ? err : JSON.stringify(err) ?? 'unknown');
+      console.error(`[bootstrap] officer ${o.serviceNumber} failed:`, err);
+      errors.push({ serviceNumber: o.serviceNumber, message });
     }
   }
 
@@ -196,7 +214,9 @@ export async function GET(request: NextRequest) {
       });
       created.push({ serviceNumber: m.serviceNumber, id });
     } catch (err: any) {
-      errors.push({ serviceNumber: m.serviceNumber, message: err.message ?? String(err) });
+      const message = err?.message ?? (typeof err === 'string' ? err : JSON.stringify(err) ?? 'unknown');
+      console.error(`[bootstrap] member ${m.serviceNumber} failed:`, err);
+      errors.push({ serviceNumber: m.serviceNumber, message });
     }
   }
 
