@@ -18,6 +18,7 @@ import {
   BarChart3,
   HandCoins,
   AlertCircle,
+  UserPlus,
   type LucideIcon,
 } from 'lucide-react';
 import { roleLabel } from '@/lib/permissions';
@@ -35,6 +36,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'My Contributions', href: '/contributions', icon: Coins },
   { label: 'Welfare Claims', href: '/claims', icon: Heart },
   { label: 'Soft Loans', href: '/soft-loans', icon: HandCoins },
+  { label: 'Members', href: '/members', icon: UserPlus, roles: ['CHAIRPERSON', 'SECRETARY', 'FW', 'TREASURER', 'CCD', 'VICE_CHAIRPERSON', 'DEPUTY_TREASURER', 'TRUSTEE'] },
   { label: 'Meetings', href: '/meetings', icon: Calendar },
   { label: 'Documents', href: '/documents', icon: FileText },
   { label: 'Statements', href: '/statement', icon: BarChart3 },
