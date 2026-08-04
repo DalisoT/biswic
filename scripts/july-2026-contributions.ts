@@ -233,7 +233,10 @@ async function main() {
   // -------------------------------------------------------------------------
   console.log(`\n>>> APPLYING (this is irreversible) <<<\n`);
 
-  await prisma.$transaction(async (tx) => {
+  // 5 minute timeout: 43 contributions * 13 queries = ~560 sequential queries,
+  // and the DB is remote (Supabase eu-central-1) so per-query latency is real.
+  await prisma.$transaction(
+    async (tx) => {
     // 5a. Wipe BucketTransaction rows that reference Contributions
     const txDel = await tx.bucketTransaction.deleteMany({
       where: { referenceType: 'Contribution' },
@@ -324,7 +327,7 @@ async function main() {
       count++;
     }
     console.log(`  Recorded ${count} July 2026 contributions (K${(AMOUNT * count).toFixed(2)} total)`);
-  });
+  }, { timeout: 300000 }); // 5 minutes: 43 contributions * 13 queries = ~560 sequential queries on remote DB
 
   // -------------------------------------------------------------------------
   // 6. Post-apply verification
