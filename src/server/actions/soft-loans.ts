@@ -17,13 +17,13 @@ import {
   applyForLoan,
   approveLoan,
   checkLoanEligibility,
-  computeLoanSchedule,
   disburseLoan,
   getOutstandingLoan,
   recordRepayment,
   rejectLoan,
   type LendingApproverRole,
 } from '@/server/services/soft-loan-service';
+import { computeLoanSchedule } from '@/lib/soft-loan-math';
 
 const applySchema = z.object({
   principal: z.coerce.number().positive(),

@@ -16,6 +16,7 @@ import {
   Settings,
   Shield,
   BarChart3,
+  HandCoins,
   type LucideIcon,
 } from 'lucide-react';
 import { roleLabel } from '@/lib/permissions';
@@ -32,6 +33,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Group', href: '/group', icon: Users },
   { label: 'My Contributions', href: '/contributions', icon: Coins },
   { label: 'Welfare Claims', href: '/claims', icon: Heart },
+  { label: 'Soft Loans', href: '/soft-loans', icon: HandCoins },
   { label: 'Meetings', href: '/meetings', icon: Calendar },
   { label: 'Documents', href: '/documents', icon: FileText },
   { label: 'Statements', href: '/statement', icon: BarChart3 },

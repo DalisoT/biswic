@@ -26,44 +26,13 @@
 import { prisma } from '@/lib/db';
 import { logAudit, AUDIT_ACTIONS } from '@/lib/audit';
 import { config } from '@/lib/config';
+import { computeLoanSchedule } from '@/lib/soft-loan-math';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-/**
- * Compute the equal monthly instalment (principal + interest) for a loan.
- * Interest is calculated on the outstanding balance each month (simple
- * interest, monthly rate = annualRate / 12). For simplicity, we use a flat
- * totalRepayment = principal * (1 + annualRate * termYears) and split into
- * equal monthly payments. This matches how Zambian SACCOs typically quote
- * short-term member loans and is what the Constitution implies.
- */
-export function computeLoanSchedule(principal: number, termMonths: number, annualRate: number = config.softLoans.interestRatePerAnnum) {
-  const termYears = termMonths / 12;
-  const totalRepayment = principal * (1 + annualRate * termYears);
-  // Round each component to 2dp; last month absorbs the rounding remainder.
-  const rawMonthly = totalRepayment / termMonths;
-  const baseMonthly = Math.floor(rawMonthly * 100) / 100;
-  const baseSum = baseMonthly * (termMonths - 1);
-  const lastMonthly = Math.round((totalRepayment - baseSum) * 100) / 100;
-  const totalInterest = totalRepayment - principal;
-  const monthlyInterest = totalInterest / termMonths;
-  const monthlyPrincipal = principal / termMonths;
-  return {
-    totalRepayment: Math.round(totalRepayment * 100) / 100,
-    monthlyPayment: Math.round(rawMonthly * 100) / 100,
-    totalInterest: Math.round(totalInterest * 100) / 100,
-    schedule: Array.from({ length: termMonths }, (_, i) => ({
-      monthIndex: i + 1,
-      principal: Math.round(monthlyPrincipal * 100) / 100,
-      interest: Math.round(monthlyInterest * 100) / 100,
-      isLast: i === termMonths - 1,
-      // The last month absorbs the rounding remainder on both fields
-      payment: i === termMonths - 1 ? lastMonthly : baseMonthly,
-    })),
-  };
-}
+export { computeLoanSchedule };
 
 /**
  * Check whether a member is eligible for a new soft loan.
