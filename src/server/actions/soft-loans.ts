@@ -3,15 +3,27 @@
 /**
  * Soft Loans server actions (Constitution Art. 5.5)
  * ----------------------------------------------------------------------------
- * The full approval / disbursement / repayment / default flow is built in
- * subsequent commits. This file holds the actions that are ready now.
+ * Member actions: apply, view my loans, view outstanding.
+ * Officer actions: approve, reject, disburse, record repayment.
+ * (UI for the officer flow is built in commit 4; this commit ships the
+ * service-layer primitives so the UI has something to call.)
  */
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth/require-user';
-import { applyForLoan, checkLoanEligibility, getOutstandingLoan } from '@/server/services/soft-loan-service';
+import {
+  applyForLoan,
+  approveLoan,
+  checkLoanEligibility,
+  computeLoanSchedule,
+  disburseLoan,
+  getOutstandingLoan,
+  recordRepayment,
+  rejectLoan,
+  type LendingApproverRole,
+} from '@/server/services/soft-loan-service';
 
 const applySchema = z.object({
   principal: z.coerce.number().positive(),
@@ -54,3 +66,99 @@ export async function getOutstandingLoanAction() {
   const user = await requireUser();
   return getOutstandingLoan(user.id);
 }
+
+export async function previewLoanScheduleAction(
+  principal: number,
+  termMonths: number,
+) {
+  return computeLoanSchedule(principal, termMonths);
+}
+
+// ---------------------------------------------------------------------------
+// Officer actions (Lending Sub-Committee, Treasurer / FW)
+// ---------------------------------------------------------------------------
+
+const approveSchema = z.object({
+  loanId: z.string().min(1),
+  approverRole: z.enum(['CHAIR', 'MEMBER1', 'MEMBER2']),
+});
+
+export async function approveLoanAction(formData: FormData) {
+  const user = await requireUser();
+  const parsed = approveSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? 'Invalid input.' };
+  }
+  try {
+    await approveLoan({
+      loanId: parsed.data.loanId,
+      approverId: user.id,
+      approverRole: parsed.data.approverRole as LendingApproverRole,
+    });
+    revalidatePath('/finance/soft-loan-applications');
+    return { success: true };
+  } catch (err: any) {
+    return { error: err.message ?? 'Failed to approve loan.' };
+  }
+}
+
+const rejectSchema = z.object({
+  loanId: z.string().min(1),
+  reason: z.string().min(5, 'Rejection reason required (min 5 chars).'),
+});
+
+export async function rejectLoanAction(formData: FormData) {
+  const user = await requireUser();
+  const parsed = rejectSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? 'Invalid input.' };
+  }
+  try {
+    await rejectLoan(parsed.data.loanId, user.id, parsed.data.reason);
+    revalidatePath('/finance/soft-loan-applications');
+    return { success: true };
+  } catch (err: any) {
+    return { error: err.message ?? 'Failed to reject loan.' };
+  }
+}
+
+export async function disburseLoanAction(formData: FormData) {
+  const user = await requireUser();
+  const loanId = formData.get('loanId')?.toString();
+  if (!loanId) return { error: 'Missing loanId.' };
+  try {
+    await disburseLoan(loanId, user.id);
+    revalidatePath('/finance/soft-loan-applications');
+    revalidatePath('/soft-loans');
+    return { success: true };
+  } catch (err: any) {
+    return { error: err.message ?? 'Failed to disburse loan.' };
+  }
+}
+
+const repaymentSchema = z.object({
+  repaymentId: z.string().min(1),
+  paidPrincipal: z.coerce.number().min(0),
+  paidInterest: z.coerce.number().min(0),
+});
+
+export async function recordRepaymentAction(formData: FormData) {
+  const user = await requireUser();
+  const parsed = repaymentSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? 'Invalid input.' };
+  }
+  try {
+    await recordRepayment({
+      repaymentId: parsed.data.repaymentId,
+      paidPrincipal: parsed.data.paidPrincipal,
+      paidInterest: parsed.data.paidInterest,
+      recordedById: user.id,
+    });
+    revalidatePath('/soft-loans');
+    return { success: true };
+  } catch (err: any) {
+    return { error: err.message ?? 'Failed to record repayment.' };
+  }
+}
+
