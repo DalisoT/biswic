@@ -1,7 +1,9 @@
 /**
  * July 2026 Contributions Backfill (one-shot)
  * ----------------------------------------------------------------------------
- * Does 4 things, all in a single Prisma transaction:
+ * Does 5 things, all in a single Prisma transaction:
+ *   0. CREATES the 6 buckets if they don't exist (Constitution Art. 4.1 mix).
+ *      Idempotent - the seed (prisma/seed.ts) creates them too.
  *   1. WIPES the dev-seed contributions (756 rows = 63 members x 12 months)
  *      that prisma/seed.ts created as sample data. Also wipes the matching
  *      BucketTransaction ledger rows and resets every Bucket.balance to 0.
@@ -25,6 +27,7 @@
 
 import { PrismaClient, type Prisma } from '@prisma/client';
 import { allocateToBuckets, assertAllocationsSumExactly } from '../src/lib/buckets';
+import { config } from '../src/lib/config';
 
 const prisma = new PrismaClient();
 const APPLY = process.argv.includes('--apply');
@@ -134,14 +137,34 @@ async function main() {
   }
 
   // -------------------------------------------------------------------------
-  // 2. Look up the 6 buckets and compute the expected allocation
+  // 2. Look up (or create) the 6 buckets. Constitution Art. 4.1: LAND 50% |
+  //    BUSINESS 20% | FUNERAL 15% | SOFT_LOANS 8% | ADMIN 4% | MEDICAL 3%.
+  //    The dev seed (prisma/seed.ts) creates them, but if the seed never ran
+  //    (bootstrap-only deployment) we create them here.
   // -------------------------------------------------------------------------
+  for (const [, b] of Object.entries(config.buckets)) {
+    await prisma.bucket.upsert({
+      where: { code: b.code },
+      update: { name: b.name, percentage: b.percentage / 100 },
+      create: {
+        code: b.code,
+        name: b.name,
+        percentage: b.percentage / 100,
+        description: `${b.percentage}% of every contribution allocated to this bucket`,
+      },
+    });
+  }
+
   const buckets = await prisma.bucket.findMany({
     select: { id: true, code: true, percentage: true, balance: true },
     orderBy: { code: 'asc' },
   });
   if (buckets.length !== 6) {
     throw new Error(`Expected 6 buckets, found ${buckets.length}. Aborting.`);
+  }
+  const expectedPctSum = buckets.reduce((s, b) => s + Number(b.percentage), 0);
+  if (Math.abs(expectedPctSum - 1) > 0.0001) {
+    throw new Error(`Bucket percentages sum to ${expectedPctSum}, expected 1.0000. Aborting.`);
   }
 
   // Compute what the 43 contributions will allocate to each bucket
