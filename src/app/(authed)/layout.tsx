@@ -2,6 +2,7 @@ import { requireUser } from '@/lib/auth/require-user';
 import { Sidebar } from '@/components/layout/sidebar';
 import { MobileNav } from '@/components/layout/mobile-nav';
 import { TopBar } from '@/components/layout/topbar';
+import { MobileGestures } from '@/components/layout/mobile-gestures';
 import { prisma } from '@/lib/db';
 
 export default async function AuthedLayout({
@@ -20,6 +21,8 @@ export default async function AuthedLayout({
       <Sidebar role={user.role} fullName={user.fullName} />
       <main className="md:pl-64 pb-20 md:pb-0">
         <TopBar
+          userId={user.id}
+          role={user.role}
           fullName={user.fullName}
           serviceNumber={user.serviceNumber}
           unreadCount={unreadCount}
@@ -29,6 +32,7 @@ export default async function AuthedLayout({
         </div>
       </main>
       <MobileNav role={user.role} unreadCount={unreadCount} />
+      <MobileGestures />
     </div>
   );
 }

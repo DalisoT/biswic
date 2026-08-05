@@ -1,11 +1,19 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronLeft, LogOut, Settings as SettingsIcon, User as UserIcon, Bell } from 'lucide-react';
+import {
+  ChevronLeft,
+  LogOut,
+  Settings as SettingsIcon,
+  User as UserIcon,
+  Bell,
+  Search,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { signOutAction } from '@/server/actions/auth';
+import { CommandPalette } from '@/components/layout/command-palette';
 import { cn } from '@/lib/utils';
 
 /**
@@ -61,18 +69,33 @@ function shouldShowBack(pathname: string): boolean {
 }
 
 interface TopBarProps {
+  userId: string;
+  role: string;
   fullName: string;
   serviceNumber: string;
   unreadCount: number;
 }
 
-export function TopBar({ fullName, serviceNumber, unreadCount }: TopBarProps) {
+export function TopBar({ userId, role, fullName, serviceNumber, unreadCount }: TopBarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const title = deriveTitle(pathname);
   const showBack = shouldShowBack(pathname);
+
+  // Global ⌘K / Ctrl-K listener
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   // Initials for avatar (e.g. "SGT TEMBO RICHARD" -> "ST")
   const initials = (() => {
@@ -127,6 +150,18 @@ export function TopBar({ fullName, serviceNumber, unreadCount }: TopBarProps) {
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
+          {/* Search trigger - desktop shows full text, mobile just icon */}
+          <button
+            onClick={() => setSearchOpen(true)}
+            className="inline-flex items-center gap-2 px-2.5 sm:px-3 h-9 rounded-md border bg-muted/40 hover:bg-muted text-sm text-muted-foreground min-w-0 max-w-[200px] sm:max-w-[300px]"
+            aria-label="Search"
+          >
+            <Search className="h-4 w-4 shrink-0" />
+            <span className="hidden md:inline truncate">Search&hellip;</span>
+            <kbd className="hidden lg:inline-flex items-center px-1.5 h-5 text-[10px] font-mono bg-background text-muted-foreground rounded border ml-auto">
+              ⌘K
+            </kbd>
+          </button>
           <Link
             href="/notifications"
             className="relative inline-flex items-center justify-center w-10 h-10 rounded-md hover:bg-muted"
@@ -195,6 +230,12 @@ export function TopBar({ fullName, serviceNumber, unreadCount }: TopBarProps) {
           </div>
         </div>
       </div>
+      <CommandPalette
+        userId={userId}
+        role={role}
+        open={searchOpen}
+        onOpenChange={setSearchOpen}
+      />
     </header>
   );
 }
