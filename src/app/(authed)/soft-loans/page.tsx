@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate, toNumber } from '@/lib/utils';
 import { checkLoanEligibility, getOutstandingLoan } from '@/server/services/soft-loan-service';
 import { config } from '@/lib/config';
 import { HandCoins, Plus, AlertCircle } from 'lucide-react';
@@ -100,7 +100,7 @@ export default async function SoftLoansPage() {
           <CardHeader className="pb-2">
             <CardDescription>Outstanding balance</CardDescription>
             <CardTitle className="text-2xl">
-              {outstanding ? formatCurrency(outstanding.balance) : 'K0.00'}
+              {outstanding ? formatCurrency(toNumber(outstanding.balance)) : 'K0.00'}
             </CardTitle>
           </CardHeader>
         </Card>
@@ -145,10 +145,10 @@ export default async function SoftLoansPage() {
                 {loans.map((l) => (
                   <TableRow key={l.id}>
                     <TableCell className="text-xs">{formatDate(l.appliedAt)}</TableCell>
-                    <TableCell>{formatCurrency(l.principal)}</TableCell>
+                    <TableCell>{formatCurrency(toNumber(l.principal))}</TableCell>
                     <TableCell>{l.termMonths} mo</TableCell>
-                    <TableCell>{formatCurrency(l.totalRepayment)}</TableCell>
-                    <TableCell>{formatCurrency(l.balance)}</TableCell>
+                    <TableCell>{formatCurrency(toNumber(l.totalRepayment))}</TableCell>
+                    <TableCell>{formatCurrency(toNumber(l.balance))}</TableCell>
                     <TableCell>
                       <Badge variant={statusVariant[l.status] ?? 'outline'}>{l.status}</Badge>
                     </TableCell>

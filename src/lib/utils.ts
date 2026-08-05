@@ -12,6 +12,46 @@ import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { config } from './config';
 
+/**
+ * Coerce a Prisma Decimal (or anything else) to a plain JS number safely.
+ * Prisma returns decimal.js Decimal objects for @db.Decimal columns; doing
+ * `number + Decimal` directly produces unreliable results (the symptom
+ * we just saw on the dashboard). Always go through this.
+ */
+export function toNumber(v: unknown): number {
+  if (v == null) return 0;
+  if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
+  if (typeof v === 'string') {
+    const n = parseFloat(v);
+    return Number.isFinite(n) ? n : 0;
+  }
+  // decimal.js Decimal or any object with toNumber / valueOf
+  const obj = v as { toNumber?: () => number; valueOf?: () => number };
+  if (typeof obj.toNumber === 'function') {
+    const n = obj.toNumber();
+    return Number.isFinite(n) ? n : 0;
+  }
+  if (typeof obj.valueOf === 'function') {
+    try {
+      const n = Number(obj.valueOf());
+      return Number.isFinite(n) ? n : 0;
+    } catch {
+      return 0;
+    }
+  }
+  return 0;
+}
+
+/**
+ * Sum a list of Prisma Decimal / number values. Use everywhere we used
+ * to write `arr.reduce((s, x) => s + x.field, 0)`.
+ */
+export function sumField<T>(arr: T[], pick: (item: T) => unknown): number {
+  let s = 0;
+  for (const item of arr) s += toNumber(pick(item));
+  return s;
+}
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }

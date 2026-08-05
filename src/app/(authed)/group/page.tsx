@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/db';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { config } from '@/lib/config';
-import { formatCurrency, formatDate, computeMonthlyInflow, anonymizeMember } from '@/lib/utils';
+import { formatCurrency, formatDate, computeMonthlyInflow, anonymizeMember, sumField, toNumber } from '@/lib/utils';
 import { BucketBars } from '@/components/dashboard/bucket-bars';
 import { Calendar, FileText } from 'lucide-react';
 import Link from 'next/link';
@@ -14,7 +14,7 @@ export default async function GroupDashboardPage() {
     where: { isActive: true, role: 'MEMBER' },
   });
   const buckets = await prisma.bucket.findMany({ orderBy: { code: 'asc' } });
-  const totalKitty = buckets.reduce((s, b) => s + b.balance, 0);
+  const totalKitty = sumField(buckets, (b) => b.balance);
 
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
@@ -88,7 +88,7 @@ export default async function GroupDashboardPage() {
           <CardHeader className="pb-2">
             <CardDescription>Welfare claims YTD</CardDescription>
             <CardTitle className="text-2xl font-bold text-gold-600">
-              {formatCurrency(welfareClaimsYtd._sum.amountApproved ?? 0)}
+              {formatCurrency(toNumber(welfareClaimsYtd._sum.amountApproved))}
             </CardTitle>
           </CardHeader>
         </Card>
@@ -188,7 +188,7 @@ export default async function GroupDashboardPage() {
             <ul className="space-y-1">
               {recentActivity.map((c) => (
                 <li key={c.id} className="flex items-center justify-between text-sm py-2 border-b last:border-0">
-                  <span>{anonymizeMember(c.member.serviceNumber)} paid {formatCurrency(c.amount)}</span>
+                  <span>{anonymizeMember(c.member.serviceNumber)} paid {formatCurrency(toNumber(c.amount))}</span>
                   <span className="text-xs text-muted-foreground">{formatDate(c.receivedAt)}</span>
                 </li>
               ))}

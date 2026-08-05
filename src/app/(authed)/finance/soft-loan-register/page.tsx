@@ -3,7 +3,7 @@ import { prisma } from '@/lib/db';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate, toNumber } from '@/lib/utils';
 import { canViewAllMembers } from '@/lib/permissions';
 import { HandCoins, BookText } from 'lucide-react';
 import Link from 'next/link';
@@ -62,7 +62,7 @@ export default async function SoftLoanRegisterPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Bucket balance</CardDescription>
-            <CardTitle className="text-2xl">{bucket ? formatCurrency(bucket.balance) : '—'}</CardTitle>
+            <CardTitle className="text-2xl">{bucket ? formatCurrency(toNumber(bucket.balance)) : '-'}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
@@ -124,9 +124,9 @@ export default async function SoftLoanRegisterPage() {
                       <div className="font-medium">{l.applicant.serviceNumber}</div>
                       <div className="text-xs text-muted-foreground">{l.applicant.fullName}</div>
                     </TableCell>
-                    <TableCell>{formatCurrency(l.principal)}</TableCell>
-                    <TableCell>{formatCurrency(l.totalRepayment)}</TableCell>
-                    <TableCell className="font-medium">{formatCurrency(l.balance)}</TableCell>
+                    <TableCell>{formatCurrency(toNumber(l.principal))}</TableCell>
+                    <TableCell>{formatCurrency(toNumber(l.totalRepayment))}</TableCell>
+                    <TableCell className="font-medium">{formatCurrency(toNumber(l.balance))}</TableCell>
                     <TableCell className="text-xs">
                       {l.disbursedAt ? formatDate(l.disbursedAt) : '—'}
                     </TableCell>

@@ -1,12 +1,12 @@
 'use client';
 
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, toNumber, sumField } from '@/lib/utils';
 
 interface Bucket {
   code: string;
   name: string;
-  balance: number;
-  percentage: number;
+  balance: number | unknown; // accepts Decimal or number; coerced via toNumber
+  percentage: number | unknown;
 }
 
 const COLORS: Record<string, string> = {
@@ -19,20 +19,20 @@ const COLORS: Record<string, string> = {
 };
 
 export function BucketBars({ buckets }: { buckets: Bucket[] }) {
-  const total = buckets.reduce((s, b) => s + b.balance, 0);
+  const total = sumField(buckets, (b) => b.balance);
 
   return (
     <div className="space-y-3">
       <div className="flex h-8 rounded-md overflow-hidden border">
         {buckets.map((b) => {
-          const pct = total > 0 ? (b.balance / total) * 100 : 0;
+          const pct = total > 0 ? (toNumber(b.balance) / total) * 100 : 0;
           if (pct === 0) return null;
           return (
             <div
               key={b.code}
               style={{ width: `${pct}%`, backgroundColor: COLORS[b.code] ?? '#64748b' }}
               className="flex items-center justify-center text-white text-xs font-medium"
-              title={`${b.name}: ${formatCurrency(b.balance)}`}
+              title={`${b.name}: ${formatCurrency(toNumber(b.balance))}`}
             >
               {pct > 12 ? b.code : ''}
             </div>
@@ -49,8 +49,8 @@ export function BucketBars({ buckets }: { buckets: Bucket[] }) {
               />
               <span className="text-xs font-medium text-muted-foreground">{b.code}</span>
             </div>
-            <div className="mt-1 font-semibold">{formatCurrency(b.balance)}</div>
-            <div className="text-xs text-muted-foreground">{Number(b.percentage) * 100}% allocation</div>
+            <div className="mt-1 font-semibold">{formatCurrency(toNumber(b.balance))}</div>
+            <div className="text-xs text-muted-foreground">{toNumber(b.percentage) * 100}% allocation</div>
           </div>
         ))}
       </div>

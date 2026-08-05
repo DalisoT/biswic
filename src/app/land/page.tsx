@@ -3,7 +3,7 @@ import { prisma } from '@/lib/db';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Map, DollarSign } from 'lucide-react';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate, toNumber, sumField } from '@/lib/utils';
 import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
@@ -61,7 +61,7 @@ export default async function LandPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Total plots</CardDescription>
-            <CardTitle className="text-2xl">{purchases.reduce((s, p) => s + p.totalPlots, 0)}</CardTitle>
+            <CardTitle className="text-2xl">{sumField(purchases, (p) => p.totalPlots)}</CardTitle>
           </CardHeader>
         </Card>
       </div>
@@ -82,7 +82,7 @@ export default async function LandPage() {
                       <div className="font-semibold">{o.title}</div>
                       <div className="text-sm text-muted-foreground">{o.location}</div>
                       <div className="text-xs text-muted-foreground mt-1">
-                        {o.sizeHectares} ha · {o.sizeSqm.toLocaleString()} sqm
+                        {toNumber(o.sizeHectares)} ha · {toNumber(o.sizeSqm).toLocaleString()} sqm
                       </div>
                       {o.notes && (
                         <div className="text-xs text-muted-foreground mt-1 line-clamp-2">{o.notes}</div>
@@ -90,9 +90,9 @@ export default async function LandPage() {
                     </div>
                     <div className="text-right">
                       <Badge variant={STATUS_COLORS[o.status] ?? 'outline'}>{o.status}</Badge>
-                      <div className="text-sm font-semibold mt-1">{formatCurrency(o.askingPrice)}</div>
+                      <div className="text-sm font-semibold mt-1">{formatCurrency(toNumber(o.askingPrice))}</div>
                       {o.valuationPrice && (
-                        <div className="text-xs text-muted-foreground">Val: {formatCurrency(o.valuationPrice)}</div>
+                        <div className="text-xs text-muted-foreground">Val: {formatCurrency(toNumber(o.valuationPrice))}</div>
                       )}
                     </div>
                   </div>
@@ -123,7 +123,7 @@ export default async function LandPage() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-sm font-semibold">{formatCurrency(p.purchasePrice)}</div>
+                      <div className="text-sm font-semibold">{formatCurrency(toNumber(p.purchasePrice))}</div>
                     </div>
                   </div>
                 </li>

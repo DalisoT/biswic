@@ -2,7 +2,7 @@ import { requireUser } from '@/lib/auth/require-user';
 import { prisma } from '@/lib/db';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate, sumField, toNumber } from '@/lib/utils';
 import { redirect } from 'next/navigation';
 import { Briefcase, TrendingUp, TrendingDown } from 'lucide-react';
 
@@ -27,8 +27,8 @@ export default async function BusinessesPage() {
     orderBy: { createdAt: 'desc' },
   });
 
-  const totalCapital = businesses.reduce((s, b) => s + b.capitalInvested, 0);
-  const totalMonthlyProfit = businesses.reduce((s, b) => s + b.currentMonthlyProfit, 0);
+  const totalCapital = sumField(businesses, (b) => b.capitalInvested);
+  const totalMonthlyProfit = sumField(businesses, (b) => b.currentMonthlyProfit);
   const activeCount = businesses.filter((b) => b.status === 'ACTIVE').length;
 
   return (
@@ -90,8 +90,8 @@ export default async function BusinessesPage() {
                     </div>
                     <div className="text-right">
                       <Badge variant={STATUS_COLORS[b.status] ?? 'outline'}>{b.status}</Badge>
-                      <div className="text-sm font-semibold mt-1">Capital: {formatCurrency(b.capitalInvested)}</div>
-                      <div className="text-xs text-muted-foreground">Monthly: {formatCurrency(b.currentMonthlyProfit)}</div>
+                      <div className="text-sm font-semibold mt-1">Capital: {formatCurrency(toNumber(b.capitalInvested))}</div>
+                      <div className="text-xs text-muted-foreground">Monthly: {formatCurrency(toNumber(b.currentMonthlyProfit))}</div>
                     </div>
                   </div>
                 </li>

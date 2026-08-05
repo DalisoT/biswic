@@ -50,8 +50,8 @@ export async function submitClaim(input: SubmitClaimInput) {
 
   const check = checkWelfareClaim({
     type: input.type,
-    amountRequested: input.amountRequested,
-    amountAlreadyApprovedThisYear: approvedThisYear._sum.amountApproved ?? 0,
+    amountRequested: Number(input.amountRequested),
+    amountAlreadyApprovedThisYear: Number(approvedThisYear._sum.amountApproved ?? 0),
     eventCountThisYear,
   });
 
@@ -137,8 +137,8 @@ export async function approveClaim(input: ApproveClaimInput) {
 
   const check = checkWelfareClaim({
     type: claim.type as 'FUNERAL' | 'MEDICAL',
-    amountRequested: input.amountApproved,
-    amountAlreadyApprovedThisYear: approvedThisYear._sum.amountApproved ?? 0,
+    amountRequested: Number(input.amountApproved),
+    amountAlreadyApprovedThisYear: Number(approvedThisYear._sum.amountApproved ?? 0),
     eventCountThisYear,
     overrideNote: input.capOverrideNote,
   });
@@ -199,7 +199,7 @@ export async function approveClaim(input: ApproveClaimInput) {
     offset = await applyWelfareOffset(claim.memberId, input.amountApproved);
   }
 
-  if (bucket.balance < offset.welfareAmount) {
+  if (Number(bucket.balance) < Number(offset.welfareAmount)) {
     throw new Error(`Bucket ${bucket.code} has insufficient balance (K${bucket.balance.toFixed(2)}).`);
   }
 

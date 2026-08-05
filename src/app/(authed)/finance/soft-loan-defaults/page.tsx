@@ -3,7 +3,7 @@ import { prisma } from '@/lib/db';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate, toNumber } from '@/lib/utils';
 import { canViewAllMembers } from '@/lib/permissions';
 import { AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
@@ -93,8 +93,8 @@ export default async function SoftLoanDefaultsPage() {
                       <div className="font-medium">{l.applicant.serviceNumber}</div>
                       <div className="text-xs text-muted-foreground">{l.applicant.fullName}</div>
                     </TableCell>
-                    <TableCell>{formatCurrency(l.principal)}</TableCell>
-                    <TableCell className="font-semibold text-destructive">{formatCurrency(l.balance)}</TableCell>
+                    <TableCell>{formatCurrency(toNumber(l.principal))}</TableCell>
+                    <TableCell className="font-semibold text-destructive">{formatCurrency(toNumber(l.balance))}</TableCell>
                     <TableCell>
                       <Badge variant="destructive">{l.repayments.length}</Badge>
                     </TableCell>

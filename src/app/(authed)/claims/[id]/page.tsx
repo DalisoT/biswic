@@ -3,7 +3,7 @@ import { prisma } from '@/lib/db';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate, toNumber } from '@/lib/utils';
 import { canApproveWelfare, canViewAllMembers } from '@/lib/permissions';
 import { hasRequiredSignatures } from '@/lib/claim-rules';
 import { config } from '@/lib/config';
@@ -91,9 +91,9 @@ export default async function ClaimDetailPage({ params }: { params: { id: string
           <DetailRow label="Type" value={claim.type} />
           <DetailRow label="Beneficiary" value={claim.beneficiary} />
           <DetailRow label="Event date" value={formatDate(claim.eventDate)} />
-          <DetailRow label="Amount requested" value={formatCurrency(claim.amountRequested)} />
+          <DetailRow label="Amount requested" value={formatCurrency(toNumber(claim.amountRequested))} />
           {claim.amountApproved && (
-            <DetailRow label="Amount approved" value={formatCurrency(claim.amountApproved)} />
+            <DetailRow label="Amount approved" value={formatCurrency(toNumber(claim.amountApproved))} />
           )}
           <DetailRow label="Description" value={claim.description ?? '—'} />
           {claim.supportingDocUrl && (
@@ -195,7 +195,7 @@ export default async function ClaimDetailPage({ params }: { params: { id: string
             )}
           </CardHeader>
           <CardContent>
-            <ApprovalForm claimId={claim.id} requestedAmount={claim.amountRequested} />
+            <ApprovalForm claimId={claim.id} requestedAmount={toNumber(claim.amountRequested)} />
           </CardContent>
         </Card>
       )}

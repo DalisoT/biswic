@@ -3,7 +3,7 @@ import { prisma } from '@/lib/db';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate, toNumber } from '@/lib/utils';
 import { config } from '@/lib/config';
 import { ArrowLeft, AlertTriangle, CheckCircle2, Clock, XCircle } from 'lucide-react';
 import Link from 'next/link';
@@ -82,11 +82,11 @@ export default async function SoftLoanDetailPage({ params }: { params: { id: str
           <CardTitle className="text-base">Summary</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
-          <Row label="Principal" value={formatCurrency(loan.principal)} />
+          <Row label="Principal" value={formatCurrency(toNumber(loan.principal))} />
           <Row label="Interest rate" value={`${(Number(loan.interestRate) * 100).toFixed(2)}% p.a.`} />
           <Row label="Term" value={`${loan.termMonths} months`} />
-          <Row label="Total to repay" value={formatCurrency(loan.totalRepayment)} />
-          <Row label="Monthly payment" value={formatCurrency(loan.monthlyPayment)} />
+          <Row label="Total to repay" value={formatCurrency(toNumber(loan.totalRepayment))} />
+          <Row label="Monthly payment" value={formatCurrency(toNumber(loan.monthlyPayment))} />
           <Row label="Total paid" value={formatCurrency(totalPaid)} />
           <Row label="Outstanding balance" value={<span className="font-semibold">{formatCurrency(Number(loan.balance))}</span>} />
           {loan.disbursedAt && <Row label="Disbursed" value={formatDate(loan.disbursedAt)} />}

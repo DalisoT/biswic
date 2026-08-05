@@ -2,7 +2,7 @@ import { requireUser } from '@/lib/auth/require-user';
 import { prisma } from '@/lib/db';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { formatDate, formatCurrency } from '@/lib/utils';
+import { formatDate, formatCurrency, toNumber } from '@/lib/utils';
 import { Calendar, Heart } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -114,7 +114,7 @@ export default async function EventsPage() {
                         {c.status}
                       </Badge>
                       <div className="text-xs text-muted-foreground mt-1">
-                        {formatCurrency(c.spent)} / {formatCurrency(c.budget)}
+                        {formatCurrency(toNumber(c.spent))} / {formatCurrency(toNumber(c.budget))}
                       </div>
                     </div>
                   </div>

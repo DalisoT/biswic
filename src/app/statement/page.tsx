@@ -3,7 +3,7 @@ import { prisma } from '@/lib/db';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { formatCurrency, formatDate, monthName, computeMonthlyInflow } from '@/lib/utils';
+import { formatCurrency, formatDate, monthName, computeMonthlyInflow, sumField, toNumber } from '@/lib/utils';
 import { config } from '@/lib/config';
 import { PrintButton } from '@/components/shared/print-button';
 
@@ -26,21 +26,24 @@ export default async function StatementPage() {
     orderBy: [{ year: 'asc' }, { month: 'asc' }],
   });
 
-  const totalContributions = contributions.reduce((s, c) => s + c.amount, 0);
+  const totalContributions = sumField(contributions, (c) => c.amount);
 
   const claims = await prisma.welfareClaim.findMany({
     where: { memberId: currentUser.id },
     orderBy: { createdAt: 'desc' },
   });
 
-  const claimedPaid = claims.filter((c) => c.status === 'PAID').reduce((s, c) => s + (c.amountApproved ?? 0), 0);
+  const claimedPaid = sumField(
+    claims.filter((c) => c.status === 'PAID'),
+    (c) => c.amountApproved ?? 0,
+  );
 
   const activeMemberCount = await prisma.user.count({ where: { isActive: true, role: 'MEMBER' } });
   const monthlyInflow = computeMonthlyInflow(activeMemberCount);
 
   // YTD
   const ytdContributions = contributions.filter((c) => c.year === currentYear);
-  const ytdTotal = ytdContributions.reduce((s, c) => s + c.amount, 0);
+  const ytdTotal = sumField(ytdContributions, (c) => c.amount);
 
   return (
     <div className="space-y-6">
@@ -98,7 +101,7 @@ export default async function StatementPage() {
                 {contributions.map((c) => (
                   <TableRow key={c.id}>
                     <TableCell>{monthName(c.month)} {c.year}</TableCell>
-                    <TableCell>{formatCurrency(c.amount)}</TableCell>
+                    <TableCell>{formatCurrency(toNumber(c.amount))}</TableCell>
                     <TableCell className="text-xs">{c.receiptNumber ?? '—'}</TableCell>
                     <TableCell className="text-xs">{formatDate(c.receivedAt)}</TableCell>
                     <TableCell><Badge variant="outline">{c.paymentMethod.replace('_', ' ')}</Badge></TableCell>
@@ -127,8 +130,8 @@ export default async function StatementPage() {
                   <TableRow key={c.id}>
                     <TableCell><Badge variant={c.type === 'FUNERAL' ? 'secondary' : 'outline'}>{c.type}</Badge></TableCell>
                     <TableCell className="text-xs">{formatDate(c.eventDate)}</TableCell>
-                    <TableCell>{formatCurrency(c.amountRequested)}</TableCell>
-                    <TableCell>{c.amountApproved ? formatCurrency(c.amountApproved) : '—'}</TableCell>
+                    <TableCell>{formatCurrency(toNumber(c.amountRequested))}</TableCell>
+                    <TableCell>{c.amountApproved ? formatCurrency(toNumber(c.amountApproved)) : '—'}</TableCell>
                     <TableCell>
                       <Badge variant={
                         c.status === 'PAID' ? 'success' :

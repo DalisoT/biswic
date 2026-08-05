@@ -3,7 +3,7 @@ import { prisma } from '@/lib/db';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { formatCurrency, formatDate, monthName } from '@/lib/utils';
+import { formatCurrency, formatDate, monthName, sumField, toNumber } from '@/lib/utils';
 import { canRecordContributions, canViewAllMembers } from '@/lib/permissions';
 import { AddContributionForm } from '@/components/contributions/add-contribution-form';
 import { BulkContributionForm } from '@/components/contributions/bulk-contribution-form';
@@ -24,7 +24,7 @@ export default async function ContributionsPage() {
     include: { member: { select: { serviceNumber: true, fullName: true } } },
   });
 
-  const totalContributions = myContributions.reduce((s, c) => s + c.amount, 0);
+  const totalContributions = sumField(myContributions, (c) => c.amount);
 
   // For officers: arrears list
   const activeMemberCount = await prisma.user.count({
@@ -114,7 +114,7 @@ export default async function ContributionsPage() {
                         <div className="text-xs text-muted-foreground">{('member' in c) ? c.member.fullName : ''}</div>
                       </TableCell>
                     )}
-                    <TableCell className="font-semibold">{formatCurrency(c.amount)}</TableCell>
+                    <TableCell className="font-semibold">{formatCurrency(toNumber(c.amount))}</TableCell>
                     <TableCell>
                       <Badge variant="outline">{c.paymentMethod.replace('_', ' ')}</Badge>
                     </TableCell>

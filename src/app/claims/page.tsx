@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate, sumField, toNumber } from '@/lib/utils';
 import { canApproveWelfare, canViewAllMembers } from '@/lib/permissions';
 import { config } from '@/lib/config';
 import { Heart, Plus } from 'lucide-react';
@@ -75,9 +75,10 @@ export default async function ClaimsPage() {
             <CardDescription>Total approved amount</CardDescription>
             <CardTitle className="text-2xl">
               {formatCurrency(
-                claims
-                  .filter((c) => c.status === 'APPROVED' || c.status === 'PAID')
-                  .reduce((s, c) => s + (c.amountApproved ?? 0), 0)
+                sumField(
+                  claims.filter((c) => c.status === 'APPROVED' || c.status === 'PAID'),
+                  (c) => c.amountApproved ?? 0,
+                )
               )}
             </CardTitle>
           </CardHeader>
@@ -131,8 +132,8 @@ export default async function ClaimsPage() {
                       )}
                       <TableCell>{c.beneficiary}</TableCell>
                       <TableCell className="text-xs">{formatDate(c.eventDate)}</TableCell>
-                      <TableCell>{formatCurrency(c.amountRequested)}</TableCell>
-                      <TableCell className="font-semibold">{c.amountApproved ? formatCurrency(c.amountApproved) : '—'}</TableCell>
+                      <TableCell>{formatCurrency(toNumber(c.amountRequested))}</TableCell>
+                      <TableCell className="font-semibold">{c.amountApproved ? formatCurrency(toNumber(c.amountApproved)) : '-'}</TableCell>
                       <TableCell>
                         <Badge variant={
                           c.status === 'PAID' ? 'success' :

@@ -2,7 +2,7 @@ import { requireUser } from '@/lib/auth/require-user';
 import { prisma } from '@/lib/db';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { formatCurrency, formatDate, computeMonthlyInflow } from '@/lib/utils';
+import { formatCurrency, formatDate, computeMonthlyInflow, sumField, toNumber } from '@/lib/utils';
 import { config } from '@/lib/config';
 import { redirect } from 'next/navigation';
 import { BucketBars } from '@/components/dashboard/bucket-bars';
@@ -37,9 +37,9 @@ export default async function ReportsPage() {
     prisma.user.count({ where: { isActive: true, role: 'MEMBER' } }),
   ]);
 
-  const totalKitty = buckets.reduce((s, b) => s + b.balance, 0);
-  const totalContributionsThisYear = contributionsThisYear.reduce((s, c) => s + c.amount, 0);
-  const totalClaimsThisYear = claimsThisYear.reduce((s, c) => s + (c.amountApproved ?? 0), 0);
+  const totalKitty = sumField(buckets, (b) => b.balance);
+  const totalContributionsThisYear = sumField(contributionsThisYear, (c) => c.amount);
+  const totalClaimsThisYear = sumField(claimsThisYear, (c) => c.amountApproved ?? 0);
 
   // Monthly breakdown
   const monthlyBreakdown: Array<{ month: number; total: number; count: number }> = [];
@@ -47,7 +47,7 @@ export default async function ReportsPage() {
     const monthContribs = contributionsThisYear.filter((c) => c.month === m);
     monthlyBreakdown.push({
       month: m,
-      total: monthContribs.reduce((s, c) => s + c.amount, 0),
+      total: sumField(monthContribs, (c) => c.amount),
       count: monthContribs.length,
     });
   }
@@ -168,7 +168,7 @@ export default async function ReportsPage() {
                       <div className="text-xs text-muted-foreground">{c.member.fullName}</div>
                     </TableCell>
                     <TableCell className="text-xs">{formatDate(c.eventDate)}</TableCell>
-                    <TableCell>{formatCurrency(c.amountApproved ?? 0)}</TableCell>
+                    <TableCell>{formatCurrency(toNumber(c.amountApproved))}</TableCell>
                     <TableCell className="text-xs">{c.paidAt ? formatDate(c.paidAt) : '—'}</TableCell>
                   </TableRow>
                 ))}

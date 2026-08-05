@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate, toNumber } from '@/lib/utils';
 import { canViewAllMembers } from '@/lib/permissions';
 import { HandCoins, Inbox } from 'lucide-react';
 import Link from 'next/link';
@@ -115,7 +115,7 @@ export default async function SoftLoanApplicationsPage() {
                           {a.applicant.fullName} · {a.applicant.rank ?? '—'} / {a.applicant.unit ?? '—'}
                         </div>
                       </TableCell>
-                      <TableCell className="font-medium">{formatCurrency(a.principal)}</TableCell>
+                      <TableCell className="font-medium">{formatCurrency(toNumber(a.principal))}</TableCell>
                       <TableCell>{a.termMonths} mo</TableCell>
                       <TableCell className="max-w-xs truncate" title={a.purpose}>{a.purpose}</TableCell>
                       <TableCell>

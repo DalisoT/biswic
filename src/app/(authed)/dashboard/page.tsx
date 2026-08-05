@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { config } from '@/lib/config';
-import { formatCurrency, formatDate, monthName, computeMonthlyInflow, computeBucketMonthly, anonymizeMember } from '@/lib/utils';
+import { formatCurrency, formatDate, monthName, computeMonthlyInflow, computeBucketMonthly, anonymizeMember, toNumber } from '@/lib/utils';
 import { bucketColor, bucketLabel } from '@/lib/buckets';
 import { roleLabel } from '@/lib/permissions';
 import { FileText, Heart, Coins, Calendar, ArrowRight } from 'lucide-react';
@@ -28,7 +28,9 @@ export default async function DashboardPage() {
     where: { memberId: userId },
     orderBy: [{ year: 'desc' }, { month: 'desc' }],
   });
-  const myTotalContributions = myContributions.reduce((s, c) => s + c.amount, 0);
+  // Prisma returns Decimal for @db.Decimal columns. Always coerce to Number
+  // before arithmetic - JS otherwise produces garbage on number+Decimal mixed ops.
+  const myTotalContributions = myContributions.reduce((s, c) => s + Number(c.amount), 0);
 
   // My claims
   const myClaims = await prisma.welfareClaim.findMany({
@@ -36,11 +38,14 @@ export default async function DashboardPage() {
     orderBy: { createdAt: 'desc' },
   });
   const myPaidClaims = myClaims.filter((c) => c.status === 'PAID');
-  const myTotalClaimed = myPaidClaims.reduce((s, c) => s + (c.amountApproved ?? 0), 0);
+  const myTotalClaimed = myPaidClaims.reduce(
+    (s, c) => s + Number(c.amountApproved ?? 0),
+    0,
+  );
 
   // Buckets
   const buckets = await prisma.bucket.findMany({ orderBy: { code: 'asc' } });
-  const totalKitty = buckets.reduce((s, b) => s + b.balance, 0);
+  const totalKitty = buckets.reduce((s, b) => s + Number(b.balance), 0);
 
   // This month collection progress
   const now = new Date();
@@ -70,7 +75,7 @@ export default async function DashboardPage() {
     const m = d.getMonth() + 1;
     const y = d.getFullYear();
     const c = myContributions.find((x) => x.month === m && x.year === y);
-    timeline.push({ month: `${monthName(m).slice(0, 3)} ${y.toString().slice(2)}`, amount: c?.amount ?? 0 });
+    timeline.push({ month: `${monthName(m).slice(0, 3)} ${y.toString().slice(2)}`, amount: toNumber(c?.amount) });
   }
 
   const monthlyInflow = computeMonthlyInflow(activeMemberCount);
@@ -265,7 +270,7 @@ export default async function DashboardPage() {
               {recentContributions.map((c, i) => (
                 <li key={c.id} className="flex items-center justify-between text-sm border-b last:border-0 pb-2 last:pb-0">
                   <span className="text-muted-foreground">
-                    {anonymizeMember(c.member.serviceNumber)} paid {formatCurrency(c.amount)}
+                    {anonymizeMember(c.member.serviceNumber)} paid {formatCurrency(toNumber(c.amount))}
                   </span>
                   <span className="text-xs text-muted-foreground">{formatDate(c.receivedAt)}</span>
                 </li>
