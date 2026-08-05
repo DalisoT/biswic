@@ -8,6 +8,7 @@ import { prisma } from '@/lib/db';
 import { z } from 'zod';
 import { logAudit, AUDIT_ACTIONS } from '@/lib/audit';
 import { config } from '@/lib/config';
+import { createNotification, notifyAllMembers } from '@/server/actions/notifications';
 
 const singleSchema = z.object({
   memberServiceNumber: z.string().min(1),
@@ -56,9 +57,19 @@ export async function addContributionAction(formData: FormData) {
     return { error: err.message ?? 'Failed to record contribution.' };
   }
 
+  // Notify the member that their contribution was recorded
+  await createNotification({
+    userId: member.id,
+    type: 'CONTRIBUTION',
+    title: 'Contribution recorded',
+    body: `Your ${config.currency}${rest.amount} contribution for ${rest.month}/${rest.year} has been recorded.`,
+    link: '/contributions',
+  });
+
   revalidatePath('/contributions');
   revalidatePath('/dashboard');
   revalidatePath('/group');
+  revalidatePath('/notifications');
   return { success: true };
 }
 
@@ -120,9 +131,13 @@ export async function bulkContributionsAction(formData: FormData) {
     new Date(parsed.data.receivedAt)
   );
 
+  // Bulk imports don't notify each member (avoids spam). Per-member
+  // notifications are reserved for the single-record path.
+
   revalidatePath('/contributions');
   revalidatePath('/dashboard');
   revalidatePath('/group');
+  revalidatePath('/notifications');
 
   return {
     success: result.success,
@@ -267,6 +282,7 @@ export async function bulkImportPayrollAction(
   revalidatePath('/contributions');
   revalidatePath('/dashboard');
   revalidatePath('/group');
+  revalidatePath('/notifications');
 
   return {
     total: entries.length,
