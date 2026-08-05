@@ -4,10 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { roleLabel } from '@/lib/permissions';
+import { canManageMembers, roleLabel } from '@/lib/permissions';
 import { formatDate, formatPhone } from '@/lib/utils';
 import { isFoundingLockActive } from '@/lib/config';
-import { UserPlus, Users, AlertTriangle, Lock } from 'lucide-react';
+import { UserPlus, Users, AlertTriangle, Lock, Pencil } from 'lucide-react';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -37,6 +37,7 @@ export default async function MembersPage() {
   const totalOfficers = members.filter((m) => m.role !== 'MEMBER').length;
   const activeCount = members.filter((m) => m.isActive).length;
   const foundingCount = members.filter((m) => m.isFoundingMember).length;
+  const canEdit = canManageMembers(user.role);
 
   return (
     <div className="space-y-6">
@@ -50,12 +51,14 @@ export default async function MembersPage() {
             {totalMembers} member{totalMembers !== 1 ? 's' : ''} · {totalOfficers} officer{totalOfficers !== 1 ? 's' : ''} · {activeCount} active
           </p>
         </div>
-        <Button asChild>
-          <Link href="/members/new">
-            <UserPlus className="h-4 w-4 mr-1" />
-            Add member
-          </Link>
-        </Button>
+        {canEdit && (
+          <Button asChild>
+            <Link href="/members/new">
+              <UserPlus className="h-4 w-4 mr-1" />
+              Add member
+            </Link>
+          </Button>
+        )}
       </div>
 
       {lockActive && (
@@ -96,6 +99,7 @@ export default async function MembersPage() {
                   <TableHead>Phone</TableHead>
                   <TableHead>Joined</TableHead>
                   <TableHead>Status</TableHead>
+                  {canEdit && <TableHead className="w-16"></TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -124,6 +128,15 @@ export default async function MembersPage() {
                         {m.isActive ? 'Active' : 'Inactive'}
                       </Badge>
                     </TableCell>
+                    {canEdit && (
+                      <TableCell>
+                        <Button asChild size="sm" variant="ghost">
+                          <Link href={`/members/${m.id}/edit`}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Link>
+                        </Button>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>

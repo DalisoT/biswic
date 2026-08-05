@@ -141,10 +141,10 @@ export async function createMemberAction(formData: FormData): Promise<CreateMemb
   await prisma.user.update({
     where: { id: userId },
     data: {
-      nrc: data.nrc || null,
+      nationalRegistrationNumber: data.nrc || null,
       rank: data.rank || null,
       unit: data.unit || null,
-      nextOfKin: nextOfKin ? JSON.stringify(nextOfKin) : null,
+      nextOfKin: (nextOfKin as any) ?? null,
     },
   });
 
@@ -188,4 +188,158 @@ export async function createMemberAction(formData: FormData): Promise<CreateMemb
 
   revalidatePath('/members');
   return { success: true, userId };
+}
+
+// ----------------------------------------------------------------------------
+// updateMemberAction
+// ----------------------------------------------------------------------------
+// In-app edit flow for the Chairperson or Secretary. Constitution Art. 2.3 +
+// 6.4: officer promotions should be ratified at a GM. The role field IS
+// editable here, but every change is logged with before/after so the next
+// GM can ratify (or reject) the change. The UI shows a "GM ratification
+// required" banner on the form.
+// ----------------------------------------------------------------------------
+
+import { ALL_ROLES, type Role } from '@/lib/permissions';
+
+const updateSchema = z.object({
+  memberId: z.string().uuid(),
+  fullName: z.string().min(2, 'Full name is required.').max(120),
+  email: z.string().email('Valid email is required.'),
+  phone: z.string().regex(PHONE_RE, 'Phone must be +260XXXXXXXXX (9 digits).'),
+  nrc: z.string().optional().nullable(),
+  rank: z.string().optional().nullable(),
+  unit: z.string().optional().nullable(),
+  role: z.enum(ALL_ROLES as unknown as [Role, ...Role[]]),
+  isActive: z.coerce.boolean().optional().default(true),
+  nextOfKinName: z.string().optional().nullable(),
+  nextOfKinRelationship: z.string().optional().nullable(),
+  nextOfKinPhone: z.string().optional().nullable(),
+});
+
+export type UpdateMemberResult = {
+  error?: string;
+  success?: boolean;
+  memberId?: string;
+  roleChanged?: boolean;
+};
+
+export async function updateMemberAction(formData: FormData): Promise<UpdateMemberResult> {
+  const user = await requireUser();
+  if (!canManageMembers(user.role)) {
+    return { error: 'Only the Chairperson or Secretary may edit members.' };
+  }
+
+  const parsed = updateSchema.safeParse({
+    memberId: formData.get('memberId'),
+    fullName: formData.get('fullName'),
+    email: formData.get('email'),
+    phone: formData.get('phone'),
+    nrc: formData.get('nrc') || null,
+    rank: formData.get('rank') || null,
+    unit: formData.get('unit') || null,
+    role: formData.get('role'),
+    isActive: formData.get('isActive') === 'on' || formData.get('isActive') === 'true',
+    nextOfKinName: formData.get('nextOfKinName') || null,
+    nextOfKinRelationship: formData.get('nextOfKinRelationship') || null,
+    nextOfKinPhone: formData.get('nextOfKinPhone') || null,
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? 'Invalid input.' };
+  }
+  const data = parsed.data;
+
+  // Cannot edit yourself into a different role (avoid lockout / role drift)
+  if (data.memberId === user.id && data.role !== user.role) {
+    return { error: 'You cannot change your own role. Ask another officer.' };
+  }
+  // Cannot edit yourself into inactive
+  if (data.memberId === user.id && !data.isActive) {
+    return { error: 'You cannot deactivate your own account.' };
+  }
+
+  // Fetch the before state for the audit log
+  const before = await prisma.user.findUnique({
+    where: { id: data.memberId },
+    select: {
+      serviceNumber: true,
+      fullName: true,
+      email: true,
+      phone: true,
+      nationalRegistrationNumber: true,
+      rank: true,
+      unit: true,
+      role: true,
+      isActive: true,
+    },
+  });
+  if (!before) {
+    return { error: 'Member not found.' };
+  }
+
+  // Uniqueness check on email + phone (excluding self)
+  const conflict = await prisma.user.findFirst({
+    where: {
+      id: { not: data.memberId },
+      OR: [{ email: data.email }, { phone: data.phone }],
+    },
+    select: { email: true, phone: true },
+  });
+  if (conflict) {
+    if (conflict.email === data.email) return { error: `Email ${data.email} is already in use by another member.` };
+    return { error: `Phone ${data.phone} is already in use by another member.` };
+  }
+
+  const nextOfKin =
+    data.nextOfKinName || data.nextOfKinRelationship || data.nextOfKinPhone
+      ? {
+          name: data.nextOfKinName ?? '',
+          relationship: data.nextOfKinRelationship ?? '',
+          phone: data.nextOfKinPhone ?? '',
+        }
+      : null;
+
+  const after = await prisma.user.update({
+    where: { id: data.memberId },
+    data: {
+      fullName: data.fullName,
+      email: data.email,
+      phone: data.phone,
+      nationalRegistrationNumber: data.nrc || null,
+      rank: data.rank || null,
+      unit: data.unit || null,
+      role: data.role,
+      isActive: data.isActive,
+      nextOfKin: (nextOfKin as any) ?? null,
+    },
+  });
+
+  const roleChanged = before.role !== after.role;
+
+  await logAudit({
+    userId: user.id,
+    action: AUDIT_ACTIONS.MEMBER_EDITED ?? 'MEMBER_EDITED',
+    entity: 'User',
+    entityId: data.memberId,
+    beforeValue: before as Record<string, unknown>,
+    afterValue: {
+      fullName: after.fullName,
+      email: after.email,
+      phone: after.phone,
+      nationalRegistrationNumber: after.nationalRegistrationNumber,
+      rank: after.rank,
+      unit: after.unit,
+      role: after.role,
+      isActive: after.isActive,
+    },
+    notes: roleChanged
+      ? `Role changed: ${before.role} -> ${after.role} (Constitution Art. 6.4 - requires GM ratification)`
+      : undefined,
+  });
+
+  revalidatePath('/members');
+  revalidatePath(`/members/${data.memberId}/edit`);
+  revalidatePath('/dashboard');
+
+  return { success: true, memberId: data.memberId, roleChanged };
 }
