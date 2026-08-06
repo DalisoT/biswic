@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/browser';
+import { markPasswordChangedAction } from '@/server/actions/profile';
 
 export function ResetPasswordForm() {
   const router = useRouter();
@@ -35,6 +36,15 @@ export function ResetPasswordForm() {
       if (updateError) {
         setError(updateError.message);
         return;
+      }
+      // Stamp our local User.lastPasswordChangedAt so the dashboard
+      // "set your password" nudge disappears. Best-effort -- if this
+      // fails (e.g. transient DB blip), the user can still sign in;
+      // the nudge is a UX nicety, not a security gate.
+      try {
+        await markPasswordChangedAction();
+      } catch (e) {
+        console.warn('markPasswordChangedAction failed:', e);
       }
       router.push('/dashboard');
       router.refresh();

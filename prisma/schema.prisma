@@ -82,6 +82,13 @@ model User {
   twoFactorSecret  String?
   twoFactorEnabled Boolean  @default(false)
 
+  // Set on the next successful password change. Null = user is still on the
+  // initial / system-set password (default "ChangeMe123!" for seeded
+  // members, generated 16-char password for new /members/new). The dashboard
+  // shows a "set your password" nudge when this is null. Updated by the
+  // /reset-password flow and the in-app password change form.
+  lastPasswordChangedAt DateTime?
+
   // Profile preferences
   notificationPrefs Json? // { inApp, sms, email, whatsapp }
   theme             String  @default("light") // "light" | "dark"

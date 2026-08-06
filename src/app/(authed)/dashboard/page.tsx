@@ -7,9 +7,10 @@ import { config } from '@/lib/config';
 import { formatCurrency, formatDate, monthName, computeMonthlyInflow, computeBucketMonthly, anonymizeMember, toNumber } from '@/lib/utils';
 import { bucketColor, bucketLabel } from '@/lib/buckets';
 import { roleLabel } from '@/lib/permissions';
-import { FileText, Heart, Coins, Calendar, ArrowRight } from 'lucide-react';
+import { FileText, Heart, Coins, Calendar, ArrowRight, KeyRound, X } from 'lucide-react';
 import Link from 'next/link';
 import { BucketBars } from '@/components/dashboard/bucket-bars';
+import { PasswordSetupBanner } from '@/components/dashboard/password-setup-banner';
 
 export const dynamic = 'force-dynamic';
 
@@ -82,6 +83,16 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      {/* Password setup nudge. Only renders when lastPasswordChangedAt is null
+          (i.e. user has never set their own password -- still on the seeded
+          "ChangeMe123!" or the 16-char random generated for new
+          /members/new admissions). The banner is dismissable per-session
+          via localStorage; the underlying lastPasswordChangedAt remains null
+          until the user actually resets the password. */}
+      {user.lastPasswordChangedAt === null && (
+        <PasswordSetupBanner serviceNumber={serviceNumber} />
+      )}
+
       <div>
         <h1 className="text-2xl font-bold font-heading">Welcome back, {user.fullName?.split(' ').slice(-1)[0]}</h1>
         <p className="text-muted-foreground text-sm mt-1">

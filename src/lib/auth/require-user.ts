@@ -23,6 +23,11 @@ export type AuthUser = {
   role: string;
   email: string;
   fullName: string;
+  // null = user is still on a system-set password (default "ChangeMe123!"
+  // for seeded members, generated 16-char random for /members/new
+  // admissions). Stamped by markPasswordChangedAction on successful reset
+  // / change. The dashboard shows a "set your password" nudge while null.
+  lastPasswordChangedAt: Date | null;
 };
 
 export type AuthResult<T> =
@@ -48,6 +53,7 @@ export async function getUser(): Promise<AuthUser | null> {
       role: true,
       email: true,
       fullName: true,
+      lastPasswordChangedAt: true,
     },
   });
   if (!dbUser) return null;
@@ -58,6 +64,7 @@ export async function getUser(): Promise<AuthUser | null> {
     role: dbUser.role,
     email: dbUser.email ?? authUser.email ?? '',
     fullName: dbUser.fullName,
+    lastPasswordChangedAt: dbUser.lastPasswordChangedAt,
   };
 }
 
