@@ -20,9 +20,13 @@ export default async function ResetPasswordPage() {
     <div className="min-h-screen bg-gradient-to-br from-navy-700 via-navy-800 to-navy-900 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-lg bg-white text-navy-700 font-bold text-2xl mb-4">
-            B
-          </div>
+          <img
+            src="/icons/icon-192.png"
+            alt="BISWIC - Brothers in Service Welfare, Land & Investment Cooperative"
+            width={64}
+            height={64}
+            className="inline-block w-16 h-16 rounded-lg mb-4 object-contain bg-white/5"
+          />
           <h1 className="text-2xl font-bold text-white font-heading">Set a new password</h1>
         </div>
 

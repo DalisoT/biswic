@@ -63,9 +63,13 @@ export function Sidebar({ role, fullName }: { role: string; fullName: string }) 
       <div className="flex flex-col flex-1 overflow-y-auto">
         <div className="px-6 py-6 border-b">
           <Link href="/dashboard" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-md bg-navy-700 flex items-center justify-center text-white font-bold">
-              B
-            </div>
+            <img
+              src="/icons/favicon-96x96.png"
+              alt="BISWIC"
+              width={40}
+              height={40}
+              className="w-10 h-10 rounded-md object-contain shrink-0"
+            />
             <div>
               <div className="font-bold text-navy-700">BISWIC</div>
               <div className="text-xs text-muted-foreground">Member Platform</div>
