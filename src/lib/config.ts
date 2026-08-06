@@ -119,6 +119,17 @@ export const config = {
     memberSessionTimeoutHours: 8,
     rateLimitAuthPer15Min: 5,
   },
+  // Access control: gate login on payment status.
+  // When true, members (role=MEMBER) must have at least one contribution
+  // record on file to sign in. Officers (any other role) bypass the check
+  // because they need access to record payments, approve claims, and
+  // override edge cases.
+  //
+  // Toggle at runtime with the env var BISWIC_REQUIRE_PAYMENT_TO_LOGIN
+  // (default true). Flip to 'false' to disable without redeploying.
+  requirePaymentToLogin:
+    (process.env.BISWIC_REQUIRE_PAYMENT_TO_LOGIN ?? 'true').toLowerCase() !==
+    'false',
 
   // Cooperative start date (used for the 24-month funeral cap)
   // Set this to the actual launch date in production.

@@ -19,6 +19,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { config } from '@/lib/config';
 import {
   checkLockout,
   recordFailedLogin,
@@ -89,7 +90,7 @@ export async function signInAction(
   // 2. Resolve service number -> user
   const user = await prisma.user.findUnique({
     where: { serviceNumber },
-    select: { id: true, email: true, isActive: true, fullName: true },
+    select: { id: true, email: true, isActive: true, fullName: true, role: true },
   });
   if (!user || !user.isActive) {
     await logAudit({
@@ -107,6 +108,33 @@ export async function signInAction(
       error:
         'No email on file for this account. Contact the administrator to set an email before signing in.',
     };
+  }
+
+  // 2b. Payment gate (Constitution Art. -- "good standing" / paid-up members).
+  // Members (role=MEMBER) must have at least one contribution record to log
+  // in. Officers (any other role) bypass the check because they need access
+  // to record payments, approve claims, and resolve disputes. The check is
+  // off-by-config via BISWIC_REQUIRE_PAYMENT_TO_LOGIN so the chair can flip
+  // it during the WhatsApp-onboarding rollout without a redeploy.
+  if (config.requirePaymentToLogin && user.role === 'MEMBER') {
+    const paidCount = await prisma.contribution.count({
+      where: { memberId: user.id },
+    });
+    if (paidCount === 0) {
+      await logAudit({
+        action: AUDIT_ACTIONS.FAILED_LOGIN,
+        entity: 'User',
+        entityId: serviceNumber,
+        ipAddress,
+        userAgent,
+        notes: 'Sign-in attempt: no contributions on file (good-standing gate)',
+      });
+      return {
+        error:
+          'Your account is not currently in good standing. Members must have at least one paid contribution to access the platform. ' +
+          'Please contact the Treasurer (FW) to record your payment, or reach out to the Chairperson if you believe this is an error.',
+      };
+    }
   }
 
   // 3. Supabase sign-in
