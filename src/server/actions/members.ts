@@ -314,6 +314,31 @@ export async function updateMemberAction(formData: FormData): Promise<UpdateMemb
     },
   });
 
+  // Mirror the email to Supabase auth.users so it actually works for login +
+  // password reset. This is the same pattern used in updateProfileAction
+  // (src/server/actions/profile.ts) for self-service email changes. Without
+  // this, the Treasurer can set a member's email on the local DB but
+  // /forgot-password and Supabase sign-in still look the user up by their
+  // stale auth.users email (sentinel or previous real address), so the
+  // change has no effect on the user's ability to sign in.
+  //
+  // email_confirm: true -- the Treasurer is authenticated and the member
+  // is being edited by an officer, so we trust the new address. Skips the
+  // confirmation round-trip.
+  if (before.email !== after.email && after.email) {
+    const admin = createAdminClient();
+    const { error: authErr } = await admin.auth.admin.updateUserById(after.id, {
+      email: after.email,
+      email_confirm: true,
+    });
+    if (authErr) {
+      const msg = authErr.message?.toLowerCase().includes('already')
+        ? `That email is already associated with another account.`
+        : `Could not update login email: ${authErr.message}`;
+      return { error: msg };
+    }
+  }
+
   const roleChanged = before.role !== after.role;
 
   await logAudit({

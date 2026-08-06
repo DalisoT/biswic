@@ -103,12 +103,6 @@ export async function signInAction(
     });
     return { error: 'Invalid service number or password.' };
   }
-  if (!user.email) {
-    return {
-      error:
-        'No email on file for this account. Contact the administrator to set an email before signing in.',
-    };
-  }
 
   // 2b. Payment gate (Constitution Art. -- "good standing" / paid-up members).
   // Members (role=MEMBER) must have at least one contribution record to log
@@ -138,9 +132,18 @@ export async function signInAction(
   }
 
   // 3. Supabase sign-in
+  // If the member has no real email on file yet, fall back to the RFC-2606
+  // sentinel that the placeholder-cleanup script (scripts/clear-placeholder-emails.ts)
+  // set in auth.users. That sentinel is unique per service number, so the
+  // Supabase lookup still works. The user should still add a real email via
+  // /settings (or via the Treasurer at /members/[id]/edit) so they can use
+  // /forgot-password -- the dashboard's "Add your email" banner will keep
+  // nudging them until they do.
   const supabase = createServerClient();
+  const sentinelEmail = `null+${serviceNumber.toLowerCase()}@biswic.invalid`;
+  const authEmail = user.email ?? sentinelEmail;
   const { error } = await supabase.auth.signInWithPassword({
-    email: user.email,
+    email: authEmail,
     password,
   });
   if (error) {
