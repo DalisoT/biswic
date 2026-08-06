@@ -3,11 +3,13 @@ import { prisma } from '@/lib/db';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { formatCurrency, formatDate, monthName, sumField, toNumber } from '@/lib/utils';
 import { canRecordContributions, canViewAllMembers } from '@/lib/permissions';
 import { AddContributionForm } from '@/components/contributions/add-contribution-form';
-import { BulkContributionForm } from '@/components/contributions/bulk-contribution-form';
 import { config } from '@/lib/config';
+import Link from 'next/link';
+import { Upload } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -77,9 +79,22 @@ export default async function ContributionsPage() {
 
       {/* Add contribution (officers only) */}
       {canRecord && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <h2 className="text-lg font-semibold font-heading">Record contributions</h2>
+              <p className="text-sm text-muted-foreground">
+                Single entries below, or import a payroll schedule in bulk.
+              </p>
+            </div>
+            <Button asChild variant="outline">
+              <Link href="/finance/contributions/import">
+                <Upload className="h-4 w-4 mr-1" />
+                Bulk import (payroll schedule)
+              </Link>
+            </Button>
+          </div>
           <AddContributionForm />
-          <BulkContributionForm />
         </div>
       )}
 

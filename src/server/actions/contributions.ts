@@ -73,86 +73,15 @@ export async function addContributionAction(formData: FormData) {
   return { success: true };
 }
 
-const bulkSchema = z.object({
-  paymentMethod: z.enum(['PAYROLL_DEDUCTION', 'CASH', 'MOBILE_MONEY', 'BANK_TRANSFER']),
-  receivedAt: z.string().min(1),
-  csv: z.string().min(1),
-});
-
-export async function bulkContributionsAction(formData: FormData) {
-  const user = await requireUser();
-
-  if (!canRecordContributions(user.role)) {
-    return { error: 'You do not have permission to record contributions.' };
-  }
-
-  const parsed = bulkSchema.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) {
-    return { error: 'Invalid input. ' + parsed.error.issues.map((i) => i.message).join(', ') };
-  }
-
-  // Parse CSV: service_number,amount  (one per line)
-  const lines = parsed.data.csv.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
-
-  const entries: Array<{ memberId: string; amount: number; month: number; year: number; receiptNumber?: string }> = [];
-  const errors: string[] = [];
-
-  for (const [idx, line] of lines.entries()) {
-    const [serviceNumber, amountStr, monthStr, yearStr] = line.split(',').map((s) => s.trim());
-    if (!serviceNumber || !amountStr) {
-      errors.push(`Line ${idx + 1}: invalid format`);
-      continue;
-    }
-    const member = await prisma.user.findUnique({
-      where: { serviceNumber: serviceNumber.toUpperCase() },
-    });
-    if (!member) {
-      errors.push(`Line ${idx + 1}: ${serviceNumber} not found`);
-      continue;
-    }
-    const amount = parseFloat(amountStr);
-    if (isNaN(amount) || amount <= 0) {
-      errors.push(`Line ${idx + 1}: invalid amount`);
-      continue;
-    }
-    const month = monthStr ? parseInt(monthStr, 10) : new Date().getMonth() + 1;
-    const year = yearStr ? parseInt(yearStr, 10) : new Date().getFullYear();
-    entries.push({ memberId: member.id, amount, month, year });
-  }
-
-  if (entries.length === 0) {
-    return { error: 'No valid entries. ' + errors.join('; ') };
-  }
-
-  const result = await bulkRecordContributions(
-    entries,
-    user.id,
-    parsed.data.paymentMethod,
-    new Date(parsed.data.receivedAt)
-  );
-
-  // Bulk imports don't notify each member (avoids spam). Per-member
-  // notifications are reserved for the single-record path.
-
-  revalidatePath('/contributions');
-  revalidatePath('/dashboard');
-  revalidatePath('/group');
-  revalidatePath('/notifications');
-
-  return {
-    success: result.success,
-    failed: result.failed,
-    total: result.total,
-    errors: errors.slice(0, 10),
-  };
-}
-
 // ----------------------------------------------------------------------------
-// Improved monthly bulk import (payroll schedule friendly)
+// Monthly bulk import (payroll schedule friendly) -- the only bulk path
 // ----------------------------------------------------------------------------
 // Takes month+year+method+date ONCE at the top. CSV is just service_number
 // (or service_number,amount) one per line. Default amount = monthly K100.
 // Reports: imported count, already-paid SN, unknown SN, invalid rows.
+//
+// This replaces the old `bulkContributionsAction` (the awkward
+// "service_number,amount,month,year" per-line format) which is now removed.
 // ----------------------------------------------------------------------------
 
 const payrollBulkSchema = z.object({
