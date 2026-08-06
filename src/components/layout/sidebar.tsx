@@ -20,6 +20,7 @@ import {
   AlertCircle,
   UserPlus,
   Wallet,
+  ShieldAlert,
   type LucideIcon,
 } from 'lucide-react';
 import { roleLabel } from '@/lib/permissions';
@@ -51,6 +52,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Loan Defaults', href: '/finance/soft-loan-defaults', icon: AlertCircle, roles: ['FW', 'CHAIRPERSON', 'TREASURER', 'DEPUTY_TREASURER', 'CCD'] },
   { label: 'Finance', href: '/finance', icon: Wallet, roles: ['FW', 'CHAIRPERSON', 'TREASURER', 'DEPUTY_TREASURER', 'CCD', 'TRUSTEE', 'SECRETARY'] },
   { label: 'All Contributions', href: '/finance/contributions', icon: Coins, roles: ['FW', 'CHAIRPERSON', 'TREASURER', 'DEPUTY_TREASURER', 'CCD', 'TRUSTEE', 'SECRETARY'] },
+  { label: 'Locked Accounts', href: '/admin/lockouts', icon: ShieldAlert, roles: ['CHAIRPERSON', 'VICE_CHAIRPERSON', 'SECRETARY', 'TREASURER', 'DEPUTY_TREASURER', 'FW', 'CCD'] },
   { label: 'Settings', href: '/settings', icon: Settings },
 ];
 

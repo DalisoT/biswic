@@ -368,3 +368,69 @@ export async function updateMemberAction(formData: FormData): Promise<UpdateMemb
 
   return { success: true, memberId: data.memberId, roleChanged };
 }
+
+/**
+ * Officer action: clear a member's login lockout so they can sign in again
+ * immediately. Backs onto the clearLockoutAsAdmin helper in
+ * src/lib/auth/auth-attempts.ts which logs the override to AuditLog.
+ *
+ * Used by /admin/lockouts so the Treasurer / Secretary can fix the
+ * "5 failed attempts" trap from their phone during the WhatsApp-onboarding
+ * rollout -- they don't have access to a terminal.
+ */
+export async function clearMemberLockAction(
+  formData: FormData,
+): Promise<{ error?: string; success?: boolean; memberId?: string }> {
+  const { requireUser } = await import('@/lib/auth/require-user');
+  const { clearLockoutAsAdmin } = await import('@/lib/auth/auth-attempts');
+  const { headers } = await import('next/headers');
+
+  const user = await requireUser();
+  // Broader than canManageMembers: include Treasurer / FW / CCD so the
+  // Treasurer can clear lockouts from their phone during onboarding.
+  const ALLOWED = [
+    'CHAIRPERSON',
+    'VICE_CHAIRPERSON',
+    'SECRETARY',
+    'TREASURER',
+    'DEPUTY_TREASURER',
+    'FW',
+    'CCD',
+  ];
+  if (!ALLOWED.includes(user.role)) {
+    return { error: 'Only officers may clear a lockout.' };
+  }
+
+  const memberId = String(formData.get('memberId') ?? '');
+  if (!memberId) {
+    return { error: 'Missing memberId.' };
+  }
+
+  const target = await prisma.user.findUnique({
+    where: { id: memberId },
+    select: { id: true, lockedUntil: true, failedLoginAttempts: true },
+  });
+  if (!target) {
+    return { error: 'Member not found.' };
+  }
+  if (!target.lockedUntil && (target.failedLoginAttempts ?? 0) === 0) {
+    return { error: 'That member is not currently locked.' };
+  }
+
+  const hdrs = headers();
+  const result = await clearLockoutAsAdmin({
+    actorId: user.id,
+    actorRole: user.role,
+    targetUserId: target.id,
+    ipAddress: hdrs.get('x-forwarded-for') ?? 'unknown',
+    userAgent: hdrs.get('user-agent') ?? 'unknown',
+  });
+  if (!result.ok) {
+    return { error: result.reason };
+  }
+
+  revalidatePath('/admin/lockouts');
+  revalidatePath('/members');
+  revalidatePath('/dashboard');
+  return { success: true, memberId: target.id };
+}

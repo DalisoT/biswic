@@ -14,8 +14,8 @@ import { prisma } from '@/lib/db';
 import { config } from '@/lib/config';
 import { logAudit, AUDIT_ACTIONS } from '@/lib/audit';
 
-const MAX_ATTEMPTS = config.security.maxFailedLoginAttempts; // 5
-const LOCKOUT_MINUTES = config.security.lockoutMinutes; // 30
+const MAX_ATTEMPTS = config.loginMaxAttempts; // 10 (was 5 pre-rollout)
+const LOCKOUT_MINUTES = config.loginLockoutMinutes; // 15 (was 30 pre-rollout)
 
 export type LockoutState = {
   locked: boolean;
@@ -105,4 +105,47 @@ export async function clearFailedLogins(userId: string): Promise<void> {
     where: { id: userId },
     data: { failedLoginAttempts: 0, lockedUntil: null },
   });
+}
+
+/**
+ * Admin override: clear a member's lockout + counter so they can sign in
+ * again immediately. Permission-gated by the caller (see the
+ * /admin/lockouts page which checks for an officer role before
+ * exposing this action).
+ *
+ * Logs to AuditLog so the override is traceable.
+ */
+export async function clearLockoutAsAdmin(opts: {
+  actorId: string;
+  actorRole: string;
+  targetUserId: string;
+  ipAddress: string;
+  userAgent: string;
+}): Promise<{ ok: true } | { ok: false; reason: string }> {
+  const ALLOWED = [
+    'CHAIRPERSON',
+    'VICE_CHAIRPERSON',
+    'SECRETARY',
+    'TREASURER',
+    'DEPUTY_TREASURER',
+    'FW',
+    'CCD',
+  ];
+  if (!ALLOWED.includes(opts.actorRole)) {
+    return { ok: false, reason: 'Only officers may clear a lockout.' };
+  }
+  await prisma.user.update({
+    where: { id: opts.targetUserId },
+    data: { failedLoginAttempts: 0, lockedUntil: null },
+  });
+  await logAudit({
+    userId: opts.actorId,
+    action: AUDIT_ACTIONS.LOCKOUT_CLEARED,
+    entity: 'User',
+    entityId: opts.targetUserId,
+    ipAddress: opts.ipAddress,
+    userAgent: opts.userAgent,
+    notes: `Lockout cleared by officer (role=${opts.actorRole})`,
+  });
+  return { ok: true };
 }
