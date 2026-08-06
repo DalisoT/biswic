@@ -2,14 +2,17 @@
  * ----------------------------------------------------------------------------
  * - Caches the app shell for offline launch
  * - Network-first for API routes (always fresh data)
- * - Cache-first for static assets
+ * - Cache-first for static assets (hashed filenames = safe to cache forever)
+ * - HTML pages: network-only (no caching). Caching HTML causes stale-deploy
+ *   failures -- the cached HTML references old chunk hashes that no longer
+ *   exist on the new deploy, so the browser hits "Failed to fetch" on load.
  * - Skip waiting + clients claim so new versions take effect immediately
+ *
+ * Bump CACHE_NAME on every deploy so old caches get invalidated on activate.
  */
 
-const CACHE_NAME = 'biswic-v1';
+const CACHE_NAME = 'biswic-v2';
 const APP_SHELL = [
-  '/',
-  '/dashboard',
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
@@ -42,7 +45,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Next.js _next/static assets: cache-first
+  // HTML pages: network only. Caching them causes stale-deploy
+  // "Failed to fetch" errors when chunk hashes rotate.
+  if (sameOrigin && req.headers.get('accept')?.includes('text/html')) {
+    return;
+  }
+
+  // Next.js _next/static assets: cache-first (hashed filenames = safe)
   if (sameOrigin && url.pathname.startsWith('/_next/static')) {
     event.respondWith(
       caches.match(req).then((cached) => cached || fetch(req).then((res) => {
@@ -54,18 +63,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Pages & other same-origin: network-first, fall back to cache
+  // Other same-origin static assets: cache-first
   if (sameOrigin) {
     event.respondWith(
-      fetch(req)
-        .then((res) => {
-          if (res.ok) {
-            const copy = res.clone();
-            caches.open(CACHE_NAME).then((c) => c.put(req, copy));
-          }
-          return res;
-        })
-        .catch(() => caches.match(req).then((cached) => cached || caches.match('/dashboard'))),
+      caches.match(req).then((cached) => cached || fetch(req).then((res) => {
+        const copy = res.clone();
+        caches.open(CACHE_NAME).then((c) => c.put(req, copy));
+        return res;
+      })),
     );
   }
 });
