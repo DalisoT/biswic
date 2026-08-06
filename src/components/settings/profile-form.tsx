@@ -30,7 +30,7 @@ export function ProfileForm({ initial }: ProfileFormProps) {
     startTransition(async () => {
       const res = await updateProfileAction(fd);
       if (res?.error) setMsg({ ok: false, text: res.error });
-      else if (res?.success) setMsg({ ok: true, text: 'Profile updated.' });
+      else if (res?.success) setMsg({ ok: true, text: res.message ?? 'Profile updated.' });
     });
   };
 

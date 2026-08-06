@@ -11,6 +11,7 @@ import { FileText, Heart, Coins, Calendar, ArrowRight, KeyRound, X } from 'lucid
 import Link from 'next/link';
 import { BucketBars } from '@/components/dashboard/bucket-bars';
 import { PasswordSetupBanner } from '@/components/dashboard/password-setup-banner';
+import { EmailSetupBanner } from '@/components/dashboard/email-setup-banner';
 
 export const dynamic = 'force-dynamic';
 
@@ -91,6 +92,14 @@ export default async function DashboardPage() {
           until the user actually resets the password. */}
       {user.lastPasswordChangedAt === null && (
         <PasswordSetupBanner serviceNumber={serviceNumber} />
+      )}
+
+      {/* Email setup nudge. Renders when public.User.email is null -- meaning
+          the user's auth.users email is the RFC-2606 sentinel and password
+          reset can't deliver. Member self-services by going to /settings and
+          adding their email; updateProfileAction mirrors it into auth.users. */}
+      {user.email === null && (
+        <EmailSetupBanner serviceNumber={serviceNumber} />
       )}
 
       <div>

@@ -20,6 +20,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth/require-user';
 import { logAudit, AUDIT_ACTIONS } from '@/lib/audit';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 const profileSchema = z.object({
   fullName: z.string().min(1),
@@ -35,7 +36,7 @@ const profileSchema = z.object({
 
 export async function updateProfileAction(
   formData: FormData
-): Promise<{ error?: string; success?: boolean }> {
+): Promise<{ error?: string; success?: boolean; message?: string }> {
   const user = await requireUser();
 
   const parsed = profileSchema.safeParse(Object.fromEntries(formData));
@@ -51,12 +52,45 @@ export async function updateProfileAction(
       }
     : null;
 
+  // Email sync: if the member typed a real email (or changed it), mirror it
+  // into Supabase auth.users as well. The local DB alone isn't enough because
+  // /forgot-password's resetPasswordForEmail() looks the user up by their
+  // AUTH email, not the local one. We also need this so password reset can
+  // actually deliver a link to the right address.
+  //
+  // email_confirm: true -- the user is already authenticated, so we trust
+  // the new address. Skipping the confirmation email avoids a second SMTP
+  // round-trip (which still depends on the operator wiring up Resend).
+  const newEmail = parsed.data.email?.trim() || null;
+  const previousUser = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { email: true },
+  });
+  const emailChanged =
+    (newEmail ?? null) !== (previousUser?.email ?? null);
+
+  if (emailChanged && newEmail) {
+    const admin = createAdminClient();
+    const { error: authErr } = await admin.auth.admin.updateUserById(user.id, {
+      email: newEmail,
+      email_confirm: true,
+    });
+    if (authErr) {
+      // Common case: the new email is already in use by another auth user
+      // (e.g. another member typed it by mistake). Bubble up a useful message.
+      const msg = authErr.message?.toLowerCase().includes('already')
+        ? `That email is already associated with another account. Use a different one.`
+        : `Could not update login email: ${authErr.message}`;
+      return { error: msg };
+    }
+  }
+
   await prisma.user.update({
     where: { id: user.id },
     data: {
       fullName: parsed.data.fullName,
       phone: parsed.data.phone,
-      email: parsed.data.email || null,
+      email: newEmail,
       rank: parsed.data.rank || null,
       unit: parsed.data.unit || null,
       nationalRegistrationNumber: parsed.data.nationalRegistrationNumber || null,
@@ -69,10 +103,17 @@ export async function updateProfileAction(
     action: AUDIT_ACTIONS.UPDATE,
     entity: 'User',
     entityId: user.id,
+    notes: emailChanged ? 'Self-service profile update (email changed)' : 'Self-service profile update',
   });
 
   revalidatePath('/settings');
-  return { success: true };
+  revalidatePath('/dashboard');
+  return {
+    success: true,
+    message: emailChanged && newEmail
+      ? 'Profile saved. Your login email is now ' + newEmail + ' and password-reset emails will go there.'
+      : 'Profile saved.',
+  };
 }
 
 /**
