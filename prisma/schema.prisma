@@ -75,6 +75,12 @@ model User {
   role          Role     @default(MEMBER)
   nextOfKin     Json? // { name, relationship, phone }
   isActive      Boolean  @default(true)
+  // Global admin override. Bypasses every role check (canManageMembers,
+  // canRecordContributions, /admin/lockouts, etc.) without changing the
+  // visible role label. Used for the platform owner / developer.
+  // Set manually via SQL or scripts/grant-admin.ts -- no in-app UI to
+  // prevent privilege escalation.
+  isAdmin       Boolean  @default(false)
   joinedAt      DateTime @default(now())
   leftAt        DateTime?
 

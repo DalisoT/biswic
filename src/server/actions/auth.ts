@@ -90,7 +90,7 @@ export async function signInAction(
   // 2. Resolve service number -> user
   const user = await prisma.user.findUnique({
     where: { serviceNumber },
-    select: { id: true, email: true, isActive: true, fullName: true, role: true },
+    select: { id: true, email: true, isActive: true, fullName: true, role: true, isAdmin: true },
   });
   if (!user || !user.isActive) {
     await logAudit({
@@ -110,7 +110,10 @@ export async function signInAction(
   // to record payments, approve claims, and resolve disputes. The check is
   // off-by-config via BISWIC_REQUIRE_PAYMENT_TO_LOGIN so the chair can flip
   // it during the WhatsApp-onboarding rollout without a redeploy.
-  if (config.requirePaymentToLogin && user.role === 'MEMBER') {
+  // Admins bypass the good-standing gate even if their visible role is
+  // MEMBER (defensive -- shouldn't happen in practice but keeps the
+  // developer from being locked out of the system during a test).
+  if (config.requirePaymentToLogin && user.role === 'MEMBER' && !user.isAdmin) {
     const paidCount = await prisma.contribution.count({
       where: { memberId: user.id },
     });

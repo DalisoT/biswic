@@ -23,6 +23,9 @@ export type AuthUser = {
   role: string;
   email: string;
   fullName: string;
+  // Global admin override. Bypasses every role check while keeping the
+  // visible role label intact. Set via SQL or scripts/grant-admin.ts.
+  isAdmin: boolean;
   // null = user is still on a system-set password (default "ChangeMe123!"
   // for seeded members, generated 16-char random for /members/new
   // admissions). Stamped by markPasswordChangedAction on successful reset
@@ -53,6 +56,7 @@ export async function getUser(): Promise<AuthUser | null> {
       role: true,
       email: true,
       fullName: true,
+      isAdmin: true,
       lastPasswordChangedAt: true,
     },
   });
@@ -64,6 +68,7 @@ export async function getUser(): Promise<AuthUser | null> {
     role: dbUser.role,
     email: dbUser.email ?? authUser.email ?? '',
     fullName: dbUser.fullName,
+    isAdmin: dbUser.isAdmin,
     lastPasswordChangedAt: dbUser.lastPasswordChangedAt,
   };
 }

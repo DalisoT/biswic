@@ -117,6 +117,22 @@ export function canManageMembers(role: Role | string): boolean {
   return ADD_MEMBERS_ROLES.includes(role as Role);
 }
 
+/**
+ * Global admin override. Accepts either an AuthUser-like object (which
+ * carries an isAdmin boolean) or a plain role string. When isAdmin=true
+ * is present, every role check should be treated as passing. The visible
+ * role label is left untouched so the UI continues to show the user as
+ * their elected position (e.g. CCD, SECRETARY).
+ */
+export function hasAdminAccess(
+  userOrRole: { isAdmin?: boolean } | Role | string,
+): boolean {
+  if (typeof userOrRole === 'object' && userOrRole !== null) {
+    return userOrRole.isAdmin === true;
+  }
+  return false;
+}
+
 export function canPostMinutes(role: Role | string): boolean {
   return POST_MEETING_MINUTES_ROLES.includes(role as Role);
 }

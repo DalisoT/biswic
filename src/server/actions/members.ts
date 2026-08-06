@@ -226,7 +226,7 @@ export type UpdateMemberResult = {
 
 export async function updateMemberAction(formData: FormData): Promise<UpdateMemberResult> {
   const user = await requireUser();
-  if (!canManageMembers(user.role)) {
+  if (!user.isAdmin && !canManageMembers(user.role)) {
     return { error: 'Only the Chairperson or Secretary may edit members.' };
   }
 
@@ -388,6 +388,7 @@ export async function clearMemberLockAction(
   const user = await requireUser();
   // Broader than canManageMembers: include Treasurer / FW / CCD so the
   // Treasurer can clear lockouts from their phone during onboarding.
+  // Admins (isAdmin=true) bypass this regardless of role.
   const ALLOWED = [
     'CHAIRPERSON',
     'VICE_CHAIRPERSON',
@@ -397,7 +398,7 @@ export async function clearMemberLockAction(
     'FW',
     'CCD',
   ];
-  if (!ALLOWED.includes(user.role)) {
+  if (!user.isAdmin && !ALLOWED.includes(user.role)) {
     return { error: 'Only officers may clear a lockout.' };
   }
 

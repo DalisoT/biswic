@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ClearLockButton } from '@/components/admin/clear-lock-button';
-import { roleLabel } from '@/lib/permissions';
+import { roleLabel, hasAdminAccess } from '@/lib/permissions';
 import { ShieldAlert, Clock, Users } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -21,7 +21,7 @@ const OFFICER_ROLES = [
 
 export default async function LockoutsPage() {
   const user = await requireUser();
-  if (!OFFICER_ROLES.includes(user.role)) {
+  if (!user.isAdmin && !OFFICER_ROLES.includes(user.role)) {
     redirect('/dashboard');
   }
 
