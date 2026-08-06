@@ -1,13 +1,12 @@
 import { requireUser } from '@/lib/auth/require-user';
 import { prisma } from '@/lib/db';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { canManageMembers, roleLabel } from '@/lib/permissions';
 import { formatDate, formatPhone } from '@/lib/utils';
-import { isFoundingLockActive } from '@/lib/config';
-import { UserPlus, Users, AlertTriangle, Lock, Pencil } from 'lucide-react';
+import { UserPlus, Users, AlertTriangle, Pencil } from 'lucide-react';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -32,11 +31,9 @@ export default async function MembersPage() {
     },
   });
 
-  const lockActive = isFoundingLockActive();
   const totalMembers = members.filter((m) => m.role === 'MEMBER').length;
   const totalOfficers = members.filter((m) => m.role !== 'MEMBER').length;
   const activeCount = members.filter((m) => m.isActive).length;
-  const foundingCount = members.filter((m) => m.isFoundingMember).length;
   const canEdit = canManageMembers(user.role);
 
   return (
@@ -61,22 +58,7 @@ export default async function MembersPage() {
         )}
       </div>
 
-      {lockActive && (
-        <Card className="border-amber-200 bg-amber-50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base text-amber-800 flex items-center gap-2">
-              <Lock className="h-4 w-4" />
-              Founding lock active
-            </CardTitle>
-            <CardDescription className="text-amber-700">
-              Constitution Art. 2.2: no new members may be admitted before the Cooperative is formally
-              registered. The Add Member flow is disabled until <code className="text-xs">config.governance.foundingLockReleased</code> is
-              flipped to <code className="text-xs">true</code> (Secretary or Chair via env var). {foundingCount} founding
-              members already on the register.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      )}
+      {false && null /* Founding-lock banner removed per request; lock still enforced in createMemberAction */}
 
       <Card>
         <CardHeader>
