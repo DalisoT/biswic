@@ -104,6 +104,14 @@ async function ensureUser(input: SeedUserInput): Promise<string> {
   // Idempotent upsert of the public row. The trigger from 0003 will have
   // already inserted a minimal row (id, serviceNumber, fullName, email,
   // role, isActive=true, joinedAt=now). We update the fields it skipped.
+  //
+  // For founding members, joinedAt MUST be foundingSignedAt (the date they
+  // signed the founding register), not the seed run date. Otherwise the
+  // /finance defaulters page filters them all out (joinedAt > 1st of the
+  // current month) and the page wrongly says "everyone paid" for the month
+  // after the seed.
+  const joinedAt = input.foundingSignedAt ?? new Date();
+
   await prisma.user.upsert({
     where: { id: userId },
     update: {
@@ -117,6 +125,7 @@ async function ensureUser(input: SeedUserInput): Promise<string> {
       isActive: true,
       isFoundingMember: input.isFoundingMember ?? false,
       foundingSignedAt: input.foundingSignedAt ?? null,
+      joinedAt,
     },
     create: {
       id: userId,
@@ -130,6 +139,7 @@ async function ensureUser(input: SeedUserInput): Promise<string> {
       isActive: true,
       isFoundingMember: input.isFoundingMember ?? false,
       foundingSignedAt: input.foundingSignedAt ?? null,
+      joinedAt,
     },
   });
 

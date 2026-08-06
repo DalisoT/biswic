@@ -315,7 +315,15 @@ export async function getMonthlyContributionStats(
   });
 
   const startOfMonth = new Date(year, month - 1, 1);
-  const eligibleMembers = activeMembers.filter((m) => new Date(m.joinedAt) <= startOfMonth);
+  // A member is eligible to pay for (month, year) if they're a founding
+  // member (the cooperative was registered with them on file, so they owe
+  // from month 1) OR if they joined on or before the 1st of the current
+  // month. Without the OR fallback, the seed's joinedAt (= seed run date)
+  // would exclude all founding members and the dashboard would say
+  // "everyone paid" even when no one has paid for the current month.
+  const eligibleMembers = activeMembers.filter(
+    (m) => m.isFoundingMember || new Date(m.joinedAt) <= startOfMonth,
+  );
 
   const contributions = await prisma.contribution.findMany({
     where: { month, year },

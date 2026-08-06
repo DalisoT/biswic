@@ -44,7 +44,16 @@ export default async function FinanceDashboardPage() {
     prisma.user.findMany({
       where: {
         isActive: true,
-        joinedAt: { lte: new Date(year, month - 1, 1) },
+        // A member is expected to pay this month if either:
+        //   - they're a founding member (the cooperative registered with them
+        //     on file, so they owe from month 1), OR
+        //   - they joined on or before the 1st of the current month.
+        // Without the OR, the seed's joinedAt (= seed run date) would
+        // exclude everyone and the page would wrongly say "everyone paid".
+        OR: [
+          { isFoundingMember: true },
+          { joinedAt: { lte: new Date(year, month - 1, 1) } },
+        ],
         contributions: { none: { month, year } },
       },
       select: { serviceNumber: true, fullName: true, rank: true },
