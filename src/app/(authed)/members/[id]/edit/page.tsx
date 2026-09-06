@@ -2,10 +2,11 @@ import { requireUser } from '@/lib/auth/require-user';
 import { redirect, notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { canManageMembers } from '@/lib/permissions';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { EditMemberForm } from '@/components/members/edit-member-form';
-import { ArrowLeft, Info, AlertTriangle } from 'lucide-react';
+import { DeleteMemberForm } from '@/components/members/delete-member-form';
+import { ArrowLeft, Info, AlertTriangle, Skull } from 'lucide-react';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -37,6 +38,7 @@ export default async function EditMemberPage({
       isFoundingMember: true,
       foundingSignedAt: true,
       joinedAt: true,
+      leftAt: true,
       nextOfKin: true,
     },
   });
@@ -55,6 +57,14 @@ export default async function EditMemberPage({
     nextOfKin = member.nextOfKin as { name?: string; relationship?: string; phone?: string };
   }
 
+  // Show the danger zone only if:
+  //   - the actor has canManageMembers (officer or admin) -- already enforced above
+  //   - the member has not already been redacted
+  //   - OR the member is currently inactive (so the admin can purge)
+  // (The DeleteMemberForm itself shows the appropriate message for the actor's role.)
+  const isRedacted = !!member.leftAt;
+  const showDangerZone = !isRedacted || user.isAdmin;
+
   return (
     <div className="max-w-3xl mx-auto space-y-4">
       <Button asChild variant="ghost" size="sm">
@@ -65,10 +75,13 @@ export default async function EditMemberPage({
       </Button>
 
       <div>
-        <h1 className="text-2xl font-bold font-heading">Edit member</h1>
+        <h1 className="text-2xl font-bold font-heading">
+          {isRedacted ? 'Redacted member' : 'Edit member'}
+        </h1>
         <p className="text-sm text-muted-foreground mt-1">
           {member.serviceNumber} · {member.fullName} · {member.rank ?? 'no rank'}
           {member.isFoundingMember && <span className="text-amber-700"> · Founding member</span>}
+          {isRedacted && <span className="text-red-700"> · PII redacted on {member.leftAt!.toISOString().slice(0, 10)}</span>}
         </p>
       </div>
 
@@ -122,6 +135,34 @@ export default async function EditMemberPage({
           />
         </CardContent>
       </Card>
+
+      {showDangerZone && (
+        <Card className="border-red-300 bg-red-50/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-red-800 flex items-center gap-2 text-base">
+              <Skull className="h-4 w-4" />
+              Danger zone
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <p className="text-sm text-red-900/80 mb-3">
+              <strong>Permanently redact this member's PII.</strong> Use this when someone has left
+              the cooperative and you need to make their personal data unrecoverable. The financial
+              record is preserved for tax/audit compliance. The action is irreversible.
+            </p>
+            <DeleteMemberForm
+              member={{
+                id: member.id,
+                serviceNumber: member.serviceNumber,
+                fullName: member.fullName,
+                isActive: member.isActive,
+              }}
+              isSelf={member.id === user.id}
+              isAdmin={user.isAdmin}
+            />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

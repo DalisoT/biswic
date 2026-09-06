@@ -435,3 +435,207 @@ export async function clearMemberLockAction(
   revalidatePath('/dashboard');
   return { success: true, memberId: target.id };
 }
+
+// =============================================================================
+// Member removal (redacted deletion)
+// =============================================================================
+// "Deleting" a member in a financial system has to balance two conflicting
+// requirements:
+//
+//   1. PRIVACY (GDPR / Zambian DPA): the member's PII (name, phone, email,
+//      service number, NRC, next-of-kin, signature URL) must be unrecoverable
+//      once they leave the cooperative. Hard delete would satisfy this, but...
+//
+//   2. AUDIT LAW (Zambia Income Tax Act + the cooperative's own constitution):
+//      the financial record of every contribution and welfare claim must be
+//      retained for the statutory minimum (typically 6 years for tax). The
+//      SACRRED ledger, bucket balances, and audit log all depend on the User
+//      row existing. Hard delete would wipe those records and put the
+//      cooperative out of compliance.
+//
+// The compromise is REDACTED DELETION:
+//
+//   - The User row is preserved (so FKs from Contribution / WelfareClaim /
+//     SoftLoan / AuditLog / etc. continue to resolve).
+//   - All PII is overwritten with redaction markers:
+//       serviceNumber         -> "DELETED-{first 8 chars of uuid}"
+//       fullName              -> "[Redacted member]"
+//       email                 -> NULL
+//       phone                 -> "+260000000000" (preserves the @unique
+//                               constraint)
+//       nationalRegistrationNumber -> NULL
+//       rank, unit            -> NULL
+//       nextOfKin             -> NULL
+//       membershipRegisterSignatureUrl -> NULL
+//       foundingSignedAt, membershipRegisterSignedAt -> NULL
+//   - isActive -> false (no logins)
+//   - leftAt   -> NOW()   (the canonical "this member has left" timestamp)
+//   - The Supabase auth.users row is deleted so the redacted User can never
+//     be used to sign in.
+//
+// The original PII is captured in the AuditLog beforeValue so the cooperative
+// still has an audit-grade paper trail of who left and when, but the live User
+// row is no longer re-identifiable.
+//
+// Authorization: isAdmin only. This is the most destructive action in the
+// system, so it should not be granted to standard officer roles. Even the
+// Chairperson cannot remove a member without an admin override.
+// =============================================================================
+
+const deleteSchema = z.object({
+  memberId: z.string().uuid(),
+  // Confirmation: the actor must type the target's CURRENT service number.
+  // This prevents accidental clicks from triggering a redaction. Compared
+  // to "type DELETE", service-number confirmation is harder to mistype and
+  // impossible to guess at scale.
+  confirmServiceNumber: z.string().min(1, 'Service number confirmation is required.'),
+  // Optional free-text reason, recorded in the audit log.
+  reason: z.string().max(500).optional().nullable(),
+});
+
+export type DeleteMemberResult = {
+  error?: string;
+  success?: boolean;
+  memberId?: string;
+};
+
+export async function deleteMemberAction(formData: FormData): Promise<DeleteMemberResult> {
+  const { headers } = await import('next/headers');
+  const user = await requireUser();
+
+  // isAdmin is the ONLY role permitted to do this. Officers (Chairperson,
+  // Secretary, etc.) can deactivate (isActive=false) but cannot anonymize
+  // PII. The developer / platform owner (isAdmin) is the only one with the
+  // privilege to make PII unrecoverable.
+  if (!user.isAdmin) {
+    return { error: 'Only the platform owner (isAdmin) can permanently remove a member.' };
+  }
+
+  const parsed = deleteSchema.safeParse({
+    memberId: formData.get('memberId'),
+    confirmServiceNumber: formData.get('confirmServiceNumber'),
+    reason: formData.get('reason') || null,
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? 'Invalid input.' };
+  }
+  const data = parsed.data;
+
+  // Cannot delete yourself.
+  if (data.memberId === user.id) {
+    return { error: 'You cannot delete your own account. Ask another admin to do it.' };
+  }
+
+  const target = await prisma.user.findUnique({
+    where: { id: data.memberId },
+    select: {
+      id: true,
+      serviceNumber: true,
+      fullName: true,
+      email: true,
+      phone: true,
+      nationalRegistrationNumber: true,
+      rank: true,
+      unit: true,
+      role: true,
+      isActive: true,
+      isFoundingMember: true,
+      foundingSignedAt: true,
+      joinedAt: true,
+      leftAt: true,
+      nextOfKin: true,
+      membershipRegisterSignatureUrl: true,
+    },
+  });
+  if (!target) {
+    return { error: 'Member not found.' };
+  }
+  if (target.leftAt) {
+    return { error: `This member was already removed on ${target.leftAt.toISOString().slice(0, 10)}.` };
+  }
+
+  // Confirmation: the typed service number must match the current one.
+  if (data.confirmServiceNumber.trim().toUpperCase() !== target.serviceNumber.trim().toUpperCase()) {
+    return { error: 'Confirmation service number does not match. Type the member\'s service number exactly to confirm.' };
+  }
+
+  // Capture the BEFORE state for the audit log. This is the only place the
+  // original PII is preserved after the redaction.
+  const before = { ...target };
+
+  // Build the redacted row. Preserve the UUID (id) so all FKs still resolve.
+  // The new service number is `DELETED-{first 8 of uuid}` so it's still
+  // unique but doesn't reveal the original military service number.
+  const redactedServiceNumber = `DELETED-${target.id.slice(0, 8).toUpperCase()}`;
+  // The redacted phone must be unique (the schema enforces @unique). We use
+  // a deterministic placeholder built from the UUID so re-running is safe.
+  const redactedPhone = `+260${target.id.replace(/-/g, '').slice(0, 9)}`;
+
+  await prisma.user.update({
+    where: { id: target.id },
+    data: {
+      serviceNumber: redactedServiceNumber,
+      fullName: '[Redacted member]',
+      email: null,
+      phone: redactedPhone,
+      nationalRegistrationNumber: null,
+      rank: null,
+      unit: null,
+      nextOfKin: null as any,
+      membershipRegisterSignatureUrl: null,
+      foundingSignedAt: null,
+      membershipRegisterSignedAt: null,
+      isActive: false,
+      leftAt: new Date(),
+    },
+  });
+
+  // Delete the Supabase auth.users row. This is the credential side of the
+  // removal: even if someone had the redacted User's service number, they
+  // couldn't sign in because the auth row no longer exists.
+  //
+  // We do this AFTER the DB update so the audit log can record the action
+  // even if the auth delete fails (e.g. transient network issue). The
+  // redaction in the DB is what matters for compliance; the auth delete
+  // is a defense-in-depth.
+  const admin = createAdminClient();
+  const { error: authErr } = await admin.auth.admin.deleteUser(target.id);
+  // We don't fail the action if the auth delete fails -- the DB redaction
+  // is the source of truth. The error is captured for the audit log.
+  const authDeleteSucceeded = !authErr;
+
+  const hdrs = headers();
+  await logAudit({
+    userId: user.id,
+    action: AUDIT_ACTIONS.MEMBER_REMOVED ?? 'MEMBER_REMOVED',
+    entity: 'User',
+    entityId: target.id,
+    beforeValue: before as Record<string, unknown>,
+    afterValue: {
+      serviceNumber: redactedServiceNumber,
+      fullName: '[Redacted member]',
+      isActive: false,
+      leftAt: new Date().toISOString(),
+      authUserDeleted: authDeleteSucceeded,
+    },
+    ipAddress: hdrs.get('x-forwarded-for') ?? 'unknown',
+    userAgent: hdrs.get('user-agent') ?? 'unknown',
+    notes: data.reason
+      ? `PII redacted. Reason: ${data.reason}`
+      : 'PII redacted. No reason provided.',
+  });
+
+  revalidatePath('/members');
+  revalidatePath(`/members/${target.id}/edit`);
+  revalidatePath('/dashboard');
+  revalidatePath('/admin/lockouts');
+  // Revalidate the financial pages since the redacted member may still appear
+  // in historical contribution / loan / audit views (redacted name + service
+  // number, but the rows are still there).
+  revalidatePath('/finance/contributions');
+  revalidatePath('/finance/soft-loan-applications');
+  revalidatePath('/finance/soft-loan-register');
+  revalidatePath('/audit');
+
+  return { success: true, memberId: target.id };
+}
