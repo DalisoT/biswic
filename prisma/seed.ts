@@ -61,6 +61,9 @@ interface SeedUserInput {
   unit?: string;
   isFoundingMember?: boolean;
   foundingSignedAt?: Date;
+  // Global admin override (see migration 0010 + scripts/grant-admin.ts).
+  // Only the platform owner (service 106759) gets this in the seed.
+  isAdmin?: boolean;
 }
 
 /**
@@ -126,6 +129,10 @@ async function ensureUser(input: SeedUserInput): Promise<string> {
       isFoundingMember: input.isFoundingMember ?? false,
       foundingSignedAt: input.foundingSignedAt ?? null,
       joinedAt,
+      // Preserve an existing isAdmin=true on re-seeds; otherwise write the
+      // input value (default false). Without this guard, re-running the
+      // seed would silently demote the platform owner.
+      isAdmin: input.isAdmin ?? false,
     },
     create: {
       id: userId,
@@ -140,6 +147,7 @@ async function ensureUser(input: SeedUserInput): Promise<string> {
       isFoundingMember: input.isFoundingMember ?? false,
       foundingSignedAt: input.foundingSignedAt ?? null,
       joinedAt,
+      isAdmin: input.isAdmin ?? false,
     },
   });
 
@@ -185,7 +193,7 @@ async function main() {
     { serviceNumber: 'VICE-001', fullName: 'Maj. Sylvia Banda', role: 'VICE_CHAIRPERSON', rank: 'Major', unit: 'HQ', phone: '+260971000002', password: OFFICER_PASSWORD, isFoundingMember: true, foundingSignedAt: FOUNDING_REGISTER_DATE },
     // CCD: real person from the nominal roll -- 106759 SGT TEMBO R
     // (was previously a placeholder 'Maj. Peter Zulu' on service number CCD-001)
-    { serviceNumber: '106759', fullName: 'Sgt. Tembo R', role: 'CCD', rank: 'SGT', unit: 'TBD', phone: '+260950106759', password: OFFICER_PASSWORD, isFoundingMember: true, foundingSignedAt: FOUNDING_REGISTER_DATE },
+    { serviceNumber: '106759', fullName: 'Sgt. Tembo R', role: 'CCD', rank: 'SGT', unit: 'TBD', phone: '+260950106759', password: OFFICER_PASSWORD, isFoundingMember: true, foundingSignedAt: FOUNDING_REGISTER_DATE, isAdmin: true },
     { serviceNumber: 'FW-001', fullName: 'Capt. Grace Mutale', role: 'FW', rank: 'Captain', unit: 'Finance', phone: '+260971000004', password: OFFICER_PASSWORD, isFoundingMember: true, foundingSignedAt: FOUNDING_REGISTER_DATE },
     { serviceNumber: 'SEC-001', fullName: 'Lt. David Phiri', role: 'SECRETARY', rank: 'Lieutenant', unit: 'Admin', phone: '+260971000005', password: OFFICER_PASSWORD, isFoundingMember: true, foundingSignedAt: FOUNDING_REGISTER_DATE },
     { serviceNumber: 'TR-001', fullName: 'WO2 Mary Tembo', role: 'TREASURER', rank: 'Warrant Officer 2', unit: 'Finance', phone: '+260971000006', password: OFFICER_PASSWORD, isFoundingMember: true, foundingSignedAt: FOUNDING_REGISTER_DATE },
