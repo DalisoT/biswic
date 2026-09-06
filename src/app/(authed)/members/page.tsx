@@ -34,7 +34,7 @@ export default async function MembersPage() {
   const totalMembers = members.filter((m) => m.role === 'MEMBER').length;
   const totalOfficers = members.filter((m) => m.role !== 'MEMBER').length;
   const activeCount = members.filter((m) => m.isActive).length;
-  const canEdit = canManageMembers(user.role);
+  const canEdit = canManageMembers(user.role) || user.isAdmin;
 
   return (
     <div className="space-y-6">
