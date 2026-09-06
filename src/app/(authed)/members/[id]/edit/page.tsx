@@ -146,8 +146,8 @@ export default async function EditMemberPage({
           </CardHeader>
           <CardContent className="pt-0">
             <p className="text-sm text-red-900/80 mb-3">
-              <strong>Permanently redact this member's PII.</strong> Use this when someone has left
-              the cooperative and you need to make their personal data unrecoverable. The financial
+              <strong>Permanently redact this member&apos;s PII.</strong> Use this when someone has left
+              the cooperative and you need to make their personal data un&apos;recoverable. The financial
               record is preserved for tax/audit compliance. The action is irreversible.
             </p>
             <DeleteMemberForm

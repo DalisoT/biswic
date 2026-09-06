@@ -117,7 +117,7 @@ export function DeleteMemberForm({ member, isSelf, isAdmin }: Props) {
       <div className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-900 space-y-2">
         <div className="font-semibold flex items-center gap-2">
           <AlertTriangle className="h-4 w-4" />
-          This action redacts the member's PII and cannot be undone.
+          This action redacts the member&apos;s PII and cannot be undone.
         </div>
         <p>What will happen:</p>
         <ul className="list-disc pl-5 space-y-1 text-xs">
@@ -131,7 +131,7 @@ export function DeleteMemberForm({ member, isSelf, isAdmin }: Props) {
 
       <div className="space-y-2">
         <Label htmlFor="confirmServiceNumber">
-          Type the member's service number (<code>{member.serviceNumber}</code>) to confirm
+          Type the member&apos;s service number (<code>{member.serviceNumber}</code>) to confirm
         </Label>
         <Input
           id="confirmServiceNumber"
@@ -197,7 +197,7 @@ export function DeleteMemberForm({ member, isSelf, isAdmin }: Props) {
         </Button>
       </div>
       <p className="text-xs text-muted-foreground">
-        The "Permanently delete" button stays disabled until the service number confirmation matches.
+        The &quot;Permanently delete&quot; button stays disabled until the service number confirmation matches.
       </p>
     </form>
   );
