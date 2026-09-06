@@ -1,25 +1,32 @@
 -- 0012_drop_auditlog_usercascade.sql
 -- ----------------------------------------------------------------------------
--- Drops the ON DELETE CASCADE foreign key on AuditLog.userId.
+-- Fixes two cascade-related issues that block user deletion:
 --
--- Problem: Prisma generates an ON DELETE CASCADE constraint on the AuditLog.userId
--- FK. When a User is deleted (e.g. via the redacted-delete flow), Prisma issues
--- a CASCADE DELETE against AuditLog rows. The append-only prevent_audit_log_mutation
--- trigger fires on every UPDATE to AuditLog -- and PostgreSQL issues an implicit
--- UPDATE to set userId = NULL before the CASCADE DELETE, which the trigger blocks.
+-- 1. AuditLog.userId FK: Prisma generates ON DELETE CASCADE. When a User is
+--    deleted, PostgreSQL first sets AuditLog.userId = NULL (UPDATE) before the
+--    CASCADE DELETE. The append-only prevent_audit_log_mutation trigger fires on
+--    that UPDATE and blocks it. Fix: change to SET NULL DEFERRABLE.
 --
--- Fix: AuditLog rows should never be deleted (append-only), so the FK can be
--- changed to NO ACTION / RESTRICT instead of CASCADE. The AuditLog.userId field
--- becomes informational only. Application-layer deletes handle the member cleanup.
+-- 2. Notification.userId FK: Prisma generates ON DELETE CASCADE. When a User is
+--    deleted, Notification rows cascade-delete. This works fine but for consistency
+--    and predictability, explicit DELETE of notifications before user deletion is
+--    preferred so the application layer controls the order.
 -- =============================================================================
 
 BEGIN;
 
--- Recreate the FK without CASCADE (PostgreSQL requires dropping and re-adding)
+-- Fix AuditLog: SET NULL instead of CASCADE, deferred so it fires at commit
 ALTER TABLE "AuditLog" DROP CONSTRAINT IF EXISTS "AuditLog_userId_fkey";
 ALTER TABLE "AuditLog"
   ADD CONSTRAINT "AuditLog_userId_fkey"
   FOREIGN KEY ("userId") REFERENCES "User"(id)
   ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED;
+
+-- Fix Notification: use CASCADE but defer so explicit DELETE runs first
+ALTER TABLE "Notification" DROP CONSTRAINT IF EXISTS "Notification_userId_fkey";
+ALTER TABLE "Notification"
+  ADD CONSTRAINT "Notification_userId_fkey"
+  FOREIGN KEY ("userId") REFERENCES "User"(id)
+  ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
 
 COMMIT;
