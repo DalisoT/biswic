@@ -104,31 +104,31 @@ describe('checkWelfareClaim - MEDICAL', () => {
   it('approves a normal medical claim within cap', () => {
     const result = checkWelfareClaim({
       type: 'MEDICAL',
-      amountRequested: 2500,
+      amountRequested: 1500,
       amountAlreadyApprovedThisYear: 0,
       eventCountThisYear: 0,
     });
     expect(result.ok).toBe(true);
-    expect(result.maxPerEvent).toBe(3000);
+    expect(result.maxPerEvent).toBe(2000);
   });
 
-  it('blocks claim over K3,000 cap', () => {
+  it('blocks claim over K2,000 cap', () => {
     const result = checkWelfareClaim({
       type: 'MEDICAL',
-      amountRequested: 3500,
+      amountRequested: 2500,
       amountAlreadyApprovedThisYear: 0,
       eventCountThisYear: 0,
     });
     expect(result.ok).toBe(false);
-    expect(result.blockers[0]).toContain('3000');
+    expect(result.blockers[0]).toContain('2000');
   });
 
-  it('blocks when 2 events already used', () => {
+  it('blocks when 1 event already used (max 1/year)', () => {
     const result = checkWelfareClaim({
       type: 'MEDICAL',
       amountRequested: 1000,
       amountAlreadyApprovedThisYear: 0,
-      eventCountThisYear: 2,
+      eventCountThisYear: 1,
     });
     expect(result.ok).toBe(false);
   });

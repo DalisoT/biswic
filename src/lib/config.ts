@@ -130,18 +130,17 @@ export const config = {
   requirePaymentToLogin:
     (process.env.BISWIC_REQUIRE_PAYMENT_TO_LOGIN ?? 'true').toLowerCase() !==
     'false',
-  // Lockout tuning during the WhatsApp-onboarding rollout. Bumped from
-  // the S6 baseline of 5 because 60+ members are signing in for the
-  // first time and a few fat-fingered passwords shouldn't brick the
-  // Treasurer's day. Override with env vars:
-  //   BISWIC_LOGIN_MAX_ATTEMPTS  (default 10)
-  //   BISWIC_LOGIN_LOCKOUT_MINUTES (default 15)
+  // Lockout defaults. S6 baseline: 5 attempts, 30 min lockout.
+  // Override with env vars during a rollout (e.g. WhatsApp-onboarding)
+  // if a temporary relaxation is needed:
+  //   BISWIC_LOGIN_MAX_ATTEMPTS    (default 5)
+  //   BISWIC_LOGIN_LOCKOUT_MINUTES (default 30)
   loginMaxAttempts: Number.parseInt(
-    process.env.BISWIC_LOGIN_MAX_ATTEMPTS ?? '10',
+    process.env.BISWIC_LOGIN_MAX_ATTEMPTS ?? '5',
     10,
   ),
   loginLockoutMinutes: Number.parseInt(
-    process.env.BISWIC_LOGIN_LOCKOUT_MINUTES ?? '15',
+    process.env.BISWIC_LOGIN_LOCKOUT_MINUTES ?? '30',
     10,
   ),
 
