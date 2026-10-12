@@ -130,7 +130,7 @@ export default async function LessonPage({
         {!next && (
           <Card className="bg-emerald-50/40 border-emerald-200">
             <CardContent className="p-4 text-center">
-              <p className="font-medium text-emerald-700">🎉 You've finished all the lessons!</p>
+              <p className="font-medium text-emerald-700">🎉 You&apos;ve finished all the lessons!</p>
               <p className="text-sm text-muted-foreground mt-1">
                 Take the end-of-module quiz to test your understanding.
               </p>

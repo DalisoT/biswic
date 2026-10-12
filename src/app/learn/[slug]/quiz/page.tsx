@@ -20,7 +20,7 @@ export default async function QuizStartPage({
   const user = await getUser();
   if (!user) redirect(`/login?next=/learn/${params.slug}/quiz`);
 
-  const module = await prisma.learningModule.findUnique({
+  const learningModule = await prisma.learningModule.findUnique({
     where: { slug: params.slug },
     include: {
       quiz: {
@@ -34,13 +34,13 @@ export default async function QuizStartPage({
     },
   });
 
-  if (!module || !module.isPublished) notFound();
-  if (!module.quiz) notFound();
+  if (!learningModule || !learningModule.isPublished) notFound();
+  if (!learningModule.quiz) notFound();
 
   // Verify all lessons done
   const lessonIds = (
     await prisma.learningLesson.findMany({
-      where: { moduleId: module.id },
+      where: { moduleId: learningModule.id },
       select: { id: true },
     })
   ).map((l) => l.id);
@@ -54,14 +54,14 @@ export default async function QuizStartPage({
     redirect(`/learn/${params.slug}`);
   }
 
-  const questions = module.quiz.questions.map((q) => ({
+  const questions = learningModule.quiz.questions.map((q) => ({
     id: q.id,
     order: q.order,
     prompt: q.prompt,
     type: q.type as 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'MULTI_SELECT',
   }));
 
-  const options = module.quiz.questions.flatMap((q) =>
+  const options = learningModule.quiz.questions.flatMap((q) =>
     q.options.map((o) => ({
       id: o.id,
       questionId: o.questionId,
@@ -77,7 +77,7 @@ export default async function QuizStartPage({
           <Button asChild variant="ghost" size="sm" className="mb-2 -ml-2 text-muted-foreground">
             <Link href={`/learn/${params.slug}`}>
               <ArrowLeft className="h-4 w-4 mr-1" />
-              {module.title}
+              {learningModule.title}
             </Link>
           </Button>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -88,9 +88,9 @@ export default async function QuizStartPage({
             <span>·</span>
             <span>{questions.length} questions</span>
             <span>·</span>
-            <span>{module.quiz.passingScore}% to pass</span>
+            <span>{learningModule.quiz.passingScore}% to pass</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold font-heading mt-2">{module.quiz.title}</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold font-heading mt-2">{learningModule.quiz.title}</h1>
         </div>
       </header>
 
@@ -101,13 +101,13 @@ export default async function QuizStartPage({
             <CardDescription>
               One question at a time. Select your answer and click <strong>Next</strong>. You can
               change your selection before submitting. Once you click <strong>Submit</strong> on
-              the last question, the quiz is graded immediately and you can retake if you don't
+              the last question, the quiz is graded immediately and you can retake if you don&apos;t
               pass.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <QuizRunner
-              quizId={module.quiz.id}
+              quizId={learningModule.quiz.id}
               moduleSlug={params.slug}
               questions={questions}
               options={options}

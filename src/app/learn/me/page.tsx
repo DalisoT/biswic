@@ -77,7 +77,7 @@ export default async function MyLearningPage() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
           <h1 className="text-2xl font-bold font-heading">My learning</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Track your progress through the cooperative's financial literacy modules.
+            Track your progress through the cooperative&apos;s financial literacy modules.
           </p>
         </div>
       </header>

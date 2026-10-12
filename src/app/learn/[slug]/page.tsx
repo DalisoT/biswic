@@ -23,7 +23,7 @@ export default async function LearnModulePage({
 }) {
   const user = await getUser();
 
-  const module = await prisma.learningModule.findUnique({
+  const learningModule = await prisma.learningModule.findUnique({
     where: { slug: params.slug },
     include: {
       lessons: { orderBy: { order: 'asc' } },
@@ -31,9 +31,9 @@ export default async function LearnModulePage({
     },
   });
 
-  if (!module || !module.isPublished) notFound();
+  if (!learningModule || !learningModule.isPublished) notFound();
   if (
-    !isAudienceMatch(module.audience, user?.role ?? 'MEMBER', user?.isAdmin ?? false)
+    !isAudienceMatch(learningModule.audience, user?.role ?? 'MEMBER', user?.isAdmin ?? false)
   ) {
     notFound();
   }
@@ -44,13 +44,13 @@ export default async function LearnModulePage({
   let bestQuizPassed: boolean | null = null;
   if (user) {
     const progress = await prisma.lessonProgress.findMany({
-      where: { userId: user.id, lessonId: { in: module.lessons.map((l) => l.id) } },
+      where: { userId: user.id, lessonId: { in: learningModule.lessons.map((l) => l.id) } },
       select: { lessonId: true },
     });
     completedLessonIds = new Set(progress.map((p) => p.lessonId));
-    if (module.quiz) {
+    if (learningModule.quiz) {
       const completed = await prisma.quizAttempt.findMany({
-        where: { userId: user.id, quizId: module.quiz.id, completedAt: { not: null } },
+        where: { userId: user.id, quizId: learningModule.quiz.id, completedAt: { not: null } },
         select: { score: true, passed: true },
       });
       if (completed.length > 0) {
@@ -61,10 +61,10 @@ export default async function LearnModulePage({
     }
   }
 
-  const totalLessons = module.lessons.length;
-  const completedCount = module.lessons.filter((l) => completedLessonIds.has(l.id)).length;
+  const totalLessons = learningModule.lessons.length;
+  const completedCount = learningModule.lessons.filter((l) => completedLessonIds.has(l.id)).length;
   const allLessonsDone = completedCount === totalLessons && totalLessons > 0;
-  const totalMinutes = module.lessons.reduce((sum, l) => sum + l.estimatedMin, 0);
+  const totalMinutes = learningModule.lessons.reduce((sum, l) => sum + l.estimatedMin, 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50/40 via-background to-background">
@@ -80,10 +80,10 @@ export default async function LearnModulePage({
             <div>
               <Badge variant="secondary" className="mb-2">
                 <GraduationCap className="h-3 w-3 mr-1" />
-                Module {module.order}
+                Module {learningModule.order}
               </Badge>
-              <h1 className="text-3xl font-bold font-heading">{module.title}</h1>
-              <p className="text-muted-foreground mt-2 max-w-2xl">{module.summary}</p>
+              <h1 className="text-3xl font-bold font-heading">{learningModule.title}</h1>
+              <p className="text-muted-foreground mt-2 max-w-2xl">{learningModule.summary}</p>
               <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <BookOpen className="h-4 w-4" /> {totalLessons} lessons
@@ -91,9 +91,9 @@ export default async function LearnModulePage({
                 <span className="flex items-center gap-1">
                   <Clock className="h-4 w-4" /> ~{totalMinutes} min
                 </span>
-                {module.quiz && (
+                {learningModule.quiz && (
                   <span className="flex items-center gap-1">
-                    <ListChecks className="h-4 w-4" /> {module.quiz.passingScore}% to pass
+                    <ListChecks className="h-4 w-4" /> {learningModule.quiz.passingScore}% to pass
                   </span>
                 )}
               </div>
@@ -121,7 +121,7 @@ export default async function LearnModulePage({
           <CardContent>
             <div
               className="prose prose-sm sm:prose-base max-w-none"
-              dangerouslySetInnerHTML={{ __html: renderMarkdown(module.content) }}
+              dangerouslySetInnerHTML={{ __html: renderMarkdown(learningModule.content) }}
             />
           </CardContent>
         </Card>
@@ -132,13 +132,13 @@ export default async function LearnModulePage({
             <BookOpen className="h-5 w-5" /> Lessons
           </h2>
           <ol className="space-y-3">
-            {module.lessons.map((lesson, idx) => {
+            {learningModule.lessons.map((lesson, idx) => {
               const completed = completedLessonIds.has(lesson.id);
-              const next = module.lessons[idx + 1];
+              const next = learningModule.lessons[idx + 1];
               return (
                 <li key={lesson.id}>
                   <Link
-                    href={`/learn/${module.slug}/${lesson.id}`}
+                    href={`/learn/${learningModule.slug}/${lesson.id}`}
                     className="flex items-center gap-3 p-4 rounded-lg border bg-card hover:border-emerald-300 hover:shadow-sm transition-all"
                   >
                     <div
@@ -164,7 +164,7 @@ export default async function LearnModulePage({
         </section>
 
         {/* Quiz CTA */}
-        {module.quiz && (
+        {learningModule.quiz && (
           <section>
             <Card className="bg-emerald-50/60 border-emerald-200">
               <CardHeader>
@@ -174,7 +174,7 @@ export default async function LearnModulePage({
                       <ListChecks className="h-5 w-5" /> End-of-module quiz
                     </CardTitle>
                     <CardDescription>
-                      {module.quiz.passingScore}% to pass. You can retake as many times as you need.
+                      {learningModule.quiz.passingScore}% to pass. You can retake as many times as you need.
                       {bestQuizScore !== null && (
                         <>
                           {' '}
@@ -200,7 +200,7 @@ export default async function LearnModulePage({
                   </p>
                 ) : (
                   <Button asChild>
-                    <Link href={`/learn/${module.slug}/quiz`}>
+                    <Link href={`/learn/${learningModule.slug}/quiz`}>
                       {bestQuizScore === null ? 'Start quiz' : 'Retake quiz'}
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
