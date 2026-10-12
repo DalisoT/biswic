@@ -844,7 +844,6 @@ model LearningModule {
 
   lessons LearningLesson[]
   quiz    Quiz?
-  progress LessonProgress[]
 
   @@index([isPublished, order])
 }
