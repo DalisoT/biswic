@@ -1,11 +1,18 @@
 """Generate prisma/migrations/<timestamp>_zambia_literacy_seed.sql from
 zambia-modules.clean.json.
 
-Output is a single idempotent migration wrapped in one plpgsql DO block:
-  - upserts each LearningModule by slug (ON CONFLICT)
-  - deletes stale LearningLesson rows for that module, re-inserts from seed
-  - deletes the existing Quiz (cascade handles Questions/Options), re-inserts
-  - inserts each QuizQuestion and its QuizOption rows
+Output is plain SQL wrapped in a single transaction, with chained CTEs
+(one per module) doing:
+  1. Upsert LearningModule (ON CONFLICT on slug)
+  2. DELETE existing LearningLesson for that module
+  3. INSERT new LearningLesson rows
+  4. DELETE existing Quiz (CASCADE clears Questions/Options)
+  5. INSERT new Quiz
+  6. INSERT new QuizQuestion (RETURNING id)
+  7. INSERT new QuizOption rows referencing that question
+
+No DO block, no PL/pgSQL — pure SQL so the Supabase SQL editor and any
+psql client can run it without PL/pgSQL body parsing edge cases.
 """
 
 from __future__ import annotations
@@ -21,111 +28,141 @@ MIGRATION_NAME = f"{TIMESTAMP}_zambia_literacy_seed"
 OUT_PATH = MIGRATIONS_DIR / MIGRATION_NAME / "migration.sql"
 
 
-def sql_str(s: str) -> str:
+def sql_escape(s: str) -> str:
     return s.replace("'", "''")
 
 
-def sql_escape(s: str) -> str:
-    return sql_str(s)
+def sql_text(s: str) -> str:
+    return f"'{sql_escape(s)}'"
 
 
-def sql_array_literal(values: list[str], cast: str | None = None) -> str:
-    inner = ", ".join(f"'{sql_escape(v)}'" for v in values)
+def sql_array(values: list[str], cast: str | None = None) -> str:
+    inner = ", ".join(sql_text(v) for v in values)
     s = f"ARRAY[{inner}]"
     if cast:
         s += f"::{cast}"
     return s
 
 
-def render_module(mod: dict, is_first: bool) -> str:
+def render_module_cte(mod: dict) -> str:
+    """Render one module as a chained CTE block (single SQL statement)."""
     slug = mod["slug"]
     title = mod["title"]
     summary = mod["summary"]
-    content = summary
+    content = summary  # use summary as module-level content (NOT NULL)
     audience = mod["audience"]
     order = mod["order"]
-
-    blocks: list[str] = []
-
-    # ---- Module upsert ----
-    blocks.append(f"""  -- ============================================================
-  -- module: {slug}
-  -- ============================================================
-  INSERT INTO "LearningModule"
-    ("slug", "title", "summary", "content", "audience", "isPublished", "order", "updatedAt")
-  VALUES
-    ('{sql_escape(slug)}', '{sql_escape(title)}', '{sql_escape(summary)}',
-     '{sql_escape(content)}', {sql_array_literal(audience, '"Role"[]')},
-     true, {order}, now())
-  ON CONFLICT ("slug") DO UPDATE SET
-    "title"       = EXCLUDED."title",
-    "summary"     = EXCLUDED."summary",
-    "content"     = EXCLUDED."content",
-    "audience"    = EXCLUDED."audience",
-    "isPublished" = EXCLUDED."isPublished",
-    "order"       = EXCLUDED."order",
-    "updatedAt"   = now()
-  RETURNING "id" INTO v_module_id;
-""")
-
-    # ---- Lessons: wipe + recreate ----
-    blocks.append(f"""  -- lessons for {slug}
-  DELETE FROM "LearningLesson" WHERE "moduleId" = v_module_id;
-""")
-    for lesson in mod.get("lessons", []):
-        order_n = lesson["order"]
-        title = lesson["title"]
-        content = lesson["content"]
-        estimated = lesson.get("estimatedMin", 5)
-        blocks.append(f"""  INSERT INTO "LearningLesson"
-    ("moduleId", "order", "title", "content", "estimatedMin")
-  VALUES
-    (v_module_id, {order_n}, '{sql_escape(title)}', '{sql_escape(content)}', {estimated});
-""")
-
-    # ---- Quiz: upsert by moduleId (UNIQUE) ----
     quiz = mod["quiz"]
     qtitle = quiz["title"]
     qpassing = quiz["passingScore"]
-    blocks.append(f"""  -- quiz for {slug}
-  INSERT INTO "Quiz"
-    ("moduleId", "title", "passingScore")
-  VALUES
-    (v_module_id, '{sql_escape(qtitle)}', {qpassing})
-  ON CONFLICT ("moduleId") DO UPDATE SET
-    "title"        = EXCLUDED."title",
-    "passingScore" = EXCLUDED."passingScore";
+    lessons = mod.get("lessons", [])
+    questions = quiz.get("questions", [])
 
-  -- wipe & recreate questions (and via cascade, options)
-  DELETE FROM "QuizQuestion" WHERE "quizId" = (SELECT "id" FROM "Quiz" WHERE "moduleId" = v_module_id);
-""")
-    for q in quiz["questions"]:
+    ctes: list[str] = []
+
+    # 1. Module upsert
+    ctes.append(f"""  m AS (
+    INSERT INTO "LearningModule"
+      ("slug", "title", "summary", "content", "audience", "isPublished", "order", "updatedAt")
+    VALUES
+      ('{sql_escape(slug)}', '{sql_escape(title)}', '{sql_escape(summary)}',
+       '{sql_escape(content)}', {sql_array(audience, '"Role"[]')},
+       true, {order}, now())
+    ON CONFLICT ("slug") DO UPDATE SET
+      "title"       = EXCLUDED."title",
+      "summary"     = EXCLUDED."summary",
+      "content"     = EXCLUDED."content",
+      "audience"    = EXCLUDED."audience",
+      "isPublished" = EXCLUDED."isPublished",
+      "order"       = EXCLUDED."order",
+      "updatedAt"   = now()
+    RETURNING "id"
+  )""")
+
+    # 2. Delete existing lessons for this module
+    ctes.append("""  dl AS (
+    DELETE FROM "LearningLesson"
+    WHERE "moduleId" IN (SELECT id FROM m)
+    RETURNING 1
+  )""")
+
+    # 3. Insert lessons (one CTE per lesson would be needed to chain; instead use a
+    #    single multi-row INSERT then chain questions through a separate CTE block)
+    if lessons:
+        lesson_rows = []
+        for lesson in lessons:
+            lesson_rows.append(
+                f"      ((SELECT id FROM m), {lesson['order']}, "
+                f"'{sql_escape(lesson['title'])}', '{sql_escape(lesson['content'])}', "
+                f"{lesson.get('estimatedMin', 5)})"
+            )
+        ctes.append(f"""  il AS (
+    INSERT INTO "LearningLesson"
+      ("moduleId", "order", "title", "content", "estimatedMin")
+    VALUES
+{',\n'.join(lesson_rows)}
+    RETURNING 1
+  )""")
+
+    # 4. Delete existing quiz (CASCADE will drop questions/options)
+    ctes.append("""  dq AS (
+    DELETE FROM "Quiz"
+    WHERE "moduleId" IN (SELECT id FROM m)
+    RETURNING 1
+  )""")
+
+    # 5. Insert quiz
+    ctes.append(f"""  q AS (
+    INSERT INTO "Quiz"
+      ("moduleId", "title", "passingScore")
+    VALUES
+      ((SELECT id FROM m), '{sql_escape(qtitle)}', {qpassing})
+    RETURNING "id"
+  )""")
+
+    # 6. Insert each question with RETURNING id, and reference it for options
+    for i, q in enumerate(questions):
+        qalias = f"q{i}"
         qorder = q["order"]
         qprompt = q["prompt"]
         qtype = q["type"]
         qexplain = q.get("explanation") or ""
         qpoints = q.get("points", 1)
         explain_sql = "NULL" if not qexplain else f"'{sql_escape(qexplain)}'"
-        blocks.append(f"""  -- question {qorder} for {slug}
-  INSERT INTO "QuizQuestion"
-    ("quizId", "order", "prompt", "type", "explanation", "points")
-  VALUES
-    ((SELECT "id" FROM "Quiz" WHERE "moduleId" = v_module_id),
-     {qorder}, '{sql_escape(qprompt)}', '{sql_escape(qtype)}',
-     {explain_sql}, {qpoints})
-  RETURNING "id" INTO v_question_id;
-""")
-        for opt in q.get("options", []):
-            otext = opt["text"]
-            oiscorrect = "true" if opt["isCorrect"] else "false"
-            oorder = opt["order"]
-            blocks.append(f"""  INSERT INTO "QuizOption"
-    ("questionId", "text", "isCorrect", "order")
-  VALUES
-    (v_question_id, '{sql_escape(otext)}', {oiscorrect}, {oorder});
-""")
+        ctes.append(f"""  {qalias} AS (
+    INSERT INTO "QuizQuestion"
+      ("quizId", "order", "prompt", "type", "explanation", "points")
+    VALUES
+      ((SELECT id FROM q), {qorder}, '{sql_escape(qprompt)}', '{sql_escape(qtype)}',
+       {explain_sql}, {qpoints})
+    RETURNING "id"
+  )""")
+        # Options for this question
+        opts = q.get("options", [])
+        if opts:
+            opt_alias = f"o{i}"
+            opt_rows = []
+            for opt in opts:
+                otext = opt["text"]
+                oiscorrect = "true" if opt["isCorrect"] else "false"
+                oorder = opt["order"]
+                opt_rows.append(
+                    f"      ((SELECT id FROM {qalias}), '{sql_escape(otext)}', {oiscorrect}, {oorder})"
+                )
+            ctes.append(f"""  {opt_alias} AS (
+    INSERT INTO "QuizOption"
+      ("questionId", "text", "isCorrect", "order")
+    VALUES
+{',\n'.join(opt_rows)}
+    RETURNING 1
+  )""")
 
-    return "".join(blocks)
+    # Final SELECT to make the CTE chain return a row
+    ctes.append("""  final AS (SELECT 'ok' AS status)""")
+
+    # Wrap in WITH ... SELECT
+    body = ",\n".join(ctes)
+    return f"WITH\n{body}\nSELECT 1;\n\n"
 
 
 def main() -> None:
@@ -149,28 +186,20 @@ def main() -> None:
 --   8. Avoiding Scams: Sakawa, Kachalo & Pyramid Schemes in Zambia
 --   9. Property & Land: Building Wealth You Can Pass Down
 --  10. Teaching Your Family About Money: Generational Wealth
+--
+-- Uses pure-SQL chained CTEs (no DO block, no PL/pgSQL) for maximum portability
+-- across psql, Supabase SQL editor, and other clients.
 
 BEGIN;
 
-DO $$
-DECLARE
-  v_module_id UUID;
-  v_question_id UUID;
-BEGIN
 """
 
     blocks = []
-    for i, mod in enumerate(data):
-        blocks.append(render_module(mod, is_first=(i == 0)))
+    for mod in data:
+        blocks.append(f"-- ----- {mod['slug']} -----\n")
+        blocks.append(render_module_cte(mod))
 
-    tail = """
-EXCEPTION WHEN OTHERS THEN
-  RAISE NOTICE 'Migration failed: % %', SQLERRM, SQLSTATE;
-  ROLLBACK;
-  RAISE;
-END $$;
-
-COMMIT;
+    tail = """COMMIT;
 """
 
     full = header + "".join(blocks) + tail
