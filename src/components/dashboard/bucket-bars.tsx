@@ -19,12 +19,19 @@ const COLORS: Record<string, string> = {
 };
 
 export function BucketBars({ buckets }: { buckets: Bucket[] }) {
-  const total = sumField(buckets, (b) => b.balance);
+  // Defensive filter: skip buckets that are logically closed. After the
+  // 2026-10 GM, FUNERAL and MEDICAL stay in the DB for audit-trail FK
+  // integrity but should never render in operational views. Callers
+  // (dashboard, /group, /reports) already filter isActive=true at the
+  // query level; this is a second line of defence so a stale build or
+  // a refactor that forgets the filter still hides them.
+  const visible = buckets.filter((b) => toNumber(b.percentage) > 0);
+  const total = sumField(visible, (b) => b.balance);
 
   return (
     <div className="space-y-3">
       <div className="flex h-8 rounded-md overflow-hidden border">
-        {buckets.map((b) => {
+        {visible.map((b) => {
           const pct = total > 0 ? (toNumber(b.balance) / total) * 100 : 0;
           if (pct === 0) return null;
           return (
@@ -40,7 +47,7 @@ export function BucketBars({ buckets }: { buckets: Bucket[] }) {
         })}
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        {buckets.map((b) => (
+        {visible.map((b) => (
           <div key={b.code} className="border rounded-md p-3">
             <div className="flex items-center gap-2">
               <div
