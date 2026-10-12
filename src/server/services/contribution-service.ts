@@ -42,7 +42,10 @@ export async function recordContribution(input: RecordContributionInput) {
   const allocationInput = buckets.map((b) => ({
     bucketId: b.id,
     bucketCode: b.code,
-    percentage: b.percentage * 100,
+    // Bucket.percentage is @db.Decimal(5,4) -> Prisma Decimal. Coerce via
+    // Number() before arithmetic; Decimal * number is not a valid TS operation
+    // and silently produces garbage at runtime in mixed-mode math.
+    percentage: Number(b.percentage) * 100,
   }));
 
   const allocations = allocateToBuckets(input.amount, allocationInput);
@@ -112,7 +115,8 @@ export async function bulkRecordContributions(
   const allocationInput = buckets.map((b) => ({
     bucketId: b.id,
     bucketCode: b.code,
-    percentage: b.percentage * 100,
+    // See note in recordContribution: coerce Decimal before arithmetic.
+    percentage: Number(b.percentage) * 100,
   }));
 
   let success = 0;

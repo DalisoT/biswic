@@ -143,7 +143,7 @@ export default async function FinanceDashboardPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Bucket balances</CardTitle>
-          <CardDescription>Constitution Art. 4.1 mix · {config.buckets.LAND_CAPITAL.percentage}% / {config.buckets.BUSINESS_SEED.percentage}% / {config.buckets.FUNERAL.percentage}% / {config.buckets.SOFT_LOANS.percentage}% / {config.buckets.ADMIN.percentage}% / {config.buckets.MEDICAL.percentage}%</CardDescription>
+          <CardDescription>Constitution Art. 4.1 mix (as amended by GM, 2026-10-12) · {config.buckets.LAND_CAPITAL.percentage}% Land / {config.buckets.BUSINESS_SEED.percentage}% Business / {config.buckets.SOFT_LOANS.percentage}% Soft Loans / {config.buckets.ADMIN.percentage}% Admin</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
