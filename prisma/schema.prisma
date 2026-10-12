@@ -115,6 +115,8 @@ model User {
   uploadedDocs          Document[]        @relation("UploadedDocs")
   uploadedDocVersions   DocumentVersion[] @relation("UploadedVersions")
   notifications         Notification[]
+  lessonProgress        LessonProgress[]
+  quizAttempts          QuizAttempt[]
   meetingAttendance     MeetingAttendance[]
   actionItems           ActionItem[]
   landOpportunities     LandOpportunity[]
@@ -809,3 +811,138 @@ model Notification {
 
   @@index([userId, read, createdAt])
 }
+
+// =============================================================================
+// FINANCIAL LITERACY + QUIZ (added 2026-10-12)
+// =============================================================================
+// Self-paced learning hub. Each LearningModule contains ordered
+// LearningLessons. A Quiz (1:1 with module) verifies understanding with
+// multiple-choice / true-false / multi-select questions. QuizAttempt and
+// QuizAnswer track per-user history. LessonProgress records lesson
+// completion so the dashboard "Continue learning" link works.
+
+model LearningModule {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug        String   @unique
+  title       String
+  summary     String
+  content     String   // markdown
+  audience    Role[]   @default([MEMBER])  // which roles can see this
+  isPublished Boolean  @default(false)
+  order       Int      @default(0)          // display order on /learn
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  lessons LearningLesson[]
+  quiz    Quiz?
+  progress LessonProgress[]
+
+  @@index([isPublished, order])
+}
+
+model LearningLesson {
+  id           String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  moduleId     String  @db.Uuid
+  module       LearningModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  order        Int
+  title        String
+  content      String  // markdown
+  estimatedMin Int     @default(5)
+
+  progress LessonProgress[]
+
+  @@unique([moduleId, order])
+  @@index([moduleId, order])
+}
+
+model LessonProgress {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String   @db.Uuid
+  user       User     @relation(fields: [userId], references: [id])
+  lessonId   String   @db.Uuid
+  lesson     LearningLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  completedAt DateTime @default(now())
+
+  @@unique([userId, lessonId])
+  @@index([userId, completedAt])
+}
+
+model Quiz {
+  id            String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  moduleId      String  @unique @db.Uuid
+  module        LearningModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  title         String
+  passingScore  Int     @default(70)  // percent
+  createdAt     DateTime @default(now())
+
+  questions  QuizQuestion[]
+  attempts   QuizAttempt[]
+}
+
+enum QuizQuestionType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  MULTI_SELECT
+}
+
+model QuizQuestion {
+  id          String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  quizId      String  @db.Uuid
+  quiz        Quiz    @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  order       Int
+  prompt      String
+  type        QuizQuestionType
+  explanation String?  // shown after answer is graded
+  points      Int     @default(1)
+
+  options  QuizOption[]
+  answers  QuizAnswer[]
+
+  @@unique([quizId, order])
+}
+
+model QuizOption {
+  id         String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  questionId String  @db.Uuid
+  question   QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  text       String
+  isCorrect  Boolean @default(false)
+  order      Int
+
+  @@index([questionId, order])
+}
+
+model QuizAttempt {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String   @db.Uuid
+  user        User     @relation(fields: [userId], references: [id])
+  quizId      String   @db.Uuid
+  quiz        Quiz     @relation(fields: [quizId], references: [id])
+  score       Int      // percent 0-100
+  passed      Boolean
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+
+  answers QuizAnswer[]
+
+  @@index([userId, completedAt])
+  @@index([quizId, score])
+}
+
+model QuizAnswer {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  attemptId         String   @db.Uuid
+  attempt           QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId        String   @db.Uuid
+  question          QuizQuestion @relation(fields: [questionId], references: [id])
+  selectedOptionIds String[]  // UUIDs of chosen options
+  isCorrect         Boolean
+
+  @@index([attemptId])
+}
+
+// Back-relations on User for the new models
+// (Prisma auto-generates these in the latest version, but we declare them
+//  explicitly for IDE help.)
+// --- User.lessonProgress, User.quizAttempts are auto-resolved by Prisma
+//     via the @relation declarations above.
