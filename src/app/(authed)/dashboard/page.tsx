@@ -12,6 +12,7 @@ import Link from 'next/link';
 import { BucketBars } from '@/components/dashboard/bucket-bars';
 import { PasswordSetupBanner } from '@/components/dashboard/password-setup-banner';
 import { EmailSetupBanner } from '@/components/dashboard/email-setup-banner';
+import { ReconciliationWidget, type BucketReconciliation } from '@/components/dashboard/reconciliation-widget';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,6 +49,41 @@ export default async function DashboardPage() {
   // Buckets
   const buckets = await prisma.bucket.findMany({ orderBy: { code: 'asc' } });
   const totalKitty = buckets.reduce((s, b) => s + Number(b.balance), 0);
+
+  // Reconciliation: compare each bucket's live balance to the running sum of
+  // its BucketTransaction rows. Drift = balance - ledgerSum. If non-zero, a
+  // balance change bypassed the ledger (manual SQL, partial transaction, etc.)
+  // and needs investigation before month close.
+  const ledgerGroups = await prisma.bucketTransaction.groupBy({
+    by: ['bucketId'],
+    _sum: { amount: true },
+    _count: { _all: true },
+    _max: { createdAt: true },
+  });
+  const lastTxByBucket: Record<string, string> = {};
+  const ledgerByBucket: Record<string, { sum: number; count: number }> = {};
+  for (const g of ledgerGroups) {
+    ledgerByBucket[g.bucketId] = {
+      sum: Number(g._sum.amount ?? 0),
+      count: g._count._all,
+    };
+    if (g._max.createdAt) {
+      lastTxByBucket[g.bucketId] = g._max.createdAt.toISOString();
+    }
+  }
+  const reconciliation: BucketReconciliation[] = buckets.map((b) => {
+    const ledger = ledgerByBucket[b.id] ?? { sum: 0, count: 0 };
+    const balance = Number(b.balance);
+    return {
+      code: b.code,
+      name: b.name,
+      balance,
+      ledgerSum: ledger.sum,
+      drift: balance - ledger.sum,
+      ledgerEntryCount: ledger.count,
+      lastTransactionAt: lastTxByBucket[b.id] ?? null,
+    };
+  });
 
   // This month collection progress
   const now = new Date();
@@ -249,6 +285,25 @@ export default async function DashboardPage() {
             balance: b.balance,
             percentage: b.percentage,
           }))} />
+        </CardContent>
+      </Card>
+
+      {/* Reconciliation: live balance vs ledger total, per bucket.
+          Catches manual SQL edits, partial transactions, and missed
+          year-end carry-overs before they compound at month close. */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Reconciliation</CardTitle>
+          <CardDescription>
+            Live bucket balance vs the running ledger total. Drift means a balance
+            change did not flow through the <code className="text-[11px]">BucketTransaction</code> ledger.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ReconciliationWidget
+            buckets={reconciliation}
+            generatedAt={new Date().toISOString()}
+          />
         </CardContent>
       </Card>
 
