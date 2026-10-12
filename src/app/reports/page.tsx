@@ -22,7 +22,9 @@ export default async function ReportsPage() {
   const currentMonth = now.getMonth() + 1;
 
   const [buckets, contributionsThisYear, claimsThisYear, activeMemberCount] = await Promise.all([
-    prisma.bucket.findMany({ orderBy: { code: 'asc' } }),
+    // Active buckets only — closed FUNERAL/MEDICAL are kept in the DB for
+    // audit but hidden from operational views.
+    prisma.bucket.findMany({ where: { isActive: true }, orderBy: { code: 'asc' } }),
     prisma.contribution.findMany({
       where: { year: currentYear },
       include: { member: { select: { serviceNumber: true, fullName: true } } },

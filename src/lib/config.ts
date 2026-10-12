@@ -24,60 +24,60 @@ export const config = {
   monthlyContributionPerMember: 100, // K100 per member per month
 
   // Bucket allocation percentages (must sum to 100)
-  // Source of truth: Constitution Article 4.1
-  //   50% Land & Capital Reserve | 20% Business Seed | 15% Funeral |
-  //    8% Soft Loans           |  4% Admin & Audit  |  3% Medical Emergency
-  // At 74 members × K100/month: 3,700 + 1,480 + 1,110 + 592 + 296 + 222 = K7,400.
+  // Source of truth: Constitution Article 4.1 (as amended by GM vote, 2026-10-12)
+  //   60% Land & Capital Reserve | 20% Business Seed | 15% Soft Loans |
+  //    5% Admin & Audit
+  // FUNERAL and MEDICAL were dropped at the same GM. The freed 18% was
+  // rebalanced +10/+7/+1. BUSINESS is unchanged. The four active buckets
+  // total 100%. Two closed buckets (FUNERAL, MEDICAL) are kept in the DB
+  // with `isActive=false` for audit-trail integrity; new contributions and
+  // new welfare claims do not flow through them.
+  // At 74 members × K100/month: 4,440 + 1,480 + 1,110 + 370 = K7,400.
   buckets: {
     LAND_CAPITAL: {
       name: 'Land & Capital Reserve',
       code: 'LAND',
-      percentage: 50,
+      percentage: 60,
     },
     BUSINESS_SEED: {
       name: 'Business Seed Fund',
       code: 'BUSINESS',
       percentage: 20,
     },
-    FUNERAL: {
-      name: 'Funeral Support',
-      code: 'FUNERAL',
-      percentage: 15,
-    },
     SOFT_LOANS: {
       name: 'Soft Loans',
       code: 'SOFT_LOANS',
-      percentage: 8,
+      percentage: 15,
     },
     ADMIN: {
       name: 'Admin & Audit',
       code: 'ADMIN',
-      percentage: 4,
-    },
-    MEDICAL: {
-      name: 'Medical Emergency',
-      code: 'MEDICAL',
-      percentage: 3,
+      percentage: 5,
     },
   } as const,
 
   // Welfare payout caps (absolute amounts in K, NOT percentages)
-  // Source of truth: Constitution Articles 5.1 (funeral) and 5.2 (medical).
+  // ----------------------------------------------------------------------------
+  // FUNERAL and MEDICAL welfare payouts were discontinued at the GM of
+  // 2026-10-12 along with their respective buckets. The twoSignatureThreshold
+  // (governance.twoSignatureThreshold) is retained for any future welfare pool
+  // the GM may re-introduce. Claim submissions for FUNERAL/MEDICAL are
+  // rejected by claim-rules.ts; the WelfareClaim table itself stays in the
+  // schema so the audit history of pre-2026-10 payouts remains queryable.
+  // welfareCaps is kept as a `disabled: true` block to make the deprecation
+  // explicit without breaking any code that still imports the keys.
   welfareCaps: {
     funeral: {
-      amountPerEvent: 8000, // K8,000 max per funeral event
-      maxPerYearYear1to2: 1, // 1 funeral payout/year in Years 1-2
-      maxPerYearYear3plus: 2, // 2 funeral payouts/year from Year 3
-      initialCapPeriodMonths: 24, // K8,000 cap applies for first 24 months
+      amountPerEvent: 0,
+      maxPerYearYear1to2: 0,
+      maxPerYearYear3plus: 0,
+      initialCapPeriodMonths: 0,
+      disabled: true,
     },
     medical: {
-      // Constitution Art. 5.2: K2,000 per event, 1 event/year.
-      // (Reduced from the original K3,000 / 2 events/year when the Medical
-      // bucket allocation was cut from 8% to 3% to fund Soft Loans.)
-      // May be reviewed upward by 2/3 GM vote once the bucket has a
-      // sustained balance.
-      amountPerEvent: 2000,
-      maxPerYear: 1,
+      amountPerEvent: 0,
+      maxPerYear: 0,
+      disabled: true,
     },
   },
 

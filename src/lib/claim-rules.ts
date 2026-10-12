@@ -2,17 +2,26 @@
  * Welfare Claim Cap Enforcement (S2 + S3)
  * ----------------------------------------------------------------------------
  * SACRED RULE: Welfare caps protect the cooperative from being drained.
- * - Funeral: K8,000 max per event (first 24 months)
- * - Funeral: max 1/yr in Years 1-2, 2/yr from Year 3
- * - Medical: K3,000 max per event, max 2/yr
  * - Two-signature rule: any payout > K1,000 needs BOTH FW + Chair
- * - No cross-bucket borrowing: deductions only from FUNERAL or MEDICAL
  * - Cap override requires a 2/3 override note
+ *
+ * GM vote 2026-10-12: the FUNERAL and MEDICAL welfare pools were closed
+ * along with their respective buckets. New claim submissions of those types
+ * are now rejected at the rule layer. The WelfareClaim table itself stays
+ * in the schema so the audit history of pre-2026-10 payouts remains
+ * queryable, and the per-type helper functions are kept (in a disabled
+ * shape) so the type union `ClaimType` still compiles.
  */
 
 import { config, isInInitialPeriod, getFuncFalFuneralMaxPerYear } from './config';
 import type { Prisma } from '@prisma/client';
 
+/**
+ * The 'FUNERAL' | 'MEDICAL' values remain in the union because the Prisma
+ * `ClaimType` enum still exposes them — that keeps the schema in sync with
+ * the live DB until a follow-up migration drops the enum values. New claims
+ * of either type are rejected by `checkWelfareClaim` with a clear blocker.
+ */
 export type ClaimType = 'FUNERAL' | 'MEDICAL';
 export type ClaimStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'PAID';
 
@@ -41,10 +50,36 @@ export interface ClaimCheckResult {
   maxPerEvent: number;
 }
 
+/**
+ * Single source of truth for "this claim type is no longer accepted".
+ * Add new claim types below the two legacy blocks; the cap-enforcement
+ * math for them lives in dedicated `if` branches.
+ */
+const DISABLED_CLAIM_TYPES: ReadonlySet<ClaimType> = new Set(['FUNERAL', 'MEDICAL']);
+
 export function checkWelfareClaim(input: ClaimCheckInput): ClaimCheckResult {
   const { type, amountRequested, amountAlreadyApprovedThisYear, eventCountThisYear, overrideNote } = input;
   const blockers: string[] = [];
   const warnings: string[] = [];
+
+  // Disabled-claim gate: GM vote 2026-10-12 closed the FUNERAL and MEDICAL
+  // welfare pools. Reject new submissions of those types with a clear,
+  // citable error so members understand why the form is now hidden.
+  if (DISABLED_CLAIM_TYPES.has(type)) {
+    return {
+      ok: false,
+      warnings,
+      blockers: [
+        `${type} claims were discontinued at the General Meeting of 2026-10-12. ` +
+        `The cooperative no longer operates a dedicated welfare pool for this event type. ` +
+        `If you have an emergency, raise it at the next monthly meeting for ad-hoc support.`,
+      ],
+      requiresOverride: false,
+      requiresTwoSignatures: false,
+      bucketCode: type,
+      maxPerEvent: 0,
+    };
+  }
 
   if (type === 'FUNERAL') {
     const maxPerEvent = config.welfareCaps.funeral.amountPerEvent;

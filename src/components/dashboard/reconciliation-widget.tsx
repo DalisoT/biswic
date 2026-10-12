@@ -32,6 +32,10 @@ export interface BucketReconciliation {
   ledgerEntryCount: number;
   /** Timestamp of the most recent transaction. Null if the bucket has never moved. */
   lastTransactionAt: string | null;
+  /** Closed buckets (e.g. FUNERAL, MEDICAL) are kept in the DB for audit
+   *  trail. We display them in the reconciliation card with a "closed" tag
+   *  so an admin can verify the close-out sweep landed correctly. */
+  isActive?: boolean;
 }
 
 const COLORS: Record<string, string> = {
@@ -120,14 +124,20 @@ export function ReconciliationWidget({
               : status === 'warn'
                 ? 'border-amber-300'
                 : 'border-green-200';
+          const inactive = b.isActive === false;
           return (
-            <div key={b.code} className={`border ${borderColor} rounded-md p-3 bg-white`}>
+            <div key={b.code} className={`border ${borderColor} ${inactive ? 'opacity-60' : ''} rounded-md p-3 bg-white`}>
               <div className="flex items-center gap-2">
                 <div
                   className="w-3 h-3 rounded-sm"
                   style={{ backgroundColor: COLORS[b.code] ?? '#64748b' }}
                 />
                 <span className="text-xs font-medium text-muted-foreground">{b.code}</span>
+                {inactive && (
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">
+                    Closed
+                  </span>
+                )}
                 <span className="ml-auto">
                   <StatusBadge status={status} />
                 </span>

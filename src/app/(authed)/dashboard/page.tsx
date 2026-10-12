@@ -46,14 +46,21 @@ export default async function DashboardPage() {
     0,
   );
 
-  // Buckets
-  const buckets = await prisma.bucket.findMany({ orderBy: { code: 'asc' } });
+  // Buckets (active only — FUNERAL and MEDICAL were closed at the 2026-10 GM
+  // and stay in the DB as inactive rows for audit-trail integrity).
+  const buckets = await prisma.bucket.findMany({
+    where: { isActive: true },
+    orderBy: { code: 'asc' },
+  });
   const totalKitty = buckets.reduce((s, b) => s + Number(b.balance), 0);
 
   // Reconciliation: compare each bucket's live balance to the running sum of
   // its BucketTransaction rows. Drift = balance - ledgerSum. If non-zero, a
   // balance change bypassed the ledger (manual SQL, partial transaction, etc.)
   // and needs investigation before month close.
+  // Includes inactive buckets in the reconciliation card so a closed
+  // bucket's sweep can still be verified against its ledger.
+  const allBuckets = await prisma.bucket.findMany({ orderBy: { code: 'asc' } });
   const ledgerGroups = await prisma.bucketTransaction.groupBy({
     by: ['bucketId'],
     _sum: { amount: true },
@@ -71,7 +78,7 @@ export default async function DashboardPage() {
       lastTxByBucket[g.bucketId] = g._max.createdAt.toISOString();
     }
   }
-  const reconciliation: BucketReconciliation[] = buckets.map((b) => {
+  const reconciliation: BucketReconciliation[] = allBuckets.map((b) => {
     const ledger = ledgerByBucket[b.id] ?? { sum: 0, count: 0 };
     const balance = Number(b.balance);
     return {
@@ -82,6 +89,7 @@ export default async function DashboardPage() {
       drift: balance - ledger.sum,
       ledgerEntryCount: ledger.count,
       lastTransactionAt: lastTxByBucket[b.id] ?? null,
+      isActive: b.isActive,
     };
   });
 

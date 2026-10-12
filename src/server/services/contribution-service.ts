@@ -27,10 +27,16 @@ export interface RecordContributionInput {
 }
 
 export async function recordContribution(input: RecordContributionInput) {
-  const buckets = await prisma.bucket.findMany();
+  // Only allocate to ACTIVE buckets. Closed buckets (FUNERAL, MEDICAL after
+  // the 2026-10 GM vote) stay in the DB with isActive=false for FK + audit
+  // integrity, but they receive no new contributions and no new allocations.
+  // The active set must sum to 100% per src/lib/config.ts.
+  const buckets = await prisma.bucket.findMany({
+    where: { isActive: true },
+  });
 
-  if (buckets.length !== 6) {
-    throw new Error(`Expected 6 buckets, found ${buckets.length}. Run seed first.`);
+  if (buckets.length === 0) {
+    throw new Error('No active buckets configured. Run the bucket rebalance migration.');
   }
 
   const allocationInput = buckets.map((b) => ({
@@ -99,7 +105,10 @@ export async function bulkRecordContributions(
   paymentMethod: 'PAYROLL_DEDUCTION' | 'CASH' | 'MOBILE_MONEY' | 'BANK_TRANSFER',
   receivedAt: Date,
 ) {
-  const buckets = await prisma.bucket.findMany();
+  // Active buckets only — see note in recordContribution above.
+  const buckets = await prisma.bucket.findMany({
+    where: { isActive: true },
+  });
   const allocationInput = buckets.map((b) => ({
     bucketId: b.id,
     bucketCode: b.code,

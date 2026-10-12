@@ -33,7 +33,9 @@ export default async function FinanceDashboardPage() {
   const year = now.getFullYear();
 
   const [buckets, monthContribs, allTime, defaulters] = await Promise.all([
-    prisma.bucket.findMany({ orderBy: { code: 'asc' } }),
+    // Active buckets only — closed FUNERAL/MEDICAL are kept in the DB for
+    // audit but hidden from operational views.
+    prisma.bucket.findMany({ where: { isActive: true }, orderBy: { code: 'asc' } }),
     prisma.contribution.findMany({
       where: { month, year },
       select: { id: true, memberId: true, amount: true, receivedAt: true, paymentMethod: true, member: { select: { serviceNumber: true, fullName: true } } },

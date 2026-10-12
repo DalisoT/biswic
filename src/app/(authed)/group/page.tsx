@@ -13,7 +13,12 @@ export default async function GroupDashboardPage() {
   const activeMemberCount = await prisma.user.count({
     where: { isActive: true, role: 'MEMBER' },
   });
-  const buckets = await prisma.bucket.findMany({ orderBy: { code: 'asc' } });
+  // Active buckets only — closed FUNERAL/MEDICAL are kept in the DB for
+  // audit but hidden from operational views.
+  const buckets = await prisma.bucket.findMany({
+    where: { isActive: true },
+    orderBy: { code: 'asc' },
+  });
   const totalKitty = sumField(buckets, (b) => b.balance);
 
   const now = new Date();

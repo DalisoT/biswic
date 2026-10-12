@@ -154,6 +154,13 @@ model Bucket {
   percentage  Decimal @db.Decimal(5, 4) // 0.5000, 0.2000, etc.
   balance     Decimal @default(0) @db.Decimal(14, 2)
   description String?
+  // Logical delete flag. Closed buckets (e.g. FUNERAL, MEDICAL after the
+  // 2026-10 GM vote) keep their row for FK integrity — every contribution
+  // ever made has a BucketAllocation pointing to it — but are filtered out
+  // of every UI, get no new allocations, and cannot be drawn down.
+  isActive    Boolean @default(true)
+  closedAt    DateTime?
+  closedReason String?
 
   allocations        BucketAllocation[]
   claims             WelfareClaim[]
@@ -161,6 +168,8 @@ model Bucket {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([isActive])
 }
 
 // Append-only ledger - source of truth for every balance change.

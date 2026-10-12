@@ -39,13 +39,14 @@ export default async function ClaimsPage() {
         <div>
           <h1 className="text-2xl font-bold font-heading">Welfare Claims</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Funeral: {formatCurrency(config.welfareCaps.funeral.amountPerEvent)} max per event · Medical: {formatCurrency(config.welfareCaps.medical.amountPerEvent)} max per event
+            New FUNERAL and MEDICAL claims are paused following the GM vote of 12 October 2026.
+            Historical claims remain visible below for audit.
           </p>
         </div>
-        <Button asChild>
+        <Button asChild variant="outline">
           <Link href="/claims/new">
             <Plus className="h-4 w-4 mr-1" />
-            Submit claim
+            New claim
           </Link>
         </Button>
       </div>
