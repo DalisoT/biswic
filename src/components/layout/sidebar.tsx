@@ -3,64 +3,16 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import {
-  LayoutDashboard,
-  Users,
-  Coins,
-  Heart,
-  Calendar,
-  FileText,
-  Map,
-  Briefcase,
-  CalendarDays,
-  Settings,
-  Shield,
-  BarChart3,
-  HandCoins,
-  AlertCircle,
-  UserPlus,
-  Wallet,
-  ShieldAlert,
-  GraduationCap,
-  type LucideIcon,
-} from 'lucide-react';
 import { roleLabel } from '@/lib/permissions';
+import { navItemsForRole } from '@/lib/nav';
 
-interface NavItem {
-  label: string;
-  href: string;
-  icon: LucideIcon;
-  roles?: string[]; // if defined, only these roles see this item
-}
-
-const NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { label: 'Group', href: '/group', icon: Users },
-  { label: 'My Contributions', href: '/contributions', icon: Coins },
-  { label: 'Welfare Claims', href: '/claims', icon: Heart },
-  { label: 'Soft Loans', href: '/soft-loans', icon: HandCoins },
-  { label: 'Members', href: '/members', icon: UserPlus, roles: ['CHAIRPERSON', 'SECRETARY', 'FW', 'TREASURER', 'CCD', 'VICE_CHAIRPERSON', 'DEPUTY_TREASURER', 'TRUSTEE'] },
-  { label: 'Meetings', href: '/meetings', icon: Calendar },
-  { label: 'Documents', href: '/documents', icon: FileText },
-  { label: 'Statements', href: '/statement', icon: BarChart3 },
-  { label: 'Land Pipeline', href: '/land', icon: Map, roles: ['CCD', 'LSC_MEMBER', 'CHAIRPERSON', 'FW'] },
-  { label: 'Businesses', href: '/businesses', icon: Briefcase, roles: ['CCD', 'BUSINESS_MEMBER', 'CHAIRPERSON', 'FW'] },
-  { label: 'Events & Charity', href: '/events', icon: CalendarDays },
-  { label: 'Audit Log', href: '/audit', icon: Shield, roles: ['FW', 'CHAIRPERSON', 'TRUSTEE', 'INTERNAL_AUDITOR'] },
-  { label: 'Reports', href: '/reports', icon: BarChart3, roles: ['FW', 'CHAIRPERSON', 'TREASURER', 'DEPUTY_TREASURER'] },
-  { label: 'Loan Applications', href: '/finance/soft-loan-applications', icon: HandCoins, roles: ['FW', 'CHAIRPERSON', 'TREASURER', 'DEPUTY_TREASURER', 'CCD'] },
-  { label: 'Loan Register', href: '/finance/soft-loan-register', icon: FileText, roles: ['FW', 'CHAIRPERSON', 'TREASURER', 'DEPUTY_TREASURER'] },
-  { label: 'Loan Defaults', href: '/finance/soft-loan-defaults', icon: AlertCircle, roles: ['FW', 'CHAIRPERSON', 'TREASURER', 'DEPUTY_TREASURER', 'CCD'] },
-  { label: 'Finance', href: '/finance', icon: Wallet, roles: ['FW', 'CHAIRPERSON', 'TREASURER', 'DEPUTY_TREASURER', 'CCD', 'TRUSTEE', 'SECRETARY'] },
-  { label: 'All Contributions', href: '/finance/contributions', icon: Coins, roles: ['FW', 'CHAIRPERSON', 'TREASURER', 'DEPUTY_TREASURER', 'CCD', 'TRUSTEE', 'SECRETARY'] },
-  { label: 'Locked Accounts', href: '/admin/lockouts', icon: ShieldAlert, roles: ['CHAIRPERSON', 'VICE_CHAIRPERSON', 'SECRETARY', 'TREASURER', 'DEPUTY_TREASURER', 'FW', 'CCD'] },
-  { label: 'Learn', href: '/learn/me', icon: GraduationCap },
-  { label: 'Settings', href: '/settings', icon: Settings },
-];
-
+/**
+ * Desktop sidebar. Sourced from `src/lib/nav.ts` so it cannot drift away from
+ * the mobile navigation again (see the note in that file).
+ */
 export function Sidebar({ role, fullName }: { role: string; fullName: string }) {
   const pathname = usePathname();
-  const allowed = NAV_ITEMS.filter((item) => !item.roles || item.roles.includes(role));
+  const allowed = navItemsForRole(role);
 
   return (
     <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 border-r bg-card">
@@ -87,7 +39,7 @@ export function Sidebar({ role, fullName }: { role: string; fullName: string }) 
           <div className="text-xs text-muted-foreground mt-1">{roleLabel(role)}</div>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav aria-label="Primary" className="flex-1 px-3 py-4 space-y-1">
           {allowed.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
             const Icon = item.icon;
@@ -95,22 +47,21 @@ export function Sidebar({ role, fullName }: { role: string; fullName: string }) 
               <Link
                 key={item.href}
                 href={item.href}
+                aria-current={isActive ? 'page' : undefined}
                 className={cn(
-                  'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
-                  isActive
-                    ? 'bg-navy-700 text-white'
-                    : 'text-foreground hover:bg-muted'
+                  'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors min-h-[40px]',
+                  isActive ? 'bg-navy-700 text-white' : 'text-foreground hover:bg-muted',
                 )}
               >
                 <Icon className="h-4 w-4 shrink-0" />
-                <span>{item.label}</span>
+                <span className="truncate">{item.label}</span>
               </Link>
             );
           })}
         </nav>
 
         <div className="px-4 py-3 border-t text-xs text-muted-foreground">
-          v1.0 · {new Date().getFullYear()}
+          v1.0 &middot; {new Date().getFullYear()}
         </div>
       </div>
     </aside>

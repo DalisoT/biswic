@@ -127,21 +127,31 @@ export default function ApplyForLoanPage() {
             <CardDescription>Indicative - confirmed on approval</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-3 gap-4 mb-3 text-center">
-              <div>
+            <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-3 text-center">
+              <div className="min-w-0">
                 <div className="text-xs text-muted-foreground">Total to repay</div>
-                <div className="text-lg font-semibold">{formatCurrency(schedule.totalRepayment)}</div>
+                <div className="text-base sm:text-lg font-semibold break-words">
+                  {formatCurrency(schedule.totalRepayment)}
+                </div>
               </div>
-              <div>
+              <div className="min-w-0">
                 <div className="text-xs text-muted-foreground">Monthly payment</div>
-                <div className="text-lg font-semibold">{formatCurrency(schedule.monthlyPayment)}</div>
+                <div className="text-base sm:text-lg font-semibold break-words">
+                  {formatCurrency(schedule.monthlyPayment)}
+                </div>
               </div>
-              <div>
+              <div className="min-w-0">
                 <div className="text-xs text-muted-foreground">Total interest</div>
-                <div className="text-lg font-semibold">{formatCurrency(schedule.totalInterest)}</div>
+                <div className="text-base sm:text-lg font-semibold break-words">
+                  {formatCurrency(schedule.totalInterest)}
+                </div>
               </div>
             </div>
-            <table className="w-full text-xs">
+            {/* Raw table, so it needs its own horizontal scroll wrapper. The
+                <Table> primitive provides one, but this is a compact
+                repayment schedule written as plain markup. */}
+            <div className="relative w-full overflow-x-auto scroll-x">
+              <table className="w-full text-xs min-w-[320px]">
               <thead>
                 <tr className="text-muted-foreground border-b">
                   <th className="text-left py-1">Month</th>
@@ -160,7 +170,8 @@ export default function ApplyForLoanPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+              </table>
+            </div>
           </CardContent>
         </Card>
 

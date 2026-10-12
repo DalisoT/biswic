@@ -1,19 +1,20 @@
 'use client';
 
-import { useState, useTransition, useEffect } from 'react';
+import { useState, useTransition, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
   ChevronLeft,
   LogOut,
-  Settings as SettingsIcon,
   User as UserIcon,
+  GraduationCap,
   Bell,
   Search,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { signOutAction } from '@/server/actions/auth';
 import { CommandPalette } from '@/components/layout/command-palette';
+import { useDismissable } from '@/lib/hooks/use-dismissable';
 import { cn } from '@/lib/utils';
 
 /**
@@ -82,8 +83,13 @@ export function TopBar({ userId, role, fullName, serviceNumber, unreadCount }: T
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [pending, startTransition] = useTransition();
+  const menuRef = useRef<HTMLDivElement>(null);
   const title = deriveTitle(pathname);
   const showBack = shouldShowBack(pathname);
+
+  // Dismiss the user menu on outside tap, Escape, scroll, resize and route
+  // change. See the hook for why the old fixed-overlay approach never fired.
+  useDismissable(menuOpen, () => setMenuOpen(false), menuRef);
 
   // Global ⌘K / Ctrl-K listener
   useEffect(() => {
@@ -121,13 +127,6 @@ export function TopBar({ userId, role, fullName, serviceNumber, unreadCount }: T
       router.push('/login');
     });
   };
-
-  // Close menu on route change
-  useState(() => {
-    if (typeof window === 'undefined') return;
-    const handle = () => setMenuOpen(false);
-    // no-op; close happens on click
-  });
 
   return (
     <header
@@ -180,52 +179,53 @@ export function TopBar({ userId, role, fullName, serviceNumber, unreadCount }: T
               onClick={() => setMenuOpen((o) => !o)}
               disabled={pending}
               aria-label="Open user menu"
-              className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-navy-700 text-white text-xs font-semibold hover:bg-navy-800 disabled:opacity-50"
+              className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-navy-700 text-white text-xs font-semibold hover:bg-navy-800 disabled:opacity-50 shrink-0"
             >
               {initials}
             </button>
 
             {menuOpen && (
-              <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setMenuOpen(false)}
-                />
-                <div className="absolute right-0 mt-2 w-56 bg-popover border rounded-md shadow-lg z-50">
-                  <div className="px-4 py-3 border-b">
-                    <div className="text-sm font-medium truncate">{fullName}</div>
-                    <div className="text-xs text-muted-foreground font-mono mt-0.5">
-                      {serviceNumber}
-                    </div>
-                  </div>
-                  <Link
-                    href="/settings"
-                    onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-muted"
-                  >
-                    <UserIcon className="h-4 w-4" />
-                    My profile
-                  </Link>
-                  <Link
-                    href="/settings"
-                    onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-muted"
-                  >
-                    <SettingsIcon className="h-4 w-4" />
-                    Settings
-                  </Link>
-                  <div className="border-t">
-                    <button
-                      onClick={handleSignOut}
-                      disabled={pending}
-                      className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-muted text-destructive disabled:opacity-50"
-                    >
-                      <LogOut className="h-4 w-4" />
-                      {pending ? 'Signing out…' : 'Sign out'}
-                    </button>
+              <div
+                ref={menuRef}
+                role="menu"
+                className="absolute right-0 mt-2 w-56 bg-popover border rounded-md shadow-lg z-50"
+              >
+                <div className="px-4 py-3 border-b">
+                  <div className="text-sm font-medium truncate">{fullName}</div>
+                  <div className="text-xs text-muted-foreground font-mono mt-0.5">
+                    {serviceNumber}
                   </div>
                 </div>
-              </>
+                <Link
+                  href="/settings"
+                  onClick={() => setMenuOpen(false)}
+                  role="menuitem"
+                  className="flex items-center gap-2 px-4 py-3 text-sm min-h-[44px] hover:bg-muted"
+                >
+                  <UserIcon className="h-4 w-4 shrink-0" />
+                  My profile &amp; settings
+                </Link>
+                <Link
+                  href="/learn"
+                  onClick={() => setMenuOpen(false)}
+                  role="menuitem"
+                  className="flex items-center gap-2 px-4 py-3 text-sm min-h-[44px] hover:bg-muted"
+                >
+                  <GraduationCap className="h-4 w-4 shrink-0" />
+                  Learn
+                </Link>
+                <div className="border-t">
+                  <button
+                    onClick={handleSignOut}
+                    disabled={pending}
+                    role="menuitem"
+                    className="w-full text-left flex items-center gap-2 px-4 py-3 text-sm min-h-[44px] hover:bg-muted text-destructive disabled:opacity-50"
+                  >
+                    <LogOut className="h-4 w-4 shrink-0" />
+                    {pending ? 'Signing out\u2026' : 'Sign out'}
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         </div>

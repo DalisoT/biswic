@@ -276,7 +276,8 @@ export function LoanDetailForReview({ loan, currentUserId, committee, schedule }
             <CardTitle className="text-base">Repayment schedule</CardTitle>
           </CardHeader>
           <CardContent>
-            <table className="w-full text-sm">
+            <div className="relative w-full overflow-x-auto scroll-x">
+              <table className="w-full text-sm min-w-[360px]">
               <thead>
                 <tr className="text-xs text-muted-foreground border-b">
                   <th className="text-left py-1">Month</th>
@@ -295,7 +296,8 @@ export function LoanDetailForReview({ loan, currentUserId, committee, schedule }
                   </tr>
                 ))}
               </tbody>
-            </table>
+              </table>
+            </div>
           </CardContent>
         </Card>
       )}

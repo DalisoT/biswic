@@ -44,42 +44,42 @@ export default async function SettingsPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3 text-sm">
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-2 gap-y-0.5">
               <div className="text-muted-foreground">Service Number</div>
-              <div className="col-span-2 font-medium">{user.serviceNumber}</div>
+              <div className="sm:col-span-2 font-medium break-words">{user.serviceNumber}</div>
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-2 gap-y-0.5">
               <div className="text-muted-foreground">Full Name</div>
-              <div className="col-span-2 font-medium">{user.fullName}</div>
+              <div className="sm:col-span-2 font-medium break-words">{user.fullName}</div>
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-2 gap-y-0.5">
               <div className="text-muted-foreground">Role</div>
-              <div className="col-span-2"><Badge variant="secondary">{roleLabel(user.role)}</Badge></div>
+              <div className="sm:col-span-2"><Badge variant="secondary">{roleLabel(user.role)}</Badge></div>
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-2 gap-y-0.5">
               <div className="text-muted-foreground">Rank</div>
-              <div className="col-span-2">{user.rank ?? '—'}</div>
+              <div className="sm:col-span-2">{user.rank ?? '—'}</div>
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-2 gap-y-0.5">
               <div className="text-muted-foreground">Unit</div>
-              <div className="col-span-2">{user.unit ?? '—'}</div>
+              <div className="sm:col-span-2">{user.unit ?? '—'}</div>
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-2 gap-y-0.5">
               <div className="text-muted-foreground">Phone</div>
-              <div className="col-span-2">{formatPhone(user.phone)}</div>
+              <div className="sm:col-span-2">{formatPhone(user.phone)}</div>
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-2 gap-y-0.5">
               <div className="text-muted-foreground">Email</div>
-              <div className="col-span-2">{user.email ?? '—'}</div>
+              <div className="sm:col-span-2">{user.email ?? '—'}</div>
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-2 gap-y-0.5">
               <div className="text-muted-foreground">NRC</div>
-              <div className="col-span-2">{user.nationalRegistrationNumber ?? <span className="text-amber-700">Not set — required by Constitution Art. 2.6</span>}</div>
+              <div className="sm:col-span-2">{user.nationalRegistrationNumber ?? <span className="text-amber-700">Not set — required by Constitution Art. 2.6</span>}</div>
             </div>
             {user.isFoundingMember && (
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-2 gap-y-0.5">
                 <div className="text-muted-foreground">Founding member</div>
-                <div className="col-span-2">
+                <div className="sm:col-span-2">
                   <Badge variant="success">Yes</Badge>
                   {user.foundingSignedAt && (
                     <span className="text-xs text-muted-foreground ml-2">
@@ -89,9 +89,9 @@ export default async function SettingsPage() {
                 </div>
               </div>
             )}
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-2 gap-y-0.5">
               <div className="text-muted-foreground">Member since</div>
-              <div className="col-span-2">{formatDate(user.joinedAt)}</div>
+              <div className="sm:col-span-2">{formatDate(user.joinedAt)}</div>
             </div>
             {nextOfKin && (
               <div className="border-t pt-3 mt-3">

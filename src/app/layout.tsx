@@ -40,8 +40,10 @@ export const viewport: Viewport = {
   themeColor: '#0a3a5c',
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  // Do NOT set maximumScale/userScalable=false. Blocking pinch-to-zoom fails
+  // WCAG 2.1 SC 1.4.4 (Resize Text) and is a common source of iOS "zooming
+  // forces text reflow" problems. The layout is responsive enough to allow it.
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

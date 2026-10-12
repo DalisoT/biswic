@@ -113,7 +113,7 @@ export default async function SoftLoanDetailPage({ params }: { params: { id: str
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <SigBlock label="Chair (FW)" ts={loan.chairApprovedAt} />
               <SigBlock label="Member 1" ts={loan.member1ApprovedAt} />
               <SigBlock label="Member 2" ts={loan.member2ApprovedAt} />
@@ -129,7 +129,8 @@ export default async function SoftLoanDetailPage({ params }: { params: { id: str
             <CardTitle className="text-base">Repayment schedule</CardTitle>
           </CardHeader>
           <CardContent>
-            <table className="w-full text-sm">
+            <div className="relative w-full overflow-x-auto scroll-x">
+              <table className="w-full text-sm min-w-[420px]">
               <thead>
                 <tr className="text-xs text-muted-foreground border-b">
                   <th className="text-left py-2">Due</th>
@@ -171,7 +172,8 @@ export default async function SoftLoanDetailPage({ params }: { params: { id: str
                   );
                 })}
               </tbody>
-            </table>
+              </table>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -181,9 +183,9 @@ export default async function SoftLoanDetailPage({ params }: { params: { id: str
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-3 gap-2">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-2 gap-y-0.5">
       <div className="text-muted-foreground">{label}</div>
-      <div className="col-span-2">{value}</div>
+      <div className="sm:col-span-2 break-words">{value}</div>
     </div>
   );
 }

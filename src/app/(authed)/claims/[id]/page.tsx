@@ -240,9 +240,9 @@ export default async function ClaimDetailPage({ params }: { params: { id: string
 
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-3 gap-2 text-sm">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-2 gap-y-0.5 text-sm">
       <div className="text-muted-foreground">{label}</div>
-      <div className="col-span-2">{value}</div>
+      <div className="sm:col-span-2 break-words">{value}</div>
     </div>
   );
 }

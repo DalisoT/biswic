@@ -59,7 +59,7 @@ export function NewMemberForm() {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1">
               <Label htmlFor="phone">Phone <span className="text-destructive">*</span></Label>
               <Input
@@ -101,7 +101,7 @@ export function NewMemberForm() {
           <CardDescription>Constitution Art. 2.6 (and Art. 10.3 for plot inheritance)</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1">
               <Label htmlFor="nextOfKinName">Name</Label>
               <Input id="nextOfKinName" name="nextOfKinName" />

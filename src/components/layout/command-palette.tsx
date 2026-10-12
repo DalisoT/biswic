@@ -4,24 +4,15 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Search,
-  Home,
   Users,
   Coins,
   Heart,
   HandCoins,
-  Calendar,
-  FileText,
-  Map,
-  Briefcase,
-  CalendarDays,
-  BarChart3,
-  Settings as SettingsIcon,
-  Bell,
-  Wallet,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { roleLabel } from '@/lib/permissions';
+import { NAV_SECTIONS } from '@/lib/nav';
 
 interface PageItem {
   type: 'page';
@@ -51,29 +42,57 @@ interface RecentItem {
 
 type AnyItem = PageItem | MemberItem | RecentItem;
 
+/**
+ * Destinations come from the shared nav config so search, the sidebar and the
+ * phone tab bar can never disagree about what exists. Only true *actions*
+ * (not navigation targets) are listed separately here.
+ */
+const ACTION_PAGES: PageItem[] = [
+  {
+    type: 'page',
+    href: '/claims/new',
+    label: 'Submit a claim',
+    icon: Heart,
+    section: 'Money',
+  },
+  {
+    type: 'page',
+    href: '/soft-loans/apply',
+    label: 'Apply for a loan',
+    icon: HandCoins,
+    section: 'Money',
+  },
+  {
+    type: 'page',
+    href: '/members/new',
+    label: 'Add new member',
+    icon: Users,
+    section: 'Cooperative',
+    roles: ['CHAIRPERSON', 'SECRETARY'],
+  },
+  {
+    type: 'page',
+    href: '/finance/contributions/import',
+    label: 'Import payroll',
+    icon: Coins,
+    section: 'Finance',
+    roles: ['TREASURER', 'DEPUTY_TREASURER', 'FW'],
+  },
+];
+
 const PAGES: PageItem[] = [
-  { type: 'page', href: '/dashboard', label: 'Dashboard', icon: Home, section: 'Main' },
-  { type: 'page', href: '/notifications', label: 'Notifications', icon: Bell, section: 'Main' },
-  { type: 'page', href: '/settings', label: 'Settings', icon: SettingsIcon, section: 'Main' },
-  { type: 'page', href: '/contributions', label: 'My contributions', icon: Coins, section: 'Money' },
-  { type: 'page', href: '/claims', label: 'Welfare claims', icon: Heart, section: 'Money' },
-  { type: 'page', href: '/claims/new', label: 'Submit a claim', icon: Heart, section: 'Money' },
-  { type: 'page', href: '/soft-loans', label: 'Soft loans', icon: HandCoins, section: 'Money' },
-  { type: 'page', href: '/soft-loans/apply', label: 'Apply for a loan', icon: HandCoins, section: 'Money' },
-  { type: 'page', href: '/statement', label: 'My statement', icon: BarChart3, section: 'Money' },
-  { type: 'page', href: '/members', label: 'Members roster', icon: Users, section: 'Cooperative', roles: ['CHAIRPERSON', 'SECRETARY', 'FW', 'TREASURER', 'CCD', 'VICE_CHAIRPERSON', 'DEPUTY_TREASURER', 'TRUSTEE'] },
-  { type: 'page', href: '/members/new', label: 'Add new member', icon: Users, section: 'Cooperative', roles: ['CHAIRPERSON', 'SECRETARY'] },
-  { type: 'page', href: '/finance', label: 'Finance dashboard', icon: Wallet, section: 'Cooperative', roles: ['FW', 'CHAIRPERSON', 'TREASURER', 'DEPUTY_TREASURER', 'CCD', 'TRUSTEE', 'SECRETARY'] },
-  { type: 'page', href: '/finance/contributions', label: 'All contributions', icon: Coins, section: 'Cooperative', roles: ['FW', 'CHAIRPERSON', 'TREASURER', 'DEPUTY_TREASURER', 'CCD', 'TRUSTEE', 'SECRETARY'] },
-  { type: 'page', href: '/finance/contributions/import', label: 'Import payroll', icon: Coins, section: 'Cooperative', roles: ['TREASURER', 'DEPUTY_TREASURER', 'FW'] },
-  { type: 'page', href: '/finance/soft-loan-applications', label: 'Loan applications', icon: HandCoins, section: 'Cooperative', roles: ['FW', 'CHAIRPERSON', 'TREASURER', 'DEPUTY_TREASURER', 'CCD'] },
-  { type: 'page', href: '/meetings', label: 'Meetings', icon: Calendar, section: 'Cooperative' },
-  { type: 'page', href: '/documents', label: 'Documents', icon: FileText, section: 'Cooperative' },
-  { type: 'page', href: '/land', label: 'Land pipeline', icon: Map, section: 'Cooperative', roles: ['CCD', 'LSC_MEMBER', 'CHAIRPERSON', 'FW'] },
-  { type: 'page', href: '/businesses', label: 'Businesses', icon: Briefcase, section: 'Cooperative', roles: ['CCD', 'BUSINESS_MEMBER', 'CHAIRPERSON', 'FW'] },
-  { type: 'page', href: '/events', label: 'Events & charity', icon: CalendarDays, section: 'Cooperative' },
-  { type: 'page', href: '/reports', label: 'Reports', icon: BarChart3, section: 'Cooperative', roles: ['FW', 'CHAIRPERSON', 'TREASURER', 'DEPUTY_TREASURER'] },
-  { type: 'page', href: '/audit', label: 'Audit log', icon: FileText, section: 'Cooperative', roles: ['FW', 'CHAIRPERSON', 'TRUSTEE', 'INTERNAL_AUDITOR'] },
+  ...NAV_SECTIONS.flatMap((section) =>
+    section.items.map((item) => ({
+      type: 'page' as const,
+      href: item.href,
+      label: item.label,
+      description: item.description,
+      icon: item.icon,
+      section: section.title,
+      roles: item.roles,
+    })),
+  ),
+  ...ACTION_PAGES,
 ];
 
 const RECENT_KEY = 'biswic.recentSearches';
