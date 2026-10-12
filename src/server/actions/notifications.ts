@@ -97,3 +97,45 @@ export async function notifyAllMembers(input: {
   });
   return members.length;
 }
+
+/**
+ * Internal helper: broadcast a notification to "the people who need to know"
+ * — i.e. everyone with `isAdmin = true` plus the core officer roles
+ * (Chair, Secretary, Treasurer, Deputy Treasurer, Finance/Welfare officer,
+ * Welfare Officer, Internal Auditor, IT/Comms). Used for things like
+ * "new member registered", "loan application received", "bucket running low".
+ */
+export async function notifyAdmins(input: {
+  type: string;
+  title: string;
+  body: string;
+  link?: string;
+  excludeUserId?: string;
+}) {
+  const admins = await prisma.user.findMany({
+    where: {
+      isActive: true,
+      OR: [
+        { isAdmin: true },
+        { role: { in: [
+          'CHAIRPERSON', 'VICE_CHAIRPERSON', 'SECRETARY', 'TREASURER',
+          'DEPUTY_TREASURER', 'FW', 'WELFARE_OFFICER', 'INTERNAL_AUDITOR',
+          'IT_COMMS_LEAD',
+        ] } },
+      ],
+      ...(input.excludeUserId ? { id: { not: input.excludeUserId } } : {}),
+    },
+    select: { id: true },
+  });
+  if (admins.length === 0) return 0;
+  await prisma.notification.createMany({
+    data: admins.map((a) => ({
+      userId: a.id,
+      type: input.type,
+      title: input.title,
+      body: input.body,
+      link: input.link,
+    })),
+  });
+  return admins.length;
+}

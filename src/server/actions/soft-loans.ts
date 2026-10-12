@@ -13,7 +13,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth/require-user';
-import { createNotification } from '@/server/actions/notifications';
+import { createNotification, notifyAdmins } from '@/server/actions/notifications';
 import { config } from '@/lib/config';
 import {
   applyForLoan,
@@ -53,6 +53,15 @@ export async function applyForLoanAction(formData: FormData): Promise<ApplyForLo
       purpose: parsed.data.purpose,
       conflictDeclared: parsed.data.conflictDeclared,
     });
+
+    // Live notification: tell admins a new loan application is awaiting review
+    await notifyAdmins({
+      type: 'LOAN',
+      title: 'New loan application',
+      body: `${user.fullName} applied for a soft loan of ${config.currency}${parsed.data.principal} over ${parsed.data.termMonths} months.`,
+      link: '/finance/soft-loan-applications',
+    }).catch((err) => console.error('[notify] loan-applied failed:', err));
+
     revalidatePath('/soft-loans');
     return { success: true, loanId: loan.id };
   } catch (err: any) {
@@ -98,6 +107,25 @@ export async function approveLoanAction(formData: FormData) {
       approverId: user.id,
       approverRole: parsed.data.approverRole as LendingApproverRole,
     });
+
+    // Live notification: tell the applicant their loan was approved
+    const loan = await prisma.softLoan.findUnique({
+      where: { id: parsed.data.loanId },
+      select: { applicantId: true, principal: true, status: true },
+    });
+    if (loan) {
+      const isFinalApproval = loan.status === 'APPROVED';
+      await createNotification({
+        userId: loan.applicantId,
+        type: 'LOAN',
+        title: isFinalApproval ? 'Loan fully approved' : 'Loan approval recorded',
+        body: isFinalApproval
+          ? `Your soft loan of ${config.currency}${loan.principal} is fully approved and queued for disbursement.`
+          : `Your soft loan of ${config.currency}${loan.principal} has one more approval to go.`,
+        link: '/soft-loans',
+      }).catch((err) => console.error('[notify] loan-approved failed:', err));
+    }
+
     revalidatePath('/finance/soft-loan-applications');
     return { success: true };
   } catch (err: any) {
@@ -118,6 +146,22 @@ export async function rejectLoanAction(formData: FormData) {
   }
   try {
     await rejectLoan(parsed.data.loanId, user.id, parsed.data.reason);
+
+    // Live notification: tell the applicant their loan was rejected
+    const loan = await prisma.softLoan.findUnique({
+      where: { id: parsed.data.loanId },
+      select: { applicantId: true, principal: true },
+    });
+    if (loan) {
+      await createNotification({
+        userId: loan.applicantId,
+        type: 'LOAN',
+        title: 'Loan application rejected',
+        body: `Your soft loan application for ${config.currency}${loan.principal} was rejected. Reason: ${parsed.data.reason.slice(0, 120)}`,
+        link: '/soft-loans',
+      }).catch((err) => console.error('[notify] loan-rejected failed:', err));
+    }
+
     revalidatePath('/finance/soft-loan-applications');
     return { success: true };
   } catch (err: any) {

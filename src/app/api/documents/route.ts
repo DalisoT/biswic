@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { canManageDocuments } from '@/lib/permissions';
 import { logAudit, AUDIT_ACTIONS } from '@/lib/audit';
 import { z } from 'zod';
+import { notifyAllMembers, notifyAdmins } from '@/server/actions/notifications';
 
 const schema = z.object({
   title: z.string().min(1),
@@ -43,5 +44,53 @@ export async function POST(req: NextRequest) {
     afterValue: { title: doc.title, category: doc.category },
   });
 
-  return NextResponse.json({ success: true, doc });
+  // Notify recipients based on access level. We use the accessLevel to decide
+  // who "needs to know" — PUBLIC/MEMBER go to everyone, OFFICER/EXECUTIVE go
+  // to the officer pool, RESTRICTED goes only to the Chair.
+  const link = '/documents';
+  const title = `New document: ${doc.title}`;
+  const body = `${doc.category.replace(/_/g, ' ').toLowerCase()} uploaded (${doc.accessLevel.toLowerCase()} access).`;
+
+  let recipientCount = 0;
+  try {
+    if (doc.accessLevel === 'RESTRICTED') {
+      const chairs = await prisma.user.findMany({
+        where: { isActive: true, OR: [{ isAdmin: true }, { role: 'CHAIRPERSON' }] },
+        select: { id: true },
+      });
+      if (chairs.length > 0) {
+        await prisma.notification.createMany({
+          data: chairs.map((u) => ({
+            userId: u.id,
+            type: 'DOCUMENT_UPLOADED',
+            title: `Restricted: ${doc.title}`,
+            body,
+            link,
+          })),
+        });
+        recipientCount = chairs.length;
+      }
+    } else if (doc.accessLevel === 'OFFICER' || doc.accessLevel === 'EXECUTIVE') {
+      recipientCount = await notifyAdmins({
+        type: 'DOCUMENT_UPLOADED',
+        title,
+        body,
+        link,
+        excludeUserId: user.id,
+      });
+    } else {
+      // PUBLIC or MEMBER — broadcast, skip the uploader
+      recipientCount = await notifyAllMembers({
+        type: 'DOCUMENT_UPLOADED',
+        title,
+        body,
+        link,
+        excludeUserId: user.id,
+      });
+    }
+  } catch (err) {
+    console.error('[notify] document-uploaded failed:', err);
+  }
+
+  return NextResponse.json({ success: true, doc, recipientCount });
 }

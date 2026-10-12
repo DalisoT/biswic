@@ -42,6 +42,15 @@ export async function submitClaimAction(formData: FormData) {
     return { error: err.message ?? 'Failed to submit claim.' };
   }
 
+  // Live notification: confirm to the member that their claim was submitted
+  await createNotification({
+    userId: user.id,
+    type: 'CLAIM',
+    title: 'Welfare claim submitted',
+    body: `Your ${parsed.data.type.toLowerCase()} claim for ${config.currency}${parsed.data.amountRequested} has been submitted and is awaiting review.`,
+    link: '/claims',
+  }).catch((err) => console.error('[notify] claim-submitted failed:', err));
+
   revalidatePath('/claims');
   revalidatePath('/dashboard');
   return { success: true };
@@ -150,6 +159,21 @@ export async function markClaimPaidAction(formData: FormData) {
     await markClaimPaid(claimId, user.id);
   } catch (err: any) {
     return { error: err.message ?? 'Failed to mark claim paid.' };
+  }
+
+  // Live notification: tell the claimant the claim has been paid out
+  const claim = await prisma.welfareClaim.findUnique({
+    where: { id: claimId },
+    select: { memberId: true, amountApproved: true, type: true },
+  });
+  if (claim && claim.amountApproved) {
+    await createNotification({
+      userId: claim.memberId,
+      type: 'CLAIM',
+      title: 'Welfare claim paid',
+      body: `Your ${claim.type.toLowerCase()} claim (${config.currency}${claim.amountApproved}) has been paid. Collect from the Treasurer.`,
+      link: '/claims',
+    }).catch((err) => console.error('[notify] claim-paid failed:', err));
   }
 
   revalidatePath('/claims');

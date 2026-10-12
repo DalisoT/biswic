@@ -23,6 +23,7 @@ import { requireUser } from '@/lib/auth/require-user';
 import { canManageMembers } from '@/lib/permissions';
 import { logAudit, AUDIT_ACTIONS } from '@/lib/audit';
 import { isFoundingLockActive } from '@/lib/config';
+import { notifyAdmins } from '@/server/actions/notifications';
 
 // Zambian phone format: +260 followed by 9 digits (e.g. +260971234567)
 const PHONE_RE = /^\+260\d{9}$/;
@@ -185,6 +186,15 @@ export async function createMemberAction(formData: FormData): Promise<CreateMemb
       link: '/dashboard',
     },
   });
+
+  // Live notification: tell admins a new member just joined
+  await notifyAdmins({
+    type: 'MEMBER',
+    title: 'New member registered',
+    body: `${data.fullName} (svc ${data.serviceNumber}) was added as ${data.role} by ${user.fullName}.`,
+    link: '/members',
+    excludeUserId: user.id,
+  }).catch((err) => console.error('[notify] member-registered failed:', err));
 
   revalidatePath('/members');
   return { success: true, userId };

@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { canPostMinutes } from '@/lib/permissions';
 import { logAudit, AUDIT_ACTIONS } from '@/lib/audit';
 import { z } from 'zod';
+import { notifyAllMembers } from '@/server/actions/notifications';
 
 const schema = z.object({
   title: z.string().min(1),
@@ -42,22 +43,20 @@ export async function POST(req: NextRequest) {
     afterValue: { title: meeting.title, scheduledAt: meeting.scheduledAt },
   });
 
-  // Notify all members
-  const allMembers = await prisma.user.findMany({
-    where: { isActive: true, role: 'MEMBER' },
-    select: { id: true },
+  // Notify every active member EXCEPT the creator. (The old code only notified
+  // plain MEMBERs, missing officers like the Treasurer, Secretary, etc. who
+  // need the same heads-up.) Use the shared helper so we keep the recipient
+  // list and error handling consistent.
+  const recipientCount = await notifyAllMembers({
+    type: 'MEETING_SCHEDULED',
+    title: 'New meeting scheduled',
+    body: `${meeting.title} on ${meeting.scheduledAt.toLocaleDateString()} at ${meeting.venue}.`,
+    link: '/meetings',
+    excludeUserId: user.id,
+  }).catch((err) => {
+    console.error('[notify] meeting-scheduled failed:', err);
+    return 0;
   });
-  for (const m of allMembers) {
-    await prisma.notification.create({
-      data: {
-        userId: m.id,
-        type: 'MEETING_SCHEDULED',
-        title: 'New meeting scheduled',
-        body: `${meeting.title} on ${meeting.scheduledAt.toLocaleDateString()}`,
-        link: '/meetings',
-      },
-    });
-  }
 
-  return NextResponse.json({ success: true, meeting });
+  return NextResponse.json({ success: true, meeting, recipientCount });
 }

@@ -676,9 +676,21 @@ export async function detectDefaults(
       casesOpened++;
     }
 
-    // Notify the FW, Chair, and the applicant
+    // Notify the broader officer pool (matches notifyAdmins in notifications.ts:
+    // isAdmin + Chair, Vice Chair, Secretary, Treasurer, Deputy Treasurer,
+    // FW, Welfare Officer, Internal Auditor, IT/Comms). Plus the applicant.
     const officers = await prisma.user.findMany({
-      where: { role: { in: ['FW', 'CHAIRPERSON'] }, isActive: true },
+      where: {
+        isActive: true,
+        OR: [
+          { isAdmin: true },
+          { role: { in: [
+            'CHAIRPERSON', 'VICE_CHAIRPERSON', 'SECRETARY', 'TREASURER',
+            'DEPUTY_TREASURER', 'FW', 'WELFARE_OFFICER', 'INTERNAL_AUDITOR',
+            'IT_COMMS_LEAD',
+          ] } },
+        ],
+      },
       select: { id: true },
     });
     for (const u of officers) {
