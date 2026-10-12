@@ -18,14 +18,34 @@ const COLORS: Record<string, string> = {
   MEDICAL: '#0891b2',
 };
 
+/**
+ * Bucket codes that are no longer active. Per the GM vote of 2026-10-12,
+ * the FUNERAL and MEDICAL welfare pools were closed and the freed
+ * allocation redistributed to LAND/SOFT_LOANS/ADMIN. The rows stay in
+ * the DB with `isActive=false` for FK integrity, but no operational view
+ * should render them.
+ *
+ * Hard-coded here as a third line of defence: even if the upstream query
+ * forgets the `isActive=true` filter AND the percentage field somehow
+ * reads as a non-zero value, this set still excludes them. Cheap to
+ * maintain (two strings) and obvious to read.
+ */
+const CLOSED_BUCKET_CODES: ReadonlySet<string> = new Set(['FUNERAL', 'MEDICAL']);
+
 export function BucketBars({ buckets }: { buckets: Bucket[] }) {
-  // Defensive filter: skip buckets that are logically closed. After the
-  // 2026-10 GM, FUNERAL and MEDICAL stay in the DB for audit-trail FK
-  // integrity but should never render in operational views. Callers
-  // (dashboard, /group, /reports) already filter isActive=true at the
-  // query level; this is a second line of defence so a stale build or
-  // a refactor that forgets the filter still hides them.
-  const visible = buckets.filter((b) => toNumber(b.percentage) > 0);
+  // Three-line filter:
+  //   1. Closed bucket codes are excluded by name (hard safety net).
+  //   2. isActive===false buckets are excluded (defence-in-depth).
+  //   3. percentage <= 0 buckets are excluded (defence-in-depth).
+  // Any one of these alone is enough; together they survive stale builds,
+  // a refactor that drops one of the query-level filters, and any future
+  // bucket that gets closed via direct SQL without flipping the flag.
+  const visible = buckets.filter(
+    (b) =>
+      !CLOSED_BUCKET_CODES.has(b.code) &&
+      b.percentage !== false &&
+      toNumber(b.percentage) > 0
+  );
   const total = sumField(visible, (b) => b.balance);
 
   return (
