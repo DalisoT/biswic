@@ -22,6 +22,7 @@ DO $$
 DECLARE
   v_module_id UUID;
   v_question_id UUID;
+BEGIN
   -- ============================================================
   -- module: mastering-civil-servant-salary
   -- ============================================================
