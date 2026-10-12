@@ -13,6 +13,8 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth/require-user';
+import { createNotification } from '@/server/actions/notifications';
+import { config } from '@/lib/config';
 import {
   applyForLoan,
   approveLoan,
@@ -128,10 +130,26 @@ export async function disburseLoanAction(formData: FormData) {
   const loanId = formData.get('loanId')?.toString();
   if (!loanId) return { error: 'Missing loanId.' };
   try {
-    await disburseLoan(loanId, user.id);
+    const result = await disburseLoan(loanId, user.id);
+
+    // Live notification: tell the borrower their loan was disbursed
+    const loan = await prisma.softLoan.findUnique({
+      where: { id: loanId },
+      select: { applicantId: true, principal: true },
+    });
+    if (loan) {
+      await createNotification({
+        userId: loan.applicantId,
+        type: 'LOAN',
+        title: 'Loan disbursed',
+        body: `Your soft loan of ${config.currency}${loan.principal} has been disbursed.`,
+        link: '/soft-loans',
+      }).catch((err) => console.error('[notify] loan-disbursed failed:', err));
+    }
+
     revalidatePath('/finance/soft-loan-applications');
     revalidatePath('/soft-loans');
-    return { success: true };
+    return { success: true, ...result };
   } catch (err: any) {
     return { error: err.message ?? 'Failed to disburse loan.' };
   }
@@ -156,6 +174,23 @@ export async function recordRepaymentAction(formData: FormData) {
       paidInterest: parsed.data.paidInterest,
       recordedById: user.id,
     });
+
+    // Live notification: tell the borrower their payment was recorded
+    const repayment = await prisma.softLoanRepayment.findUnique({
+      where: { id: parsed.data.repaymentId },
+      include: { loan: { select: { applicantId: true } } },
+    });
+    if (repayment) {
+      const total = parsed.data.paidPrincipal + parsed.data.paidInterest;
+      await createNotification({
+        userId: repayment.loan.applicantId,
+        type: 'LOAN',
+        title: 'Loan payment recorded',
+        body: `Your loan payment of ${config.currency}${total.toFixed(2)} has been recorded.`,
+        link: '/soft-loans',
+      }).catch((err) => console.error('[notify] loan-payment failed:', err));
+    }
+
     revalidatePath('/soft-loans');
     return { success: true };
   } catch (err: any) {

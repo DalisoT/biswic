@@ -5,6 +5,9 @@ import { revalidatePath } from 'next/cache';
 import { approveClaim, markClaimPaid, rejectClaim, submitClaim } from '@/server/services/claim-service';
 import { canApproveWelfare } from '@/lib/permissions';
 import { z } from 'zod';
+import { prisma } from '@/lib/db';
+import { createNotification } from '@/server/actions/notifications';
+import { config } from '@/lib/config';
 
 const submitSchema = z.object({
   type: z.enum(['FUNERAL', 'MEDICAL']),
@@ -74,6 +77,21 @@ export async function approveClaimAction(formData: FormData) {
     return { error: err.message ?? 'Failed to approve claim.' };
   }
 
+  // Live notification: tell the claimant their claim was approved
+  const claim = await prisma.welfareClaim.findUnique({
+    where: { id: parsed.data.claimId },
+    select: { memberId: true },
+  });
+  if (claim) {
+    await createNotification({
+      userId: claim.memberId,
+      type: 'CLAIM',
+      title: 'Welfare claim approved',
+      body: `Your welfare claim for ${config.currency}${parsed.data.amountApproved} has been approved.`,
+      link: '/claims',
+    }).catch((err) => console.error('[notify] claim-approved failed:', err));
+  }
+
   revalidatePath('/claims');
   revalidatePath('/dashboard');
   return { success: true };
@@ -97,6 +115,21 @@ export async function rejectClaimAction(formData: FormData) {
     await rejectClaim(claimId, user.id, reason);
   } catch (err: any) {
     return { error: err.message ?? 'Failed to reject claim.' };
+  }
+
+  // Live notification: tell the claimant their claim was denied
+  const claim = await prisma.welfareClaim.findUnique({
+    where: { id: claimId },
+    select: { memberId: true },
+  });
+  if (claim) {
+    await createNotification({
+      userId: claim.memberId,
+      type: 'CLAIM',
+      title: 'Welfare claim denied',
+      body: `Your welfare claim was denied. Reason: ${reason.slice(0, 100)}`,
+      link: '/claims',
+    }).catch((err) => console.error('[notify] claim-rejected failed:', err));
   }
 
   revalidatePath('/claims');

@@ -206,6 +206,21 @@ export async function bulkImportPayrollAction(
     notes: `Payroll bulk import ${year}-${String(month).padStart(2, '0')}: ${result.success} imported, ${alreadyPaid.length} already paid, ${unknown.length} unknown SN`,
   });
 
+  // Live notifications: tell each member their contribution was recorded
+  // (best-effort: failures here must not break the import)
+  const monthLabel = new Date(year, month - 1, 1).toLocaleString('en', { month: 'long', year: 'numeric' });
+  await Promise.all(
+    toImport.map((e) =>
+      createNotification({
+        userId: userBySN.get(e.serviceNumber)!,
+        type: 'CONTRIBUTION',
+        title: 'Contribution recorded',
+        body: `Your ${config.currency}${e.amount} contribution for ${monthLabel} has been recorded.`,
+        link: '/contributions',
+      }).catch((err) => console.error(`[notify] failed for ${e.serviceNumber}:`, err)),
+    ),
+  );
+
   revalidatePath('/finance');
   revalidatePath('/finance/contributions');
   revalidatePath('/contributions');
