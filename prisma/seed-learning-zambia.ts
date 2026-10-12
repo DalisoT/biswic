@@ -19,7 +19,7 @@
  * Idempotent: uses upserts keyed on slug.
  */
 
-import { PrismaClient, Role, type Prisma } from '@prisma/client';
+import { PrismaClient, Role, type QuizQuestionType } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -2314,7 +2314,7 @@ async function main() {
           quizId: quizRow.id,
           order: q.order,
           prompt: q.prompt,
-          type: q.type,
+          type: q.type as QuizQuestionType,
           explanation: q.explanation ?? null,
         },
       });

@@ -186,10 +186,12 @@ export function CommandPalette({ userId, role, open, onOpenChange }: Props) {
     (item: AnyItem) => {
       // Save to recent (only for pages)
       if (item.type === 'page') {
-        const next: RecentItem[] = [
-          { type: 'recent', label: item.label, href: item.href, icon: item.icon },
-          ...recent.filter((r) => r.href !== item.href),
-        ].slice(0, RECENT_MAX);
+        const next: RecentItem[] = (
+          [
+            { type: 'recent' as const, label: item.label, href: item.href, icon: item.icon },
+            ...recent.filter((r) => r.href !== item.href),
+          ] as RecentItem[]
+        ).slice(0, RECENT_MAX);
         setRecent(next);
         saveRecent(next);
       }

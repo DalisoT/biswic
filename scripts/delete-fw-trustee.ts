@@ -13,7 +13,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { createClient as createAdminSupabase } from '@supabase/supabase-js';
+import { createClient as createAdminSupabase, type SupabaseClient } from '@supabase/supabase-js';
 
 const prisma = new PrismaClient();
 const APPLY = process.argv.includes('--apply');
@@ -43,7 +43,7 @@ async function summarize(sn: string) {
   return { sn, present: true, fullName: u.fullName, id: u.id, email: u.email, breakdown: { notifications, contribs, claims, loans, audit, btx, docs, meetings, repayments }, total };
 }
 
-async function deleteOne(sn: string, fallbackUserId: string, adminSupabase: ReturnType<typeof createAdminSupabase>) {
+async function deleteOne(sn: string, fallbackUserId: string, adminSupabase: SupabaseClient) {
   const u = await prisma.user.findUnique({ where: { serviceNumber: sn }, select: { id: true, email: true } });
   if (!u) {
     console.log(`  ${sn}: not found in public."User" -- skipping`);

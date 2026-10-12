@@ -130,9 +130,15 @@ export default async function MyLearningPage() {
               const progress = total > 0 ? Math.round((done / total) * 100) : 0;
               const completed = total > 0 && done === total;
               const bestAttempt = m.quiz
-                ? allAttempts.filter((a) => a.quizId === m.quiz!.id && a.completedAt).reduce<
-                    null | { score: number; passed: boolean; completedAt: Date }
-                  >((acc, cur) => (!acc || cur.score > acc.score ? cur : acc), null)
+                ? allAttempts
+                    .filter(
+                      (a): a is (typeof allAttempts)[number] & { completedAt: Date } =>
+                        a.quizId === m.quiz!.id && a.completedAt !== null,
+                    )
+                    .reduce<null | { score: number; passed: boolean; completedAt: Date }>(
+                      (acc, cur) => (!acc || cur.score > acc.score ? cur : acc),
+                      null,
+                    )
                 : null;
               return (
                 <Card key={m.id} className={completed ? 'border-emerald-200' : ''}>

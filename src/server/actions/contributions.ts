@@ -255,7 +255,14 @@ export async function getMonthlyContributionStats(
 ): Promise<MonthlyContributionStats> {
   const activeMembers = await prisma.user.findMany({
     where: { isActive: true },
-    select: { id: true, serviceNumber: true, fullName: true, rank: true, joinedAt: true },
+    select: {
+      id: true,
+      serviceNumber: true,
+      fullName: true,
+      rank: true,
+      joinedAt: true,
+      isFoundingMember: true,
+    },
   });
 
   const startOfMonth = new Date(year, month - 1, 1);

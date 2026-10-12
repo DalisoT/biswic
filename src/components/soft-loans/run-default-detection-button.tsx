@@ -15,14 +15,15 @@ export function RunDefaultDetectionButton() {
     setMsg(null);
     startTransition(async () => {
       const res = await detectDefaultsAction();
-      if (res?.error) setMsg({ ok: false, text: res.error });
-      else {
-        setMsg({
-          ok: true,
-          text: `Checked ${res.loansChecked} loans · marked ${res.repaymentsMarked} missed · defaulted ${res.loansDefaulted.length} · opened ${res.casesOpened} case(s)`,
-        });
-        setTimeout(() => router.refresh(), 1000);
+      if (!res || !('success' in res)) {
+        setMsg({ ok: false, text: (res && 'error' in res && res.error) || 'Detection failed.' });
+        return;
       }
+      setMsg({
+        ok: true,
+        text: `Checked ${res.loansChecked} loans · marked ${res.repaymentsMarked} missed · defaulted ${res.loansDefaulted.length} · opened ${res.casesOpened} case(s)`,
+      });
+      setTimeout(() => router.refresh(), 1000);
     });
   };
 

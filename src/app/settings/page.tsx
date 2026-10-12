@@ -19,7 +19,16 @@ export default async function SettingsPage() {
 
   if (!user) return null;
 
-  const nextOfKin = user.nextOfKin ? JSON.parse(user.nextOfKin) : null;
+  // nextOfKin is a Json column, so Prisma already hands us an object.
+  // Don't JSON.parse() it -- that would throw at runtime.
+  const nextOfKinJson = user.nextOfKin as Record<string, unknown> | null;
+  const nextOfKin = nextOfKinJson
+    ? {
+        name: String(nextOfKinJson.name ?? ''),
+        relationship: String(nextOfKinJson.relationship ?? ''),
+        phone: String(nextOfKinJson.phone ?? ''),
+      }
+    : null;
 
   return (
     <div className="space-y-6 max-w-3xl">

@@ -17,8 +17,8 @@ export default function ApplyForLoanPage() {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  const [principal, setPrincipal] = useState(config.softLoans.maxPrincipal);
-  const [termMonths, setTermMonths] = useState(config.softLoans.maxTermMonths);
+  const [principal, setPrincipal] = useState<number>(config.softLoans.maxPrincipal);
+  const [termMonths, setTermMonths] = useState<number>(config.softLoans.maxTermMonths);
   const [conflictDeclared, setConflictDeclared] = useState(false);
 
   const schedule = computeLoanSchedule(principal, termMonths);

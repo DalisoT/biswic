@@ -262,6 +262,12 @@ model WelfareClaim {
   status          ClaimStatus @default(PENDING)
   supportingDocUrl String?
   description     String?
+  // Constitution Art. 5.5(f)(iii): member's written consent to have this
+  // welfare payout offset against an outstanding defaulted soft loan.
+  // Added to the live DB by supabase/migrations/0007_soft_loans.sql (raw SQL),
+  // never reflected in schema.prisma until now — that drift is why
+  // claim-service.ts could not type `writtenConsent`.
+  writtenConsent  Boolean     @default(false)
 
   // Three-signature approval (Constitution Art. 5.3)
   // - Welfare Claims Officer (where one has been appointed, Art. 6.6)

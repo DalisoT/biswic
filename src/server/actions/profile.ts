@@ -21,6 +21,7 @@ import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth/require-user';
 import { logAudit, AUDIT_ACTIONS } from '@/lib/audit';
 import { createAdminClient } from '@/lib/supabase/admin';
+import type { Prisma } from '@prisma/client';
 
 const profileSchema = z.object({
   fullName: z.string().min(1),
@@ -94,7 +95,10 @@ export async function updateProfileAction(
       rank: parsed.data.rank || null,
       unit: parsed.data.unit || null,
       nationalRegistrationNumber: parsed.data.nationalRegistrationNumber || null,
-      nextOfKin: nextOfKin ? JSON.stringify(nextOfKin) : null,
+      // nextOfKin is a Prisma Json column: pass the object through, never
+      // JSON.stringify() it (that stores a JSON *string*, and the read side
+      // in /settings then has to guess how it was written).
+      nextOfKin: nextOfKin as Prisma.InputJsonValue,
     },
   });
 

@@ -88,7 +88,7 @@ export default async function SoftLoanDefaultsPage() {
               <TableBody>
                 {defaulted.map((l) => (
                   <TableRow key={l.id}>
-                    <TableCell className="text-xs">{formatDate(l.defaultedAt)}</TableCell>
+                    <TableCell className="text-xs">{l.defaultedAt ? formatDate(l.defaultedAt) : '—'}</TableCell>
                     <TableCell>
                       <div className="font-medium">{l.applicant.serviceNumber}</div>
                       <div className="text-xs text-muted-foreground">{l.applicant.fullName}</div>
