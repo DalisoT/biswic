@@ -18,6 +18,7 @@ import {
   ShieldAlert,
   GraduationCap,
   Bell,
+  FileBarChart,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -214,6 +215,13 @@ export const NAV_SECTIONS: NavSection[] = [
         icon: Coins,
         roles: FINANCE_ROLES,
         description: 'Every member, every month',
+      },
+      {
+        label: 'Contributions Report',
+        href: '/finance/contributions-report',
+        icon: FileBarChart,
+        roles: FINANCE_ROLES,
+        description: 'Per-member totals + arrears',
       },
       {
         label: 'Loan Applications',

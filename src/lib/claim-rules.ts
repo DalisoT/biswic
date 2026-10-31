@@ -51,6 +51,76 @@ export interface ClaimCheckResult {
 }
 
 /**
+ * Cap parameters for the cap-enforcement math.
+ *
+ * The math lives in `checkClaimAgainstCaps` rather than inline in
+ * `checkWelfareClaim` so it can be unit tested directly. `checkWelfareClaim`
+ * passes the live config values; tests pass explicit caps. This keeps the
+ * FUNERAL/MEDICAL arithmetic covered without adding a production code path
+ * that could re-enable a discontinued pool.
+ */
+export interface ClaimCaps {
+  amountPerEvent: number;
+  maxPerYear: number;
+}
+
+/**
+ * The cap-enforcement math, independent of which welfare pools are active.
+ *
+ * @param input  the claim being checked
+ * @param caps   per-event and per-year caps to enforce
+ * @param opts   bucket code, the noun used in messages ("funeral"/"medical"),
+ *               and an optional note appended to the annual-limit blocker
+ */
+export function checkClaimAgainstCaps(
+  input: ClaimCheckInput,
+  caps: ClaimCaps,
+  opts: { bucketCode: string; noun: string; annualLimitNote?: string },
+): ClaimCheckResult {
+  const { amountRequested, amountAlreadyApprovedThisYear, eventCountThisYear, overrideNote } = input;
+  const { amountPerEvent, maxPerYear } = caps;
+  const blockers: string[] = [];
+  const warnings: string[] = [];
+
+  // Per-event cap
+  if (amountRequested > amountPerEvent) {
+    blockers.push(
+      `Requested amount K${amountRequested.toFixed(2)} exceeds the ${opts.noun} cap of K${amountPerEvent.toFixed(2)} per event.`
+    );
+  }
+
+  // Per-year limit
+  if (eventCountThisYear >= maxPerYear) {
+    blockers.push(
+      `Annual ${opts.noun} payout limit reached (${maxPerYear} per year${
+        opts.annualLimitNote ? ` ${opts.annualLimitNote}` : ''
+      }).`
+    );
+  }
+
+  // Bucket dry check
+  const remaining = amountPerEvent * maxPerYear - amountAlreadyApprovedThisYear;
+  if (amountRequested > remaining && amountRequested <= amountPerEvent) {
+    warnings.push(
+      `This payout would exceed the annual ${opts.noun} budget. Remaining this year: K${remaining.toFixed(2)}.`
+    );
+  }
+
+  const requiresTwoSignatures = amountRequested > config.governance.twoSignatureThreshold;
+  const requiresOverride = blockers.length > 0 && (!overrideNote || overrideNote.trim().length === 0);
+
+  return {
+    ok: blockers.length === 0,
+    warnings,
+    blockers,
+    requiresOverride,
+    requiresTwoSignatures,
+    bucketCode: opts.bucketCode,
+    maxPerEvent: amountPerEvent,
+  };
+}
+
+/**
  * Single source of truth for "this claim type is no longer accepted".
  * Add new claim types below the two legacy blocks; the cap-enforcement
  * math for them lives in dedicated `if` branches.
@@ -58,7 +128,7 @@ export interface ClaimCheckResult {
 const DISABLED_CLAIM_TYPES: ReadonlySet<ClaimType> = new Set(['FUNERAL', 'MEDICAL']);
 
 export function checkWelfareClaim(input: ClaimCheckInput): ClaimCheckResult {
-  const { type, amountRequested, amountAlreadyApprovedThisYear, eventCountThisYear, overrideNote } = input;
+  const { type } = input;
   const blockers: string[] = [];
   const warnings: string[] = [];
 
@@ -82,82 +152,32 @@ export function checkWelfareClaim(input: ClaimCheckInput): ClaimCheckResult {
   }
 
   if (type === 'FUNERAL') {
-    const maxPerEvent = config.welfareCaps.funeral.amountPerEvent;
     const maxPerYear = getFuncFalFuneralMaxPerYear();
-
-    // Per-event cap
-    if (amountRequested > maxPerEvent) {
-      blockers.push(
-        `Requested amount K${amountRequested.toFixed(2)} exceeds the funeral cap of K${maxPerEvent.toFixed(2)} per event.`
-      );
-    }
-
-    // Per-year limit
-    if (eventCountThisYear >= maxPerYear) {
-      blockers.push(
-        `Annual funeral payout limit reached (${maxPerYear} per year${
-          isInInitialPeriod() ? ' during the initial 24-month period' : ' from Year 3 onwards'
-        }).`
-      );
-    }
-
-    // Bucket dry check
-    const remaining = maxPerEvent * maxPerYear - amountAlreadyApprovedThisYear;
-    if (amountRequested > remaining && amountRequested <= maxPerEvent) {
-      warnings.push(
-        `This payout would exceed the annual funeral budget. Remaining this year: K${remaining.toFixed(2)}.`
-      );
-    }
-
-    const requiresTwoSignatures = amountRequested > config.governance.twoSignatureThreshold;
-    const requiresOverride = blockers.length > 0 && (!overrideNote || overrideNote.trim().length === 0);
-
-    return {
-      ok: blockers.length === 0,
-      warnings,
-      blockers,
-      requiresOverride,
-      requiresTwoSignatures,
-      bucketCode: 'FUNERAL',
-      maxPerEvent,
-    };
+    return checkClaimAgainstCaps(
+      input,
+      {
+        amountPerEvent: config.welfareCaps.funeral.amountPerEvent,
+        maxPerYear,
+      },
+      {
+        bucketCode: 'FUNERAL',
+        noun: 'funeral',
+        annualLimitNote: isInInitialPeriod()
+          ? 'during the initial 24-month period'
+          : 'from Year 3 onwards',
+      },
+    );
   }
 
   if (type === 'MEDICAL') {
-    const maxPerEvent = config.welfareCaps.medical.amountPerEvent;
-    const maxPerYear = config.welfareCaps.medical.maxPerYear;
-
-    if (amountRequested > maxPerEvent) {
-      blockers.push(
-        `Requested amount K${amountRequested.toFixed(2)} exceeds the medical cap of K${maxPerEvent.toFixed(2)} per event.`
-      );
-    }
-
-    if (eventCountThisYear >= maxPerYear) {
-      blockers.push(
-        `Annual medical payout limit reached (${maxPerYear} per year).`
-      );
-    }
-
-    const remaining = maxPerEvent * maxPerYear - amountAlreadyApprovedThisYear;
-    if (amountRequested > remaining && amountRequested <= maxPerEvent) {
-      warnings.push(
-        `This payout would exceed the annual medical budget. Remaining this year: K${remaining.toFixed(2)}.`
-      );
-    }
-
-    const requiresTwoSignatures = amountRequested > config.governance.twoSignatureThreshold;
-    const requiresOverride = blockers.length > 0 && (!overrideNote || overrideNote.trim().length === 0);
-
-    return {
-      ok: blockers.length === 0,
-      warnings,
-      blockers,
-      requiresOverride,
-      requiresTwoSignatures,
-      bucketCode: 'MEDICAL',
-      maxPerEvent,
-    };
+    return checkClaimAgainstCaps(
+      input,
+      {
+        amountPerEvent: config.welfareCaps.medical.amountPerEvent,
+        maxPerYear: config.welfareCaps.medical.maxPerYear,
+      },
+      { bucketCode: 'MEDICAL', noun: 'medical' },
+    );
   }
 
   // Unknown claim type

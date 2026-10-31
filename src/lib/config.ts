@@ -144,9 +144,22 @@ export const config = {
     10,
   ),
 
-  // Cooperative start date (used for the 24-month funeral cap)
+  // Cooperative start date (used for the 24-month initial period and for
+  // determining which months a founding member owes from)
   // Set this to the actual launch date in production.
   cooperativeStartDate: new Date('2025-01-01'),
+
+  // Length of the "initial period" in months.
+  // ---------------------------------------------------------------------------
+  // This used to live at `welfareCaps.funeral.initialCapPeriodMonths`. When the
+  // GM dropped the FUNERAL bucket on 2026-10-12 that whole cap block was
+  // zeroed, which silently made `isInInitialPeriod()` always return false --
+  // a constitutional rule quietly switching itself off because it happened to
+  // be stored next to a disabled feature.
+  //
+  // It is a property of the COOPERATIVE, not of any one welfare cap, so it
+  // lives here now and is independent of which welfare pools are active.
+  initialCapPeriodMonths: 24,
 } as const;
 
 export type BucketCode = (typeof config.buckets)[keyof typeof config.buckets]['code'];
@@ -182,7 +195,7 @@ export function isInInitialPeriod(now: Date = new Date()): boolean {
   const monthsSinceStart =
     (now.getFullYear() - start.getFullYear()) * 12 +
     (now.getMonth() - start.getMonth());
-  return monthsSinceStart < config.welfareCaps.funeral.initialCapPeriodMonths;
+  return monthsSinceStart < config.initialCapPeriodMonths;
 }
 
 /**

@@ -1,7 +1,12 @@
 /**
  * Unit tests for the SACRED bucket allocation rule (S1).
- * "Every contribution MUST be split exactly into the 6 buckets per percentages.
- *  Total of allocations MUST equal the contribution amount exactly."
+ * "Every contribution MUST be split exactly into the active buckets per
+ *  percentages. Total of allocations MUST equal the contribution amount
+ *  exactly."
+ *
+ * GM vote 2026-10-12: FUNERAL and MEDICAL buckets were closed and the freed
+ * 18% rebalanced into LAND +10, SOFT_LOANS +7, ADMIN +1. The active split is
+ * now 60 / 20 / 15 / 5 across four buckets.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -19,12 +24,10 @@ describe('allocateToBuckets', () => {
     const result = allocateToBuckets(100, ALL_BUCKETS);
     const allocations = Object.fromEntries(result.map((r) => [r.bucketCode, r.amount]));
 
-    expect(allocations.LAND).toBe(50);
+    expect(allocations.LAND).toBe(60);
     expect(allocations.BUSINESS).toBe(20);
-    expect(allocations.FUNERAL).toBe(15);
-    expect(allocations.MEDICAL).toBe(8);
-    expect(allocations.ADMIN).toBe(4);
-    expect(allocations.EDUCATION).toBe(3);
+    expect(allocations.SOFT_LOANS).toBe(15);
+    expect(allocations.ADMIN).toBe(5);
   });
 
   it('sums exactly to the contribution amount', () => {
@@ -38,7 +41,7 @@ describe('allocateToBuckets', () => {
   });
 
   it('handles tricky amounts that produce rounding errors', () => {
-    // 33.33 / 100 * 50 = 16.665 (rounds to 16.67)
+    // 33.33 / 100 * 60 = 19.998 (rounds to 20.00)
     const result = allocateToBuckets(33.33, ALL_BUCKETS);
     assertAllocationsSumExactly(33.33, result);
   });
@@ -51,9 +54,16 @@ describe('allocateToBuckets', () => {
     }
   });
 
-  it('produces 6 allocations', () => {
+  it('produces 4 allocations', () => {
     const result = allocateToBuckets(100, ALL_BUCKETS);
-    expect(result).toHaveLength(6);
+    expect(result).toHaveLength(4);
+  });
+
+  it('never allocates to the closed FUNERAL or MEDICAL buckets', () => {
+    const result = allocateToBuckets(100, ALL_BUCKETS);
+    const codes = result.map((r) => r.bucketCode);
+    expect(codes).not.toContain('FUNERAL');
+    expect(codes).not.toContain('MEDICAL');
   });
 
   it('throws if allocations do not sum exactly (safety net)', () => {
@@ -72,13 +82,27 @@ describe('config invariants', () => {
     expect(total).toBe(100);
   });
 
-  it('has exactly 6 buckets', () => {
-    expect(Object.keys(config.buckets)).toHaveLength(6);
+  it('has exactly 4 active buckets', () => {
+    expect(Object.keys(config.buckets)).toHaveLength(4);
+  });
+
+  it('has the GM-approved 60/20/15/5 split', () => {
+    const byCode = Object.fromEntries(
+      Object.values(config.buckets).map((b) => [b.code, b.percentage]),
+    );
+    expect(byCode).toEqual({ LAND: 60, BUSINESS: 20, SOFT_LOANS: 15, ADMIN: 5 });
   });
 
   it('bucket codes are unique', () => {
     const codes = Object.values(config.buckets).map((b) => b.code);
     expect(new Set(codes).size).toBe(codes.length);
+  });
+
+  it('keeps the initial period independent of the discontinued welfare caps', () => {
+    // The initial-period length is a property of the cooperative, not of any
+    // one welfare pool. It used to live inside welfareCaps.funeral, and when
+    // the GM zeroed that block it silently switched the rule off.
+    expect(config.initialCapPeriodMonths).toBe(24);
   });
 });
 
