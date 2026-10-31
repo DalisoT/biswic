@@ -133,6 +133,26 @@ export function hasAdminAccess(
   return false;
 }
 
+/**
+ * Role check that also honours the global admin override.
+ *
+ * Use this instead of `canX(user.role)` inside server actions so the
+ * override is applied consistently. The plain `canX(role)` helpers read the
+ * role string only and would ignore a user whose `isAdmin` is true.
+ *
+ * The Chairman/admin (service 106759) is the platform owner and is expected
+ * to be able to record contributions and approve welfare claims; before this
+ * helper existed the override was applied in some actions and silently
+ * missing in others, which meant the owner could be locked out of exactly
+ * the screens they need most.
+ */
+export function canActAs(
+  user: { role: string; isAdmin?: boolean },
+  roleCheck: (role: string) => boolean,
+): boolean {
+  return hasAdminAccess(user) || roleCheck(user.role);
+}
+
 export function canPostMinutes(role: Role | string): boolean {
   return POST_MEETING_MINUTES_ROLES.includes(role as Role);
 }

@@ -3,7 +3,7 @@
 import { requireUser } from '@/lib/auth/require-user';
 import { revalidatePath } from 'next/cache';
 import { approveClaim, markClaimPaid, rejectClaim, submitClaim } from '@/server/services/claim-service';
-import { canApproveWelfare } from '@/lib/permissions';
+import { canApproveWelfare, canActAs } from '@/lib/permissions';
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { createNotification } from '@/server/actions/notifications';
@@ -65,7 +65,7 @@ const approveSchema = z.object({
 export async function approveClaimAction(formData: FormData) {
   const user = await requireUser();
 
-  if (!canApproveWelfare(user.role)) {
+  if (!canActAs(user, canApproveWelfare)) {
     return { error: 'You do not have permission to approve welfare claims.' };
   }
 
@@ -109,7 +109,7 @@ export async function approveClaimAction(formData: FormData) {
 export async function rejectClaimAction(formData: FormData) {
   const user = await requireUser();
 
-  if (!canApproveWelfare(user.role)) {
+  if (!canActAs(user, canApproveWelfare)) {
     return { error: 'You do not have permission to reject welfare claims.' };
   }
 
@@ -148,7 +148,7 @@ export async function rejectClaimAction(formData: FormData) {
 export async function markClaimPaidAction(formData: FormData) {
   const user = await requireUser();
 
-  if (!canApproveWelfare(user.role)) {
+  if (!canActAs(user, canApproveWelfare)) {
     return { error: 'You do not have permission to mark claims paid.' };
   }
 

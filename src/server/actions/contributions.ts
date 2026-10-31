@@ -3,7 +3,7 @@
 import { requireUser } from '@/lib/auth/require-user';
 import { revalidatePath } from 'next/cache';
 import { recordContribution, bulkRecordContributions } from '@/server/services/contribution-service';
-import { canRecordContributions } from '@/lib/permissions';
+import { canRecordContributions, canActAs } from '@/lib/permissions';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
 import { logAudit, AUDIT_ACTIONS } from '@/lib/audit';
@@ -23,7 +23,7 @@ const singleSchema = z.object({
 export async function addContributionAction(formData: FormData) {
   const user = await requireUser();
 
-  if (!canRecordContributions(user.role)) {
+  if (!canActAs(user, canRecordContributions)) {
     return { error: 'You do not have permission to record contributions.' };
   }
 
@@ -106,7 +106,7 @@ export async function bulkImportPayrollAction(
   formData: FormData,
 ): Promise<PayrollBulkResult> {
   const user = await requireUser();
-  if (!canRecordContributions(user.role)) {
+  if (!canActAs(user, canRecordContributions)) {
     return { error: 'Only the Treasurer, Deputy Treasurer, or Finance Warrant may import contributions.' };
   }
 

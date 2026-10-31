@@ -20,7 +20,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireUser } from '@/lib/auth/require-user';
-import { canManageMembers } from '@/lib/permissions';
+import { canManageMembers, hasAdminAccess } from '@/lib/permissions';
 import { logAudit, AUDIT_ACTIONS } from '@/lib/audit';
 import { isFoundingLockActive } from '@/lib/config';
 import { notifyAdmins } from '@/server/actions/notifications';
@@ -62,7 +62,7 @@ function generateTempPassword(): string {
 
 export async function createMemberAction(formData: FormData): Promise<CreateMemberResult> {
   const user = await requireUser();
-  if (!canManageMembers(user.role)) {
+  if (!hasAdminAccess(user) && !canManageMembers(user.role)) {
     return { error: 'Only the Chairperson or Secretary may add new members.' };
   }
 

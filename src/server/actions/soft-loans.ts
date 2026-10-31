@@ -27,6 +27,7 @@ import {
   type LendingApproverRole,
 } from '@/server/services/soft-loan-service';
 import { computeLoanSchedule } from '@/lib/soft-loan-math';
+import { hasAdminAccess } from '@/lib/permissions';
 
 const applySchema = z.object({
   principal: z.coerce.number().positive(),
@@ -250,7 +251,13 @@ export async function recordRepaymentAction(formData: FormData) {
  */
 export async function detectDefaultsAction() {
   const user = await requireUser();
-  if (user.role !== 'FW' && user.role !== 'TREASURER' && user.role !== 'DEPUTY_TREASURER' && user.role !== 'CHAIRPERSON') {
+  if (
+    !hasAdminAccess(user) &&
+    user.role !== 'FW' &&
+    user.role !== 'TREASURER' &&
+    user.role !== 'DEPUTY_TREASURER' &&
+    user.role !== 'CHAIRPERSON'
+  ) {
     return { error: 'Only the FW, Treasurer, Deputy Treasurer, or Chair may run this.' };
   }
   try {
