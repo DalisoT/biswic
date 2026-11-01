@@ -86,8 +86,8 @@ export default async function LearnHomePage() {
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gold-700">
           Financial literacy
         </p>
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 sm:flex-1">
             <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">
               Learn the cooperative
             </h1>
@@ -96,7 +96,7 @@ export default async function LearnHomePage() {
             </p>
           </div>
           {user && (
-            <Button asChild variant="outline" className="shrink-0">
+            <Button asChild variant="outline" className="w-full shrink-0 justify-start sm:w-auto">
               <Link href="/learn/me">
                 My progress
                 <ArrowRight className="ml-2 h-4 w-4" />

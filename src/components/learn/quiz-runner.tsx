@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, Send, XCircle } from 'lucide-react';
+import { ArrowRight, CheckCircle2, ChevronLeft, Loader2, Send, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { startQuizAttemptAction, submitQuizAttemptAction } from '@/server/actions/learn';
 
@@ -148,8 +148,8 @@ export function QuizRunner({
       {/* Question */}
       <section className="rounded-lg border bg-card p-4 sm:p-6">
         <div className="space-y-4">
-          <div className="flex items-start gap-2">
-            <span className="mt-1 shrink-0 rounded-full border border-navy-200 bg-navy-50 px-2.5 py-0.5 text-xs font-semibold text-navy-700">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+            <span className="shrink-0 self-start rounded-full border border-navy-200 bg-navy-50 px-2.5 py-0.5 text-xs font-semibold text-navy-700">
               {TYPE_LABEL[q.type]}
             </span>
             <p className="text-lg font-medium leading-relaxed">{q.prompt}</p>
@@ -222,12 +222,13 @@ export function QuizRunner({
         <div className="mx-auto flex max-w-3xl items-center gap-2">
           <Button
             variant="outline"
+            size="icon"
             onClick={goPrev}
             disabled={current === 0}
-            className="h-11 shrink-0"
+            className="h-11 w-11 shrink-0"
+            aria-label="Previous question"
           >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Previous
+            <ChevronLeft className="h-5 w-5" />
           </Button>
 
           {current < total - 1 ? (
