@@ -105,6 +105,25 @@ export function monthsBetween(
 }
 
 /**
+ * Is a (year, month) pair inside the reporting period?
+ *
+ * This is the single definition of "inside the period" for the whole report.
+ * The database filter in src/lib/contribution-period-filter.ts must agree
+ * with it -- tests/unit/contribution-period-filter.test.ts checks that the
+ * two agree for every month in a multi-year grid.
+ */
+export function isMonthInPeriod(
+  year: number,
+  month: number,
+  period: ReportPeriod,
+): boolean {
+  if (year < period.startYear || year > period.endYear) return false;
+  if (year === period.startYear && month < period.startMonth) return false;
+  if (year === period.endYear && month > period.endMonth) return false;
+  return true;
+}
+
+/**
  * The first month a member is liable to pay for.
  * Founding members are on the register from the cooperative's first month;
  * everyone else from the month they joined.
@@ -188,37 +207,31 @@ export function buildContributionReport(
   monthlyContribution: number = config.monthlyContributionPerMember,
 ): ContributionReport {
   // Index contributions by member so we don't rescan the array per member.
-  const byMember = new Map<string, { months: Set<string>; sum: number; rows: ContributionRecord[] }>();
+  //
+  // Only contributions INSIDE the reporting period are indexed. The report
+  // must not depend on the caller having pre-filtered the rows: monthsPaid
+  // used to count every month a member had ever paid, which would have
+  // inflated "months paid" and made arrears look better than they were
+  // whenever a caller passed a wider set than the period.
+  const byMember = new Map<string, { months: Set<string>; sum: number }>();
 
   for (const c of contributions) {
+    if (!isMonthInPeriod(c.year, c.month, period)) continue;
     const key = `${c.year}-${c.month}`;
     let agg = byMember.get(c.memberId);
     if (!agg) {
-      agg = { months: new Set<string>(), sum: 0, rows: [] };
+      agg = { months: new Set<string>(), sum: 0 };
       byMember.set(c.memberId, agg);
     }
     agg.months.add(key);
     agg.sum += c.amount;
-    agg.rows.push(c);
   }
 
   const rows: ContributionReportRow[] = members.map((member) => {
     const monthsDue = monthsDueFor(member, period);
     const agg = byMember.get(member.id);
     const monthsPaid = agg ? agg.months.size : 0;
-
-    // Only count payments that fall inside the reporting period.
-    const contributed = agg
-      ? agg.rows
-          .filter(
-            (c) =>
-              c.year >= period.startYear &&
-              c.year <= period.endYear &&
-              (c.year > period.startYear || c.month >= period.startMonth) &&
-              (c.year < period.endYear || c.month <= period.endMonth),
-          )
-          .reduce((sum, c) => sum + c.amount, 0)
-      : 0;
+    const contributed = agg ? agg.sum : 0;
 
     const monthsMissed = Math.max(0, monthsDue - monthsPaid);
     const expected = monthsDue * monthlyContribution;

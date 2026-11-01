@@ -14,6 +14,7 @@ import {
   allTimePeriod,
   yearPeriod,
 } from '@/lib/contribution-report';
+import { contributionPeriodWhere } from '@/lib/contribution-period-filter';
 import { Download, FileBarChart, AlertTriangle } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -52,13 +53,7 @@ export default async function ContributionsReportPage({ searchParams }: PageProp
       orderBy: { fullName: 'asc' },
     }),
     prisma.contribution.findMany({
-      where: {
-        year: { gte: period.startYear, lte: period.endYear },
-        AND: [
-          { year: period.startYear, month: { gte: period.startMonth } },
-          { year: period.endYear, month: { lte: period.endMonth } },
-        ],
-      },
+      where: contributionPeriodWhere(period),
       select: { memberId: true, month: true, year: true, amount: true },
     }),
   ]);

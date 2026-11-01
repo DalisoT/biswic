@@ -9,6 +9,7 @@ import {
   yearPeriod,
   reportToCsv,
 } from '@/lib/contribution-report';
+import { contributionPeriodWhere } from '@/lib/contribution-period-filter';
 
 export const dynamic = 'force-dynamic';
 
@@ -58,13 +59,7 @@ export async function GET(request: Request) {
       },
     }),
     prisma.contribution.findMany({
-      where: {
-        year: { gte: period.startYear, lte: period.endYear },
-        AND: [
-          { year: period.startYear, month: { gte: period.startMonth } },
-          { year: period.endYear, month: { lte: period.endMonth } },
-        ],
-      },
+      where: contributionPeriodWhere(period),
       select: { memberId: true, month: true, year: true, amount: true },
     }),
   ]);

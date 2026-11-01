@@ -138,6 +138,37 @@ describe('buildContributionReport', () => {
     expect(report.rows[0].contributed).toBe(100);
   });
 
+  it('counts only in-period payments towards months paid', () => {
+    // The report must not depend on the caller pre-filtering the rows.
+    // monthsPaid used to count every month a member had ever paid.
+    const contributions = [
+      contribution('m1', 2025, 12), // before the period
+      contribution('m1', 2026, 1), // inside
+      contribution('m1', 2026, 2), // inside
+    ];
+    const report = buildContributionReport([member()], contributions, period);
+
+    expect(report.rows[0].monthsPaid).toBe(2);
+    expect(report.rows[0].monthsMissed).toBe(10);
+    expect(report.rows[0].contributed).toBe(200);
+  });
+
+  it('counts payments across a multi-year period', () => {
+    const allTime = allTimePeriod(new Date('2026-11-01'));
+    const contributions = [
+      contribution('m1', 2025, 3),
+      contribution('m1', 2025, 4),
+      contribution('m1', 2026, 1),
+    ];
+    const report = buildContributionReport([member()], contributions, allTime);
+
+    expect(report.rows[0].monthsPaid).toBe(3);
+    expect(report.rows[0].contributed).toBe(300);
+    // Jan 2025 to Nov 2026 is 23 months, of which 3 were paid.
+    expect(report.rows[0].monthsDue).toBe(23);
+    expect(report.rows[0].monthsMissed).toBe(20);
+  });
+
   it('counts each month once even if a duplicate row is supplied', () => {
     const contributions = [
       contribution('m1', 2026, 1),
