@@ -37,7 +37,7 @@ export async function GET(request: Request) {
     if (!Number.isInteger(year) || year < 2000 || year > 2100) {
       return NextResponse.json({ error: 'Invalid year.' }, { status: 400 });
     }
-    period = yearPeriod(year);
+    period = yearPeriod(year, now);
     label = String(year);
   } else {
     period = allTimePeriod(now);

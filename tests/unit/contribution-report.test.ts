@@ -206,6 +206,52 @@ describe('periods', () => {
     });
   });
 
+  it('yearPeriod stops at the month that has already happened', () => {
+    // On 1 November 2026, December 2026 has not happened yet, so a member
+    // cannot owe it. Before this, the year view counted December as due for
+    // all 67 members and overstated expected collections by K6,300.
+    expect(yearPeriod(2026, new Date('2026-11-01'))).toEqual({
+      startYear: 2026,
+      startMonth: 1,
+      endYear: 2026,
+      endMonth: 11,
+    });
+  });
+
+  it('yearPeriod runs a finished year to December', () => {
+    expect(yearPeriod(2025, new Date('2026-11-01'))).toEqual({
+      startYear: 2025,
+      startMonth: 1,
+      endYear: 2025,
+      endMonth: 12,
+    });
+  });
+
+  it('yearPeriod owes nothing for a year that has not started', () => {
+    const period = yearPeriod(2027, new Date('2026-11-01'));
+    expect(period.endMonth).toBe(0);
+    expect(monthsDueFor(member(), period)).toBe(0);
+  });
+
+  it('does not count a future month as due for a founding member', () => {
+    const period = yearPeriod(2026, new Date('2026-11-01'));
+    expect(monthsDueFor(member(), period)).toBe(11); // January..November
+  });
+
+  it('still counts a joining month that has passed', () => {
+    const period = yearPeriod(2026, new Date('2026-11-01'));
+    const m = member({ isFoundingMember: false, joinedAt: new Date('2026-03-17') });
+    expect(monthsDueFor(m, period)).toBe(9); // March..November
+  });
+
+  it('matches the all-time view at the end of the year', () => {
+    const asOf = new Date('2026, 12, 20');
+    const year = yearPeriod(2026, asOf);
+    const allTime = allTimePeriod(asOf);
+    expect(year.endYear).toBe(allTime.endYear);
+    expect(year.endMonth).toBe(allTime.endMonth);
+  });
+
   it('allTimePeriod starts at the cooperative start month', () => {
     const p = allTimePeriod(new Date('2026, 5, 15'));
     expect(p.startYear).toBe(2025);

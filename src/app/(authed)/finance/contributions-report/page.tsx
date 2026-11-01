@@ -34,7 +34,7 @@ export default async function ContributionsReportPage({ searchParams }: PageProp
 
   // "all" = every month since the cooperative started.
   const selectedYear = sp.year && sp.year !== 'all' ? Number(sp.year) : null;
-  const period = selectedYear ? yearPeriod(selectedYear) : allTimePeriod(now);
+  const period = selectedYear ? yearPeriod(selectedYear, now) : allTimePeriod(now);
 
   // Only the contributions inside the period are needed.
   const [members, contributions] = await Promise.all([

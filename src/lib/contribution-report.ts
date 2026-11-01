@@ -292,9 +292,30 @@ export function allTimePeriod(now: Date = new Date()): ReportPeriod {
   };
 }
 
-/** A single calendar year. */
-export function yearPeriod(year: number): ReportPeriod {
-  return { startYear: year, startMonth: 1, endYear: year, endMonth: 12 };
+/**
+ * A single calendar year.
+ *
+ * `asOf` caps the period at the month that has already happened. Without it
+ * the period runs to December, which counts a month that has not occurred yet
+ * as due: on 1 November 2026 the year view was showing December 2026 as
+ * unpaid for every member, adding K100 of phantom arrears to each of the 67
+ * members and overstating expected collections by K6,300.
+ *
+ * The all-time view already stops at the current month (see `allTimePeriod`),
+ * so the year view now behaves the same way. Pass the current date at the
+ * call sites; omit it only where a whole calendar year is wanted.
+ */
+export function yearPeriod(year: number, asOf?: Date): ReportPeriod {
+  if (!asOf) {
+    return { startYear: year, startMonth: 1, endYear: year, endMonth: 12 };
+  }
+  const currentYear = asOf.getFullYear();
+  if (year > currentYear) {
+    // A year that has not started yet: nothing is due.
+    return { startYear: year, startMonth: 1, endYear: year, endMonth: 0 };
+  }
+  const endMonth = year === currentYear ? asOf.getMonth() + 1 : 12;
+  return { startYear: year, startMonth: 1, endYear: year, endMonth };
 }
 
 /** Escape a value for CSV output. */
