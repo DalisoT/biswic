@@ -146,8 +146,27 @@ export const config = {
 
   // Cooperative start date (used for the 24-month initial period and for
   // determining which months a founding member owes from)
-  // Set this to the actual launch date in production.
-  cooperativeStartDate: new Date('2025-01-01'),
+  //
+  // This was a placeholder (1 January 2025) that was never updated, and it
+  // cost the report a fortune. It billed every founding member for 23
+  // months -- January 2025 to November 2026 -- when the cooperative's
+  // founding register was signed 22 July 2026 (Constitution Art. 2.2) and
+  // the first money in the ledger is July 2026 (49 of 60 paid, K5,000,
+  // receipts dated 15 July 2026). Nothing was ever collected before then.
+  //
+  // 18 phantom months x 63 founding members = K113,400 of the K129,900
+  // "arrears" the report claimed. The chairman confirmed 1 July 2026 as the
+  // cooperative's first contribution month on 2026-11-01.
+  //
+  // Keep this as the FIRST MONTH of the cooperative, not the day of the
+  // founding meeting -- it drives "which months a founding member owes
+  // from", so the day within the month does not matter but the month does.
+  //
+  // It is anchored at midday UTC on purpose. `monthKey()` reads the month
+  // with the local-time getters, so a midnight-UTC date would read as June
+  // on any server west of UTC and shift every founding member's bill by a
+  // month. Midday leaves no timezone that can move it out of July.
+  cooperativeStartDate: new Date('2026-07-01T12:00:00Z'),
 
   // Length of the "initial period" in months.
   // ---------------------------------------------------------------------------

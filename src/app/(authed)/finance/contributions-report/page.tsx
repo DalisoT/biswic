@@ -69,6 +69,16 @@ export default async function ContributionsReportPage({ searchParams }: PageProp
     ? String(selectedYear)
     : `${period.startYear}-${period.endYear}`;
 
+  // Name the cooperative's first contribution month in the footnote. The
+  // report used to say "the cooperative's first month" without saying when
+  // that was, and a placeholder start date in config.ts quietly billed
+  // members for months before the cooperative existed.
+  const startMonthLabel = new Intl.DateTimeFormat('en-GB', {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(config.cooperativeStartDate);
+
   const years = [currentYear, currentYear - 1, currentYear - 2].filter(
     (y) => y >= config.cooperativeStartDate.getFullYear(),
   );
@@ -246,10 +256,13 @@ export default async function ContributionsReportPage({ searchParams }: PageProp
 
       <p className="text-xs text-muted-foreground">
         Expected = {formatCurrency(report.monthlyContribution)} per member per
-        month. A member is liable from the month they joined (or the
-        cooperative&apos;s first month for founding members) until the month
-        they left, or the end of the reporting period. The current month is
-        included.
+        month. A member is liable from the month they joined (or{' '}
+        <strong className="font-medium text-foreground">
+          {startMonthLabel}, the cooperative&apos;s first contribution month,
+          for founding members
+        </strong>
+        ) until the month they left, or the end of the reporting period. The
+        current month is included.
       </p>
     </div>
   );

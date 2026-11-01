@@ -6,6 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { config } from '../../src/lib/config';
 import {
   buildContributionReport,
   monthsBetween,
@@ -16,7 +17,20 @@ import {
   allTimePeriod,
   type MemberRecord,
   type ContributionRecord,
+  type ReportPeriod,
 } from '../../src/lib/contribution-report';
+
+/**
+ * A local-time date.
+ *
+ * A bare '2026-03-01' date string is parsed as UTC midnight, which is 29
+ * February in any timezone west of UTC, so a member "joining in March" would
+ * silently be treated as a February member. These tests are about which MONTH
+ * a member belongs in, so the dates are built in the runner's local time.
+ */
+function localDate(year: number, month: number, day: number): Date {
+  return new Date(year, month - 1, day);
+}
 
 function member(overrides: Partial<MemberRecord> = {}): MemberRecord {
   return {
@@ -26,7 +40,7 @@ function member(overrides: Partial<MemberRecord> = {}): MemberRecord {
     rank: 'CHAIRMAN',
     isActive: true,
     isFoundingMember: true,
-    joinedAt: new Date('2025-01-01'),
+    joinedAt: localDate(2025, 1, 1),
     leftAt: null,
     ...overrides,
   };
@@ -54,14 +68,35 @@ describe('monthsBetween', () => {
   });
 });
 
+describe('the cooperative start month', () => {
+  it('is July 2026 -- the founding register month', () => {
+    // The founding register was signed 22 July 2026 (Constitution Art. 2.2)
+    // and the first money in the ledger is July 2026 (49 of 60 paid, K5,000,
+    // receipts dated 15 July 2026). Nothing was ever collected before then.
+    //
+    // The placeholder that used to live here was 1 January 2025. It billed
+    // every founding member for 18 months that never happened -- K113,400 of
+    // the K129,900 "arrears" the report claimed. The chairman confirmed
+    // July 2026 as the cooperative's first contribution month on 2026-11-01.
+    expect(config.cooperativeStartDate.toISOString().slice(0, 7)).toBe('2026-07');
+    // This is the month the report engine actually bills a founding member from.
+    expect(eligibilityStart(member())).toEqual({ year: 2026, month: 7 });
+  });
+
+  it('caps a founding member at the months that have actually happened', () => {
+    // July..November 2026 inclusive.
+    expect(monthsDueFor(member(), allTimePeriod(localDate(2026, 11, 1)))).toBe(5);
+  });
+});
+
 describe('eligibilityStart', () => {
   it('uses the cooperative start month for founding members', () => {
-    const m = member({ isFoundingMember: true, joinedAt: new Date('2025-09-09') });
-    expect(eligibilityStart(m)).toEqual({ year: 2025, month: 1 });
+    const m = member({ isFoundingMember: true, joinedAt: localDate(2025, 9, 9) });
+    expect(eligibilityStart(m)).toEqual({ year: 2026, month: 7 });
   });
 
   it('uses the joining month for everyone else', () => {
-    const m = member({ isFoundingMember: false, joinedAt: new Date('2026-03-17') });
+    const m = member({ isFoundingMember: false, joinedAt: localDate(2026, 3, 17) });
     expect(eligibilityStart(m)).toEqual({ year: 2026, month: 3 });
   });
 });
@@ -69,27 +104,29 @@ describe('eligibilityStart', () => {
 describe('monthsDueFor', () => {
   const period = yearPeriod(2026);
 
-  it('counts the whole year for a founding member', () => {
-    expect(monthsDueFor(member(), period)).toBe(12);
+  it('counts from the cooperative start month for a founding member', () => {
+    // The period is the whole of 2026, but the cooperative did not exist
+    // before July 2026, so January..June can never be owed.
+    expect(monthsDueFor(member(), period)).toBe(6); // July..December
   });
 
   it('counts from the joining month for a new member', () => {
-    const m = member({ isFoundingMember: false, joinedAt: new Date('2026-03-17') });
+    const m = member({ isFoundingMember: false, joinedAt: localDate(2026, 3, 17) });
     expect(monthsDueFor(m, period)).toBe(10); // March..December
   });
 
   it('stops at the leaving month', () => {
-    const m = member({ leftAt: new Date('2026-05-30') });
-    expect(monthsDueFor(m, period)).toBe(5); // January..May
+    const m = member({ leftAt: localDate(2026, 9, 30) });
+    expect(monthsDueFor(m, period)).toBe(3); // July..September
   });
 
   it('never extends past the reporting period', () => {
     const m = member();
-    expect(monthsDueFor(m, yearPeriod(2025))).toBe(12);
+    expect(monthsDueFor(m, yearPeriod(2026, localDate(2026, 9, 1)))).toBe(3);
   });
 
   it('is zero for a member who joined after the period', () => {
-    const m = member({ isFoundingMember: false, joinedAt: new Date('2027-01-05') });
+    const m = member({ isFoundingMember: false, joinedAt: localDate(2027, 1, 5) });
     expect(monthsDueFor(m, period)).toBe(0);
   });
 });
@@ -98,35 +135,35 @@ describe('buildContributionReport', () => {
   const period = yearPeriod(2026);
 
   it('reports a fully paid member with no arrears', () => {
-    const contributions = Array.from({ length: 12 }, (_, i) =>
-      contribution('m1', 2026, i + 1),
+    const contributions = Array.from({ length: 6 }, (_, i) =>
+      contribution('m1', 2026, i + 7),
     );
     const report = buildContributionReport([member()], contributions, period);
 
     const row = report.rows[0];
-    expect(row.monthsDue).toBe(12);
-    expect(row.monthsPaid).toBe(12);
+    expect(row.monthsDue).toBe(6);
+    expect(row.monthsPaid).toBe(6);
     expect(row.monthsMissed).toBe(0);
-    expect(row.expected).toBe(1200);
-    expect(row.contributed).toBe(1200);
+    expect(row.expected).toBe(600);
+    expect(row.contributed).toBe(600);
     expect(row.arrears).toBe(0);
     expect(row.compliance).toBe(100);
   });
 
   it('counts missed months as arrears', () => {
-    // Paid Jan, Feb, then skipped March..December.
+    // Paid July, August, then skipped September..December.
     const contributions = [
-      contribution('m1', 2026, 1),
-      contribution('m1', 2026, 2),
+      contribution('m1', 2026, 7),
+      contribution('m1', 2026, 8),
     ];
     const report = buildContributionReport([member()], contributions, period);
 
     const row = report.rows[0];
-    expect(row.monthsDue).toBe(12);
+    expect(row.monthsDue).toBe(6);
     expect(row.monthsPaid).toBe(2);
-    expect(row.monthsMissed).toBe(10);
-    expect(row.arrears).toBe(1000);
-    expect(row.compliance).toBe(17); // 2/12 rounded
+    expect(row.monthsMissed).toBe(4);
+    expect(row.arrears).toBe(400);
+    expect(row.compliance).toBe(33); // 2/6 rounded
   });
 
   it('excludes contributions outside the reporting period', () => {
@@ -149,18 +186,30 @@ describe('buildContributionReport', () => {
     const report = buildContributionReport([member()], contributions, period);
 
     expect(report.rows[0].monthsPaid).toBe(2);
-    expect(report.rows[0].monthsMissed).toBe(10);
+    expect(report.rows[0].monthsMissed).toBe(4);
     expect(report.rows[0].contributed).toBe(200);
   });
 
   it('counts payments across a multi-year period', () => {
-    const allTime = allTimePeriod(new Date('2026-11-01'));
+    // An explicit multi-year window. The member is NOT a founding member, so
+    // they owe from the month they joined (January 2025), not from the
+    // cooperative's first month (July 2026).
+    const multiYear: ReportPeriod = {
+      startYear: 2025,
+      startMonth: 1,
+      endYear: 2026,
+      endMonth: 11,
+    };
+    const m = member({
+      isFoundingMember: false,
+      joinedAt: localDate(2025, 1, 1),
+    });
     const contributions = [
       contribution('m1', 2025, 3),
       contribution('m1', 2025, 4),
       contribution('m1', 2026, 1),
     ];
-    const report = buildContributionReport([member()], contributions, allTime);
+    const report = buildContributionReport([m], contributions, multiYear);
 
     expect(report.rows[0].monthsPaid).toBe(3);
     expect(report.rows[0].contributed).toBe(300);
@@ -187,7 +236,7 @@ describe('buildContributionReport', () => {
       fullName: 'B',
       serviceNumber: 'B1',
       isFoundingMember: false,
-      joinedAt: new Date('2026-11-01'),
+      joinedAt: localDate(2026, 11, 1),
     });
     const report = buildContributionReport([m2, m1], [], period);
     expect(report.rows[0].serviceNumber).toBe('A1');
@@ -195,7 +244,7 @@ describe('buildContributionReport', () => {
   });
 
   it('marks members who have left', () => {
-    const m = member({ isActive: false, leftAt: new Date('2026-04-30') });
+    const m = member({ isActive: false, leftAt: localDate(2026, 4, 30) });
     const report = buildContributionReport([m], [], period);
     expect(report.rows[0].status).toBe('Left');
   });
@@ -207,22 +256,22 @@ describe('buildContributionReport', () => {
       fullName: 'B',
       serviceNumber: 'B1',
       isFoundingMember: false,
-      joinedAt: new Date('2026-03-01'),
+      joinedAt: localDate(2026, 3, 1),
     });
     const contributions = [contribution('a', 2026, 1)];
     const report = buildContributionReport([m1, m2], contributions, period);
 
     expect(report.totals.members).toBe(2);
-    expect(report.totals.monthsDue).toBe(12 + 10);
+    expect(report.totals.monthsDue).toBe(6 + 10);
     expect(report.totals.monthsPaid).toBe(1);
     expect(report.totals.contributed).toBe(100);
-    expect(report.totals.arrears).toBe(1100 + 1000);
+    expect(report.totals.arrears).toBe(500 + 1000);
   });
 
   it('handles a member with no contributions at all', () => {
     const report = buildContributionReport([member()], [], period);
     expect(report.rows[0].monthsPaid).toBe(0);
-    expect(report.rows[0].arrears).toBe(1200);
+    expect(report.rows[0].arrears).toBe(600);
     expect(report.rows[0].compliance).toBe(0);
   });
 });
@@ -241,7 +290,7 @@ describe('periods', () => {
     // On 1 November 2026, December 2026 has not happened yet, so a member
     // cannot owe it. Before this, the year view counted December as due for
     // all 67 members and overstated expected collections by K6,300.
-    expect(yearPeriod(2026, new Date('2026-11-01'))).toEqual({
+    expect(yearPeriod(2026, localDate(2026, 11, 1))).toEqual({
       startYear: 2026,
       startMonth: 1,
       endYear: 2026,
@@ -250,7 +299,7 @@ describe('periods', () => {
   });
 
   it('yearPeriod runs a finished year to December', () => {
-    expect(yearPeriod(2025, new Date('2026-11-01'))).toEqual({
+    expect(yearPeriod(2025, localDate(2026, 11, 1))).toEqual({
       startYear: 2025,
       startMonth: 1,
       endYear: 2025,
@@ -259,24 +308,24 @@ describe('periods', () => {
   });
 
   it('yearPeriod owes nothing for a year that has not started', () => {
-    const period = yearPeriod(2027, new Date('2026-11-01'));
+    const period = yearPeriod(2027, localDate(2026, 11, 1));
     expect(period.endMonth).toBe(0);
     expect(monthsDueFor(member(), period)).toBe(0);
   });
 
   it('does not count a future month as due for a founding member', () => {
-    const period = yearPeriod(2026, new Date('2026-11-01'));
-    expect(monthsDueFor(member(), period)).toBe(11); // January..November
+    const period = yearPeriod(2026, localDate(2026, 11, 1));
+    expect(monthsDueFor(member(), period)).toBe(5); // July..November
   });
 
   it('still counts a joining month that has passed', () => {
-    const period = yearPeriod(2026, new Date('2026-11-01'));
-    const m = member({ isFoundingMember: false, joinedAt: new Date('2026-03-17') });
+    const period = yearPeriod(2026, localDate(2026, 11, 1));
+    const m = member({ isFoundingMember: false, joinedAt: localDate(2026, 3, 17) });
     expect(monthsDueFor(m, period)).toBe(9); // March..November
   });
 
   it('matches the all-time view at the end of the year', () => {
-    const asOf = new Date('2026, 12, 20');
+    const asOf = localDate(2026, 12, 20);
     const year = yearPeriod(2026, asOf);
     const allTime = allTimePeriod(asOf);
     expect(year.endYear).toBe(allTime.endYear);
@@ -284,11 +333,11 @@ describe('periods', () => {
   });
 
   it('allTimePeriod starts at the cooperative start month', () => {
-    const p = allTimePeriod(new Date('2026, 5, 15'));
-    expect(p.startYear).toBe(2025);
-    expect(p.startMonth).toBe(1);
+    const p = allTimePeriod(localDate(2026, 9, 15));
+    expect(p.startYear).toBe(2026);
+    expect(p.startMonth).toBe(7);
     expect(p.endYear).toBe(2026);
-    expect(p.endMonth).toBe(5);
+    expect(p.endMonth).toBe(9);
   });
 });
 
