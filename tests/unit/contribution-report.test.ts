@@ -12,6 +12,8 @@ import {
   monthsBetween,
   monthsDueFor,
   eligibilityStart,
+  liabilityMonths,
+  firstLiableMonth,
   reportToCsv,
   yearPeriod,
   allTimePeriod,
@@ -178,15 +180,19 @@ describe('buildContributionReport', () => {
   it('counts only in-period payments towards months paid', () => {
     // The report must not depend on the caller pre-filtering the rows.
     // monthsPaid used to count every month a member had ever paid.
+    const m = member({
+      isFoundingMember: false,
+      joinedAt: localDate(2026, 1, 1),
+    });
     const contributions = [
       contribution('m1', 2025, 12), // before the period
       contribution('m1', 2026, 1), // inside
       contribution('m1', 2026, 2), // inside
     ];
-    const report = buildContributionReport([member()], contributions, period);
+    const report = buildContributionReport([m], contributions, period);
 
     expect(report.rows[0].monthsPaid).toBe(2);
-    expect(report.rows[0].monthsMissed).toBe(4);
+    expect(report.rows[0].monthsMissed).toBe(10);
     expect(report.rows[0].contributed).toBe(200);
   });
 
@@ -219,11 +225,15 @@ describe('buildContributionReport', () => {
   });
 
   it('counts each month once even if a duplicate row is supplied', () => {
+    const m = member({
+      isFoundingMember: false,
+      joinedAt: localDate(2026, 1, 1),
+    });
     const contributions = [
       contribution('m1', 2026, 1),
       contribution('m1', 2026, 1, 250), // same month, different amount
     ];
-    const report = buildContributionReport([member()], contributions, period);
+    const report = buildContributionReport([m], contributions, period);
     expect(report.rows[0].monthsPaid).toBe(1);
     // Both amounts still count towards the money actually received.
     expect(report.rows[0].contributed).toBe(350);
@@ -258,7 +268,7 @@ describe('buildContributionReport', () => {
       isFoundingMember: false,
       joinedAt: localDate(2026, 3, 1),
     });
-    const contributions = [contribution('a', 2026, 1)];
+    const contributions = [contribution('a', 2026, 7)];
     const report = buildContributionReport([m1, m2], contributions, period);
 
     expect(report.totals.members).toBe(2);
@@ -273,6 +283,111 @@ describe('buildContributionReport', () => {
     expect(report.rows[0].monthsPaid).toBe(0);
     expect(report.rows[0].arrears).toBe(600);
     expect(report.rows[0].compliance).toBe(0);
+  });
+
+  it('does not count a payment for a month before the member joined', () => {
+    // The Mphande George case: joined 6 September 2026, so he owes
+    // September, October and November. He paid in July, August and
+    // September. Counting the payments instead of comparing them with the
+    // months he actually owed made him look 100% compliant with K0 arrears
+    // when he had not paid for October at all.
+    const m = member({
+      isFoundingMember: false,
+      joinedAt: localDate(2026, 9, 6),
+    });
+    const contributions = [
+      contribution('m1', 2026, 7),
+      contribution('m1', 2026, 8),
+      contribution('m1', 2026, 9),
+    ];
+    const report = buildContributionReport(
+      [m],
+      contributions,
+      allTimePeriod(localDate(2026, 11, 1)),
+    );
+
+    const row = report.rows[0];
+    expect(row.monthsDue).toBe(3); // September..November
+    expect(row.monthsPaid).toBe(1); // only September
+    expect(row.monthsMissed).toBe(2); // October and November
+    expect(row.arrears).toBe(200);
+    expect(row.compliance).toBe(33);
+    // The July and August money is real, so it is reported -- not hidden and
+    // not quietly used to cancel the months he actually owes.
+    expect(row.receivedBeforeJoining).toBe(200);
+    expect(row.contributed).toBe(300);
+  });
+
+  it('does not let money paid before joining hide a later shortfall', () => {
+    // The same member pays July and August but never September. He owes
+    // three months and has paid none of them.
+    const m = member({
+      isFoundingMember: false,
+      joinedAt: localDate(2026, 9, 6),
+    });
+    const contributions = [
+      contribution('m1', 2026, 7),
+      contribution('m1', 2026, 8),
+    ];
+    const report = buildContributionReport(
+      [m],
+      contributions,
+      allTimePeriod(localDate(2026, 11, 1)),
+    );
+
+    const row = report.rows[0];
+    expect(row.monthsPaid).toBe(0);
+    expect(row.monthsMissed).toBe(3);
+    expect(row.arrears).toBe(300);
+    expect(row.receivedBeforeJoining).toBe(200);
+  });
+});
+
+describe('liabilityMonths', () => {
+  it('lists the months a founding member owes', () => {
+    expect(liabilityMonths(member(), yearPeriod(2026))).toEqual([
+      { year: 2026, month: 7 },
+      { year: 2026, month: 8 },
+      { year: 2026, month: 9 },
+      { year: 2026, month: 10 },
+      { year: 2026, month: 11 },
+      { year: 2026, month: 12 },
+    ]);
+  });
+
+  it('lists the months a late joiner owes', () => {
+    const m = member({
+      isFoundingMember: false,
+      joinedAt: localDate(2026, 9, 6),
+    });
+    expect(liabilityMonths(m, yearPeriod(2026))).toEqual([
+      { year: 2026, month: 9 },
+      { year: 2026, month: 10 },
+      { year: 2026, month: 11 },
+      { year: 2026, month: 12 },
+    ]);
+  });
+
+  it('is empty for a member who joined after the period', () => {
+    const m = member({
+      isFoundingMember: false,
+      joinedAt: localDate(2027, 1, 5),
+    });
+    expect(liabilityMonths(m, yearPeriod(2026))).toEqual([]);
+  });
+});
+
+describe('firstLiableMonth', () => {
+  it('is the cooperative start month for founding members', () => {
+    expect(firstLiableMonth(member())).toEqual({ year: 2026, month: 7 });
+  });
+
+  it('is the joining month for everyone else', () => {
+    const m = member({
+      isFoundingMember: false,
+      joinedAt: localDate(2026, 9, 6),
+    });
+    expect(firstLiableMonth(m)).toEqual({ year: 2026, month: 9 });
   });
 });
 

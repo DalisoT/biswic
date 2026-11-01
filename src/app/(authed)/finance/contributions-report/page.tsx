@@ -15,7 +15,7 @@ import {
   yearPeriod,
 } from '@/lib/contribution-report';
 import { contributionPeriodWhere } from '@/lib/contribution-period-filter';
-import { Download, FileBarChart, AlertTriangle } from 'lucide-react';
+import { Download, FileBarChart, AlertTriangle, Info } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -182,6 +182,19 @@ export default async function ContributionsReportPage({ searchParams }: PageProp
         </div>
       )}
 
+      {t.receivedBeforeJoining > 0 && (
+        <div className="flex items-start gap-2 p-3 rounded-md bg-sky-50 text-sky-900 text-sm border border-sky-200">
+          <Info className="h-4 w-4 mt-0.5 shrink-0" />
+          <span>
+            {formatCurrency(t.receivedBeforeJoining)} was received from members
+            for months <strong>before they joined</strong>. It does not reduce
+            their arrears &mdash; it is held pending a committee decision on
+            whether to refund it or carry it forward against their later
+            months.
+          </span>
+        </div>
+      )}
+
       {/* Per-member table */}
       <Card>
         <CardHeader>
@@ -227,6 +240,12 @@ export default async function ContributionsReportPage({ searchParams }: PageProp
                     </TableCell>
                     <TableCell className="font-semibold whitespace-nowrap">
                       {formatCurrency(r.contributed)}
+                      {r.receivedBeforeJoining > 0 && (
+                        <div className="text-xs font-normal text-sky-700 whitespace-normal">
+                          incl. {formatCurrency(r.receivedBeforeJoining)} before
+                          joining
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
                       {r.arrears > 0 ? (
@@ -263,6 +282,12 @@ export default async function ContributionsReportPage({ searchParams }: PageProp
         </strong>
         ) until the month they left, or the end of the reporting period. The
         current month is included.
+      </p>
+      <p className="text-xs text-muted-foreground">
+        Arrears are counted month by month: a month a member owed with no
+        contribution recorded for that month is one unpaid month. Money
+        received for months before the member joined is shown separately and
+        does not reduce their arrears.
       </p>
     </div>
   );

@@ -54,10 +54,20 @@ export interface ContributionReportRow {
   isFoundingMember: boolean;
   /** Months the member was eligible to pay within the period. */
   monthsDue: number;
-  /** Months in the period with a recorded contribution. */
+  /** Months INSIDE the member's own liability window that were paid. */
   monthsPaid: number;
-  /** Months due with no contribution recorded. */
+  /** Liability months with no contribution recorded for that month. */
   monthsMissed: number;
+  /**
+   * Money received for months OUTSIDE the member's liability window -- in
+   * practice, months before they joined.
+   *
+   * It does not cancel an arrears month: the arrears figure counts the
+   * months a member owed and did not pay. This is reported separately so the
+   * committee can see that the money exists and decide whether to refund it
+   * or carry it forward.
+   */
+  receivedBeforeJoining: number;
   /** monthsDue x monthly contribution. */
   expected: number;
   /** Sum of contributions recorded in the period. */
@@ -75,6 +85,7 @@ export interface ContributionReport {
     monthsDue: number;
     monthsPaid: number;
     monthsMissed: number;
+    receivedBeforeJoining: number;
     expected: number;
     contributed: number;
     arrears: number;
@@ -124,6 +135,26 @@ export function isMonthInPeriod(
 }
 
 /**
+ * The first month a member may contribute for.
+ *
+ * Founding members are on the register from the cooperative's first month;
+ * everyone else from the month they joined.
+ *
+ * This is the single definition of when a member becomes liable. The payroll
+ * import uses it to refuse contributions for months before a member joined,
+ * and the arrears engine uses it to work out which months a member owes.
+ */
+export function firstLiableMonth(member: {
+  isFoundingMember: boolean;
+  joinedAt: Date;
+}): { year: number; month: number } {
+  if (member.isFoundingMember) {
+    return monthKey(config.cooperativeStartDate);
+  }
+  return monthKey(member.joinedAt);
+}
+
+/**
  * The first month a member is liable to pay for.
  * Founding members are on the register from the cooperative's first month;
  * everyone else from the month they joined.
@@ -132,10 +163,7 @@ export function eligibilityStart(member: MemberRecord): {
   year: number;
   month: number;
 } {
-  if (member.isFoundingMember) {
-    return monthKey(config.cooperativeStartDate);
-  }
-  return monthKey(member.joinedAt);
+  return firstLiableMonth(member);
 }
 
 /**
@@ -160,12 +188,20 @@ export function eligibilityEnd(
 }
 
 /**
- * How many months within the reporting period this member was liable to pay.
+ * The months a member is liable to pay for, inside the reporting period.
+ *
+ * This is the month-by-month form of the liability window, and the arrears
+ * engine needs the individual months rather than a count. A member who has
+ * paid three months of a three-month window has not necessarily paid the
+ * three months that were DUE -- they may have paid the two months before
+ * they joined. Counting months instead of comparing them against the window
+ * produced a false "100% compliant, K0 arrears" for a member who had not
+ * paid October, and it would have kept doing so for every late joiner.
  */
-export function monthsDueFor(
+export function liabilityMonths(
   member: MemberRecord,
   period: ReportPeriod,
-): number {
+): { year: number; month: number }[] {
   const start = eligibilityStart(member);
   const end = eligibilityEnd(member, period);
 
@@ -186,10 +222,31 @@ export function monthsDueFor(
         ? Math.min(end.month, period.endMonth)
         : period.endMonth;
 
-  if (startYear > endYear) return 0;
-  if (startYear === endYear && startMonth > endMonth) return 0;
+  if (startYear > endYear) return [];
+  if (startYear === endYear && startMonth > endMonth) return [];
 
-  return monthsBetween(startYear, startMonth, endYear, endMonth);
+  const months: { year: number; month: number }[] = [];
+  let year = startYear;
+  let month = startMonth;
+  while (year < endYear || (year === endYear && month <= endMonth)) {
+    months.push({ year, month });
+    month += 1;
+    if (month > 12) {
+      month = 1;
+      year += 1;
+    }
+  }
+  return months;
+}
+
+/**
+ * How many months within the reporting period this member was liable to pay.
+ */
+export function monthsDueFor(
+  member: MemberRecord,
+  period: ReportPeriod,
+): number {
+  return liabilityMonths(member, period).length;
 }
 
 /**
@@ -213,26 +270,44 @@ export function buildContributionReport(
   // used to count every month a member had ever paid, which would have
   // inflated "months paid" and made arrears look better than they were
   // whenever a caller passed a wider set than the period.
-  const byMember = new Map<string, { months: Set<string>; sum: number }>();
+  //
+  // The amount is kept per month rather than only the month set, so money
+  // received for a month the member was NOT liable for can be reported
+  // separately instead of quietly disappearing.
+  const byMember = new Map<string, { months: Map<string, number>; sum: number }>();
 
   for (const c of contributions) {
     if (!isMonthInPeriod(c.year, c.month, period)) continue;
     const key = `${c.year}-${c.month}`;
     let agg = byMember.get(c.memberId);
     if (!agg) {
-      agg = { months: new Set<string>(), sum: 0 };
+      agg = { months: new Map<string, number>(), sum: 0 };
       byMember.set(c.memberId, agg);
     }
-    agg.months.add(key);
+    agg.months.set(key, (agg.months.get(key) ?? 0) + c.amount);
     agg.sum += c.amount;
   }
 
   const rows: ContributionReportRow[] = members.map((member) => {
-    const monthsDue = monthsDueFor(member, period);
-    const agg = byMember.get(member.id);
-    const monthsPaid = agg ? agg.months.size : 0;
-    const contributed = agg ? agg.sum : 0;
+    // The months this member was actually liable for.
+    const window = liabilityMonths(member, period);
+    const monthsDue = window.length;
+    const windowKeys = new Set(window.map((m) => `${m.year}-${m.month}`));
 
+    const agg = byMember.get(member.id);
+    let monthsPaid = 0;
+    let receivedBeforeJoining = 0;
+    if (agg) {
+      for (const [key, amount] of agg.months) {
+        if (windowKeys.has(key)) {
+          monthsPaid += 1;
+        } else {
+          receivedBeforeJoining += amount;
+        }
+      }
+    }
+
+    const contributed = agg ? agg.sum : 0;
     const monthsMissed = Math.max(0, monthsDue - monthsPaid);
     const expected = monthsDue * monthlyContribution;
     const arrears = monthsMissed * monthlyContribution;
@@ -249,6 +324,7 @@ export function buildContributionReport(
       monthsDue,
       monthsPaid,
       monthsMissed,
+      receivedBeforeJoining,
       expected,
       contributed,
       arrears,
@@ -269,6 +345,7 @@ export function buildContributionReport(
       acc.monthsDue += r.monthsDue;
       acc.monthsPaid += r.monthsPaid;
       acc.monthsMissed += r.monthsMissed;
+      acc.receivedBeforeJoining += r.receivedBeforeJoining;
       acc.expected += r.expected;
       acc.contributed += r.contributed;
       acc.arrears += r.arrears;
@@ -279,6 +356,7 @@ export function buildContributionReport(
       monthsDue: 0,
       monthsPaid: 0,
       monthsMissed: 0,
+      receivedBeforeJoining: 0,
       expected: 0,
       contributed: 0,
       arrears: 0,
@@ -355,6 +433,7 @@ export function reportToCsv(
     'Months Due',
     'Months Paid',
     'Months Missed',
+    'Received Before Joining',
     `Expected (${currencyPrefix})`,
     `Contributed (${currencyPrefix})`,
     `Arrears (${currencyPrefix})`,
@@ -374,6 +453,7 @@ export function reportToCsv(
         r.monthsDue,
         r.monthsPaid,
         r.monthsMissed,
+        r.receivedBeforeJoining.toFixed(2),
         r.expected.toFixed(2),
         r.contributed.toFixed(2),
         r.arrears.toFixed(2),
@@ -395,6 +475,7 @@ export function reportToCsv(
       t.monthsDue,
       t.monthsPaid,
       t.monthsMissed,
+      t.receivedBeforeJoining.toFixed(2),
       t.expected.toFixed(2),
       t.contributed.toFixed(2),
       t.arrears.toFixed(2),

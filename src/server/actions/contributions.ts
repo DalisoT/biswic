@@ -8,6 +8,8 @@ import { prisma } from '@/lib/db';
 import { z } from 'zod';
 import { logAudit, AUDIT_ACTIONS } from '@/lib/audit';
 import { config } from '@/lib/config';
+import { monthName } from '@/lib/utils';
+import { firstLiableMonth } from '@/lib/contribution-report';
 import { createNotification, notifyAllMembers } from '@/server/actions/notifications';
 
 const singleSchema = z.object({
@@ -19,6 +21,33 @@ const singleSchema = z.object({
   receiptNumber: z.string().optional(),
   receivedAt: z.string().min(1),
 });
+
+/**
+ * A member may only contribute for a month they were a member.
+ *
+ * The Treasurer's payroll list is typed on paper and resolved against the
+ * live roster every month, so a service number carried on that list before
+ * the member actually joined would otherwise be charged for months they were
+ * never a member for. That happened in July and August 2026, and it made
+ * three members look paid up when they were not.
+ *
+ * Returns an error message when the month is before the member joined, and
+ * null when the contribution is fine.
+ */
+function joiningConflict(
+  member: { isFoundingMember: boolean; joinedAt: Date },
+  month: number,
+  year: number,
+): string | null {
+  const first = firstLiableMonth(member);
+  const before =
+    first.year > year || (first.year === year && first.month > month);
+  if (!before) return null;
+  return (
+    `Member joined in ${monthName(first.month)} ${first.year} and cannot ` +
+    `contribute for ${monthName(month)} ${year} (before joining).`
+  );
+}
 
 export async function addContributionAction(formData: FormData) {
   const user = await requireUser();
@@ -40,6 +69,12 @@ export async function addContributionAction(formData: FormData) {
 
   if (!member) {
     return { error: `Member with service number ${memberServiceNumber} not found.` };
+  }
+
+  // A member cannot contribute for a month before they joined.
+  const conflict = joiningConflict(member, rest.month, rest.year);
+  if (conflict) {
+    return { error: conflict };
   }
 
   try {
@@ -123,7 +158,7 @@ export async function bulkImportPayrollAction(
     .map((l) => l.trim())
     .filter((l) => l.length > 0 && !l.startsWith('#'));
 
-  const entries: { serviceNumber: string; amount: number }[] = [];
+  const entries: { serviceNumber: string; amount: number; line: number }[] = [];
   const invalid: string[] = [];
   for (const [idx, line] of lines.entries()) {
     const parts = line.split(/[,\t]|\s{2,}/).map((p) => p.trim()).filter(Boolean);
@@ -137,7 +172,7 @@ export async function bulkImportPayrollAction(
       invalid.push(`Line ${idx + 1} (${serviceNumber}): invalid amount "${parts[1]}"`);
       continue;
     }
-    entries.push({ serviceNumber, amount });
+    entries.push({ serviceNumber, amount, line: idx + 1 });
   }
 
   if (entries.length === 0) {
@@ -147,10 +182,33 @@ export async function bulkImportPayrollAction(
   // Resolve service numbers -> user ids
   const users = await prisma.user.findMany({
     where: { serviceNumber: { in: entries.map((e) => e.serviceNumber) } },
-    select: { id: true, serviceNumber: true },
+    select: {
+      id: true,
+      serviceNumber: true,
+      joinedAt: true,
+      isFoundingMember: true,
+    },
   });
   const userBySN = new Map(users.map((u) => [u.serviceNumber, u.id]));
+  const memberBySN = new Map(users.map((u) => [u.serviceNumber, u]));
   const unknown = entries.filter((e) => !userBySN.has(e.serviceNumber)).map((e) => e.serviceNumber);
+
+  // A member cannot contribute for a month before they joined. The payroll
+  // list is typed on paper and resolved against the roster every month, so a
+  // service number carried on it early would otherwise be charged for months
+  // the member was never part of. Those rows are rejected and reported, not
+  // silently imported.
+  const joinsAfterMonth: string[] = [];
+  for (const e of entries) {
+    const m = memberBySN.get(e.serviceNumber);
+    if (!m) continue;
+    const conflict = joiningConflict(m, month, year);
+    if (conflict) {
+      invalid.push(`Line ${e.line} (${e.serviceNumber}): ${conflict}`);
+      joinsAfterMonth.push(e.serviceNumber);
+    }
+  }
+  const blocked = new Set(joinsAfterMonth);
 
   // Find which of these already paid this month
   const alreadyPaidRows = await prisma.contribution.findMany({
@@ -168,7 +226,10 @@ export async function bulkImportPayrollAction(
 
   // Build the to-import list
   const toImport = entries.filter(
-    (e) => userBySN.has(e.serviceNumber) && !alreadyPaidIds.has(userBySN.get(e.serviceNumber)!),
+    (e) =>
+      userBySN.has(e.serviceNumber) &&
+      !alreadyPaidIds.has(userBySN.get(e.serviceNumber)!) &&
+      !blocked.has(e.serviceNumber),
   );
 
   if (toImport.length === 0) {
