@@ -13,7 +13,7 @@
  * shape) so the type union `ClaimType` still compiles.
  */
 
-import { config, isInInitialPeriod, getFuncFalFuneralMaxPerYear } from './config';
+import { config } from './config';
 import type { Prisma } from '@prisma/client';
 
 /**
@@ -69,13 +69,12 @@ export interface ClaimCaps {
  *
  * @param input  the claim being checked
  * @param caps   per-event and per-year caps to enforce
- * @param opts   bucket code, the noun used in messages ("funeral"/"medical"),
- *               and an optional note appended to the annual-limit blocker
+ * @param opts   bucket code and the noun used in messages ("funeral"/"medical")
  */
 export function checkClaimAgainstCaps(
   input: ClaimCheckInput,
   caps: ClaimCaps,
-  opts: { bucketCode: string; noun: string; annualLimitNote?: string },
+  opts: { bucketCode: string; noun: string },
 ): ClaimCheckResult {
   const { amountRequested, amountAlreadyApprovedThisYear, eventCountThisYear, overrideNote } = input;
   const { amountPerEvent, maxPerYear } = caps;
@@ -92,9 +91,7 @@ export function checkClaimAgainstCaps(
   // Per-year limit
   if (eventCountThisYear >= maxPerYear) {
     blockers.push(
-      `Annual ${opts.noun} payout limit reached (${maxPerYear} per year${
-        opts.annualLimitNote ? ` ${opts.annualLimitNote}` : ''
-      }).`
+      `Annual ${opts.noun} payout limit reached (${maxPerYear} per year).`
     );
   }
 
@@ -152,20 +149,13 @@ export function checkWelfareClaim(input: ClaimCheckInput): ClaimCheckResult {
   }
 
   if (type === 'FUNERAL') {
-    const maxPerYear = getFuncFalFuneralMaxPerYear();
     return checkClaimAgainstCaps(
       input,
       {
         amountPerEvent: config.welfareCaps.funeral.amountPerEvent,
-        maxPerYear,
+        maxPerYear: config.welfareCaps.funeral.maxPerYear,
       },
-      {
-        bucketCode: 'FUNERAL',
-        noun: 'funeral',
-        annualLimitNote: isInInitialPeriod()
-          ? 'during the initial 24-month period'
-          : 'from Year 3 onwards',
-      },
+      { bucketCode: 'FUNERAL', noun: 'funeral' },
     );
   }
 

@@ -26,7 +26,7 @@
 
 import { PrismaClient, type Role as PrismaRole } from '@prisma/client';
 import { createAdminClient } from '../src/lib/supabase/admin';
-import { config, isInInitialPeriod } from '../src/lib/config';
+import { config } from '../src/lib/config';
 import { allocateToBuckets, assertAllocationsSumExactly } from '../src/lib/buckets';
 import { logAudit, AUDIT_ACTIONS } from '../src/lib/audit';
 import { FOUNDING_MEMBERS, LATE_JOINERS, COMMITTEE } from './founding-members';
@@ -191,7 +191,6 @@ async function ensureUser(input: SeedUserInput): Promise<string> {
 async function main() {
   console.log('Seeding BISWIC database...');
   console.log(`Cooperative start: ${config.cooperativeStartDate.toISOString()}`);
-  console.log(`In initial 24-month period: ${isInInitialPeriod()}`);
   console.log(`Seed member count: ${config.defaultSeedMemberCount}`);
 
   // ---------------------------------------------------------------------------

@@ -67,11 +67,15 @@ export const config = {
   // welfareCaps is kept as a `disabled: true` block to make the deprecation
   // explicit without breaking any code that still imports the keys.
   welfareCaps: {
+    // The funeral cap is a single flat rule: one amount per event and one
+    // annual limit. There is deliberately no "initial period" and no
+    // Year 1-2 vs Year 3+ split. The cooperative was founded on 22 July 2026
+    // and has no expected end date, so a rule that quietly changes at some
+    // future month has no basis. If the GM ever re-opens the pool, it sets
+    // these two numbers.
     funeral: {
       amountPerEvent: 0,
-      maxPerYearYear1to2: 0,
-      maxPerYearYear3plus: 0,
-      initialCapPeriodMonths: 0,
+      maxPerYear: 0,
       disabled: true,
     },
     medical: {
@@ -144,41 +148,29 @@ export const config = {
     10,
   ),
 
-  // Cooperative start date (used for the 24-month initial period and for
-  // determining which months a founding member owes from)
+  // Cooperative start date: the founding of the cooperative.
+  // ---------------------------------------------------------------------------
+  // This decides which months a founding member owes contributions from, so
+  // it has to be the real founding date and not a placeholder.
   //
-  // This was a placeholder (1 January 2025) that was never updated, and it
-  // cost the report a fortune. It billed every founding member for 23
-  // months -- January 2025 to November 2026 -- when the cooperative's
-  // founding register was signed 22 July 2026 (Constitution Art. 2.2) and
-  // the first money in the ledger is July 2026 (49 of 60 paid, K5,000,
-  // receipts dated 15 July 2026). Nothing was ever collected before then.
+  // It was 1 January 2025, which billed every founding member for 23 months
+  // -- January 2025 to November 2026 -- when the founding register was signed
+  // 22 July 2026 (Constitution Art. 2.2) and the first money in the ledger is
+  // July 2026 (49 of 60 paid, K5,000, receipts dated 15 July 2026). Nothing
+  // was ever collected before then.
   //
   // 18 phantom months x 63 founding members = K113,400 of the K129,900
-  // "arrears" the report claimed. The chairman confirmed 1 July 2026 as the
-  // cooperative's first contribution month on 2026-11-01.
+  // "arrears" the report claimed. The chairman confirmed 22 July 2026 as the
+  // founding date on 2026-11-01.
   //
-  // Keep this as the FIRST MONTH of the cooperative, not the day of the
-  // founding meeting -- it drives "which months a founding member owes
-  // from", so the day within the month does not matter but the month does.
+  // The report uses the MONTH of this date, not the day, so a member is owed
+  // from July 2026 onwards.
   //
   // It is anchored at midday UTC on purpose. `monthKey()` reads the month
   // with the local-time getters, so a midnight-UTC date would read as June
   // on any server west of UTC and shift every founding member's bill by a
   // month. Midday leaves no timezone that can move it out of July.
-  cooperativeStartDate: new Date('2026-07-01T12:00:00Z'),
-
-  // Length of the "initial period" in months.
-  // ---------------------------------------------------------------------------
-  // This used to live at `welfareCaps.funeral.initialCapPeriodMonths`. When the
-  // GM dropped the FUNERAL bucket on 2026-10-12 that whole cap block was
-  // zeroed, which silently made `isInInitialPeriod()` always return false --
-  // a constitutional rule quietly switching itself off because it happened to
-  // be stored next to a disabled feature.
-  //
-  // It is a property of the COOPERATIVE, not of any one welfare cap, so it
-  // lives here now and is independent of which welfare pools are active.
-  initialCapPeriodMonths: 24,
+  cooperativeStartDate: new Date('2026-07-22T12:00:00Z'),
 } as const;
 
 export type BucketCode = (typeof config.buckets)[keyof typeof config.buckets]['code'];
@@ -203,25 +195,4 @@ export function getBucketByCode(code: string) {
  */
 export function getAllBucketCodes(): BucketCode[] {
   return Object.values(config.buckets).map((b) => b.code);
-}
-
-/**
- * Helper: are we currently in the initial 24-month period?
- * During this period, the funeral cap is K8,000.
- */
-export function isInInitialPeriod(now: Date = new Date()): boolean {
-  const start = config.cooperativeStartDate;
-  const monthsSinceStart =
-    (now.getFullYear() - start.getFullYear()) * 12 +
-    (now.getMonth() - start.getMonth());
-  return monthsSinceStart < config.initialCapPeriodMonths;
-}
-
-/**
- * Helper: get the current annual funeral payout limit
- */
-export function getFuncFalFuneralMaxPerYear(now: Date = new Date()): number {
-  return isInInitialPeriod(now)
-    ? config.welfareCaps.funeral.maxPerYearYear1to2
-    : config.welfareCaps.funeral.maxPerYearYear3plus;
 }

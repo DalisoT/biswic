@@ -45,13 +45,15 @@ export const config = {
   },
 
   // Welfare payout caps (in K, NOT in percentages — these are absolute amounts)
-  // These are CONSTANTS regardless of how many members there are
+  // These are CONSTANTS regardless of how many members there are.
+  // The funeral cap is FLAT: one amount per event and one annual limit.
+  // There is no "initial period" and no Year 1-2 vs Year 3+ split -- the
+  // cooperative was founded on 22 July 2026 and has no expected end date, so
+  // a rule that changes at some future month has no basis.
   welfareCaps: {
     funeral: {
       amountPerEvent: 8000,           // K8,000 max per funeral event
-      maxPerYearYear1to2: 1,          // 1 funeral payout/year in Years 1-2
-      maxPerYearYear3plus: 2,         // 2 funeral payouts/year from Year 3
-      initialCapPeriodMonths: 24,     // K8,000 cap applies for first 24 months
+      maxPerYear: 1,                  // 1 funeral payout/year (flat limit)
     },
     medical: {
       amountPerEvent: 3000,           // K3,000 max per medical event
@@ -125,8 +127,8 @@ This is **NOT** a fintech startup, **NOT** a bank, **NOT** a charity. It is a pr
 **UI display rule:** Always show group totals with the formula visible (e.g. "K6,700 (67 × K100)") so members understand the math. When the member count changes, totals update automatically.
 
 **Welfare payout caps (encoded in the platform):**
-- Funeral payout: **capped at K8,000 per event** for the first 24 months
-- Maximum 1 funeral payout per year in Years 1–2, 2 per year from Year 3
+- Funeral payout: **capped at K8,000 per event**
+- Maximum 1 funeral payout per year (a flat limit — there is no initial period)
 - Medical payout: **capped at K3,000 per event**, max 2 per year
 - A single event cannot draw from multiple buckets ("no double-dipping")
 - If a welfare bucket runs dry in a year, no further payouts that year — surplus stays in capital
@@ -983,10 +985,9 @@ model Notification {
 ```typescript
 // Before approving a claim:
 // 1. Check if it would exceed the bucket's annual cap (K8,000 funeral, K3,000 medical)
-// 2. Check if the event type has hit its annual limit (1 funeral/yr in Y1-2, 2/yr from Y3; 2 medical/yr max)
-// 3. Check the 24-month rule: funeral payout is K8,000 max for first 24 months of operation
-// 4. If any cap is hit, BLOCK approval and require a 2/3 override note (with timestamp, FW signature, Chair signature)
-// 5. Cap-overridden claims still need to be tracked separately for audit
+// 2. Check if the event type has hit its annual limit (1 funeral/yr, 2 medical/yr max)
+// 3. If any cap is hit, BLOCK approval and require a 2/3 override note (with timestamp, FW signature, Chair signature)
+// 4. Cap-overridden claims still need to be tracked separately for audit
 ```
 
 ### S3. Two-signature rule

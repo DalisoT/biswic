@@ -98,28 +98,15 @@ describe('config invariants', () => {
     expect(new Set(codes).size).toBe(codes.length);
   });
 
-  it('keeps the initial period independent of the discontinued welfare caps', () => {
-    // The initial-period length is a property of the cooperative, not of any
-    // one welfare pool. It used to live inside welfareCaps.funeral, and when
-    // the GM zeroed that block it silently switched the rule off.
-    expect(config.initialCapPeriodMonths).toBe(24);
-  });
-});
-
-describe('isInInitialPeriod', () => {
-  it('is true within the first 24 months', async () => {
-    const { isInInitialPeriod } = await import('../../src/lib/config');
-    const start = config.cooperativeStartDate;
-    const sixMonthsLater = new Date(start);
-    sixMonthsLater.setMonth(sixMonthsLater.getMonth() + 6);
-    expect(isInInitialPeriod(sixMonthsLater)).toBe(true);
-  });
-
-  it('is false after 24 months', async () => {
-    const { isInInitialPeriod } = await import('../../src/lib/config');
-    const start = config.cooperativeStartDate;
-    const farFuture = new Date(start);
-    farFuture.setMonth(farFuture.getMonth() + 30);
-    expect(isInInitialPeriod(farFuture)).toBe(false);
+  it('has a flat funeral cap with no initial period', () => {
+    // The cooperative was founded on 22 July 2026 and has no expected end
+    // date, so there is no "initial period" to cap and no Year 1-2 vs
+    // Year 3+ split: the funeral cap is a single flat rule. The chair
+    // confirmed this on 2026-11-01.
+    expect(Object.keys(config.welfareCaps.funeral).sort()).toEqual([
+      'amountPerEvent',
+      'disabled',
+      'maxPerYear',
+    ]);
   });
 });
