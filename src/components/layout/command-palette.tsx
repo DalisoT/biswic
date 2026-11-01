@@ -123,11 +123,12 @@ function saveRecent(items: RecentItem[]) {
 interface Props {
   userId: string;
   role: string;
+  isAdmin: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function CommandPalette({ userId, role, open, onOpenChange }: Props) {
+export function CommandPalette({ userId, role, isAdmin, open, onOpenChange }: Props) {
   const router = useRouter();
   const [query, setQuery] = useState('');
   const [highlight, setHighlight] = useState(0);
@@ -137,10 +138,11 @@ export function CommandPalette({ userId, role, open, onOpenChange }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  // Filter pages by role
+  // Filter pages by role. The global admin override bypasses every role
+  // check, so an admin sees every destination.
   const allowedPages = useMemo(
-    () => PAGES.filter((p) => !p.roles || p.roles.includes(role)),
-    [role],
+    () => PAGES.filter((p) => !p.roles || isAdmin || p.roles.includes(role)),
+    [role, isAdmin],
   );
 
   // Lazy-load members on first open

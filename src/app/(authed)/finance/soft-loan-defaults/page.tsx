@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency, formatDate, toNumber } from '@/lib/utils';
-import { canViewAllMembers } from '@/lib/permissions';
+import { canViewAllMembers, canActAs } from '@/lib/permissions';
 import { AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { RunDefaultDetectionButton } from '@/components/soft-loans/run-default-detection-button';
@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function SoftLoanDefaultsPage() {
   const user = await requireUser();
-  if (!canViewAllMembers(user.role) && user.role !== 'TREASURER' && user.role !== 'DEPUTY_TREASURER') {
+  if (!canActAs(user, canViewAllMembers)) {
     return <div className="text-center py-12"><p>You do not have permission to view this page.</p></div>;
   }
 

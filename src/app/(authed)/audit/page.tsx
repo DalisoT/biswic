@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { formatDate } from '@/lib/utils';
-import { canViewAuditLog } from '@/lib/permissions';
+import { canViewAuditLog, canActAs } from '@/lib/permissions';
 import { redirect } from 'next/navigation';
 import { Shield } from 'lucide-react';
 
@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
 export default async function AuditLogPage() {
   const user = await requireUser();
 
-  if (!canViewAuditLog(user.role)) {
+  if (!canActAs(user, canViewAuditLog)) {
     redirect('/dashboard');
   }
 

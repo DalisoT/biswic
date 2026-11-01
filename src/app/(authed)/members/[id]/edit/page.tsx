@@ -1,7 +1,7 @@
 import { requireUser } from '@/lib/auth/require-user';
 import { redirect, notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
-import { canManageMembers } from '@/lib/permissions';
+import { canManageMembers, canActAs } from '@/lib/permissions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { EditMemberForm } from '@/components/members/edit-member-form';
@@ -17,7 +17,7 @@ export default async function EditMemberPage({
   params: Promise<{ id: string }>;
 }) {
   const user = await requireUser();
-  if (!canManageMembers(user.role)) {
+  if (!canActAs(user, canManageMembers)) {
     redirect('/members');
   }
 

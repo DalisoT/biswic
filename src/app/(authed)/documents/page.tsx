@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { FileText, FilePlus } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
-import { canManageDocuments } from '@/lib/permissions';
+import { canManageDocuments, canActAs } from '@/lib/permissions';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
@@ -42,7 +42,7 @@ export default async function DocumentsPage() {
           <h1 className="text-2xl font-bold font-heading">Documents</h1>
           <p className="text-sm text-muted-foreground mt-1">Constitution, minutes, reports, and agreements</p>
         </div>
-        {canManageDocuments(role) && (
+        {canActAs(user, canManageDocuments) && (
           <Button asChild>
             <Link href="/documents/upload"><FilePlus className="h-4 w-4 mr-1" /> Upload</Link>
           </Button>

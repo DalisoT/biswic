@@ -11,6 +11,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   canActAs,
+  canActAsAnyRole,
   hasAdminAccess,
   canRecordContributions,
   canApproveWelfare,
@@ -76,5 +77,30 @@ describe('role sets', () => {
   it('allows the Chairman to view all members', () => {
     expect(canViewAllMembers('CHAIRPERSON')).toBe(true);
     expect(canViewAllMembers('MEMBER')).toBe(false);
+  });
+});
+
+describe('canActAsAnyRole', () => {
+  const LAND_ROLES = ['CCD', 'LSC_MEMBER', 'CHAIRPERSON', 'FW'];
+
+  it('allows a user whose role is in the list', () => {
+    expect(canActAsAnyRole({ role: 'CCD', isAdmin: false }, LAND_ROLES)).toBe(true);
+    expect(canActAsAnyRole({ role: 'FW', isAdmin: false }, LAND_ROLES)).toBe(true);
+  });
+
+  it('denies a user whose role is not in the list', () => {
+    expect(canActAsAnyRole({ role: 'MEMBER', isAdmin: false }, LAND_ROLES)).toBe(false);
+    expect(canActAsAnyRole({ role: 'TREASURER', isAdmin: false }, LAND_ROLES)).toBe(false);
+  });
+
+  it('allows an admin whose role is not in the list', () => {
+    // The land, businesses and reports pages gate on an inline role array
+    // rather than one of the named helpers, so they need this separately.
+    expect(canActAsAnyRole({ role: 'MEMBER', isAdmin: true }, LAND_ROLES)).toBe(true);
+    expect(canActAsAnyRole({ role: 'CCD', isAdmin: true }, ['FW', 'CHAIRPERSON'])).toBe(true);
+  });
+
+  it('treats a missing isAdmin flag as not an admin', () => {
+    expect(canActAsAnyRole({ role: 'MEMBER' }, LAND_ROLES)).toBe(false);
   });
 });

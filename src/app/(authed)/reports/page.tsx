@@ -1,4 +1,5 @@
 import { requireUser } from '@/lib/auth/require-user';
+import { canActAsAnyRole } from '@/lib/permissions';
 import { prisma } from '@/lib/db';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -13,7 +14,7 @@ export default async function ReportsPage() {
   const user = await requireUser();
 
   const allowedRoles = ['FW', 'CHAIRPERSON', 'TREASURER', 'DEPUTY_TREASURER'];
-  if (!allowedRoles.includes(user.role)) {
+  if (!canActAsAnyRole(user, allowedRoles)) {
     redirect('/dashboard');
   }
 

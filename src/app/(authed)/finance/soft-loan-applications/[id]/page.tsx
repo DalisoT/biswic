@@ -1,7 +1,7 @@
 import { requireUser } from '@/lib/auth/require-user';
 import { prisma } from '@/lib/db';
 import { notFound } from 'next/navigation';
-import { canViewAllMembers } from '@/lib/permissions';
+import { canViewAllMembers, canActAs } from '@/lib/permissions';
 import { computeLoanSchedule } from '@/lib/soft-loan-math';
 import { LoanDetailForReview } from '@/components/soft-loans/loan-detail-for-review';
 
@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function LoanReviewPage({ params }: { params: { id: string } }) {
   const user = await requireUser();
-  if (!canViewAllMembers(user.role) && user.role !== 'TREASURER' && user.role !== 'DEPUTY_TREASURER') {
+  if (!canActAs(user, canViewAllMembers)) {
     return <div className="text-center py-12"><p>You do not have permission to view this page.</p></div>;
   }
 

@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatCurrency, formatDate, monthName, sumField, toNumber } from '@/lib/utils';
-import { canRecordContributions, canViewAllMembers } from '@/lib/permissions';
+import { canRecordContributions, canViewAllMembers, canActAs } from '@/lib/permissions';
 import { AddContributionForm } from '@/components/contributions/add-contribution-form';
 import { config } from '@/lib/config';
 import Link from 'next/link';
@@ -17,8 +17,8 @@ export default async function ContributionsPage() {
   const user = await requireUser();
 
   const role = user.role;
-  const canRecord = canRecordContributions(role);
-  const canViewAll = canViewAllMembers(role);
+  const canRecord = canActAs(user, canRecordContributions);
+  const canViewAll = canActAs(user, canViewAllMembers);
 
   const myContributions = await prisma.contribution.findMany({
     where: { memberId: user.id },

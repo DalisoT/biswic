@@ -18,7 +18,7 @@ export default async function AuthedLayout({
 
   return (
     <div className="min-h-screen bg-background">
-      <Sidebar role={user.role} fullName={user.fullName} />
+      <Sidebar role={user.role} fullName={user.fullName} isAdmin={user.isAdmin} />
       <main className="md:pl-64 pb-20 md:pb-0">
         <TopBar
           userId={user.id}
@@ -26,12 +26,13 @@ export default async function AuthedLayout({
           fullName={user.fullName}
           serviceNumber={user.serviceNumber}
           unreadCount={unreadCount}
+          isAdmin={user.isAdmin}
         />
         <div className="px-4 md:px-8 py-4 md:py-6 max-w-7xl mx-auto">
           {children}
         </div>
       </main>
-      <MobileNav role={user.role} unreadCount={unreadCount} />
+      <MobileNav role={user.role} unreadCount={unreadCount} isAdmin={user.isAdmin} />
       <MobileGestures />
     </div>
   );

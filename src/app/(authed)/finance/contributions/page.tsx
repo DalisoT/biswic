@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatCurrency, formatDate, monthName } from '@/lib/utils';
-import { canViewAllMembers, canRecordContributions } from '@/lib/permissions';
+import { canViewAllMembers, canRecordContributions, canActAs } from '@/lib/permissions';
 import { config } from '@/lib/config';
 import Link from 'next/link';
 import { Upload, FileText } from 'lucide-react';
@@ -19,7 +19,7 @@ interface PageProps {
 
 export default async function FinanceContributionsPage({ searchParams }: PageProps) {
   const user = await requireUser();
-  if (!canViewAllMembers(user.role)) {
+  if (!canActAs(user, canViewAllMembers)) {
     redirect('/dashboard');
   }
 
@@ -61,7 +61,7 @@ export default async function FinanceContributionsPage({ searchParams }: PagePro
             {monthAgg._count} of {totalActive} paid · {formatCurrency(totalReceived)} of {formatCurrency(expected)} ({payerRate.toFixed(0)}%)
           </p>
         </div>
-        {canRecordContributions(user.role) && (
+        {canActAs(user, canRecordContributions) && (
           <Button asChild>
             <Link href="/finance/contributions/import">
               <Upload className="h-4 w-4 mr-1" />

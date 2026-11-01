@@ -10,9 +10,9 @@ import { navItemsForRole } from '@/lib/nav';
  * Desktop sidebar. Sourced from `src/lib/nav.ts` so it cannot drift away from
  * the mobile navigation again (see the note in that file).
  */
-export function Sidebar({ role, fullName }: { role: string; fullName: string }) {
+export function Sidebar({ role, fullName, isAdmin }: { role: string; fullName: string; isAdmin?: boolean }) {
   const pathname = usePathname();
-  const allowed = navItemsForRole(role);
+  const allowed = navItemsForRole(role, isAdmin);
 
   return (
     <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 border-r bg-card">

@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { formatCurrency, formatDate, monthName } from '@/lib/utils';
-import { canRecordContributions, canViewAllMembers } from '@/lib/permissions';
+import { canRecordContributions, canViewAllMembers, canActAs } from '@/lib/permissions';
 import { config } from '@/lib/config';
 import Link from 'next/link';
 import { Coins, AlertCircle, Upload, FileText, Wallet, Briefcase, Heart, Stethoscope, Building2, LineChart, PiggyBank } from 'lucide-react';
@@ -24,7 +24,7 @@ const BUCKET_ICONS: Record<string, typeof Coins> = {
 
 export default async function FinanceDashboardPage() {
   const user = await requireUser();
-  if (!canViewAllMembers(user.role)) {
+  if (!canActAs(user, canViewAllMembers)) {
     redirect('/dashboard');
   }
 
@@ -81,7 +81,7 @@ export default async function FinanceDashboardPage() {
             {monthName(month)} {year} · {totalActiveMembers} active members
           </p>
         </div>
-        {canRecordContributions(user.role) && (
+        {canActAs(user, canRecordContributions) && (
           <div className="flex gap-2">
             <Button asChild variant="outline">
               <Link href="/finance/contributions">

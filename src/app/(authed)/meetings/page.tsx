@@ -6,7 +6,7 @@ import { formatDate } from '@/lib/utils';
 import { Calendar, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { canPostMinutes } from '@/lib/permissions';
+import { canPostMinutes, canActAs } from '@/lib/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,7 +31,7 @@ export default async function MeetingsPage() {
           <h1 className="text-2xl font-bold font-heading">Meetings</h1>
           <p className="text-sm text-muted-foreground mt-1">Monthly meetings, AGM, and special sessions</p>
         </div>
-        {canPostMinutes(user.role) && (
+        {canActAs(user, canPostMinutes) && (
           <Button asChild>
             <Link href="/meetings/new"><Plus className="h-4 w-4 mr-1" /> Schedule meeting</Link>
           </Button>

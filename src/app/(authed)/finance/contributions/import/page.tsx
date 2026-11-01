@@ -1,6 +1,6 @@
 import { requireUser } from '@/lib/auth/require-user';
 import { redirect } from 'next/navigation';
-import { canRecordContributions } from '@/lib/permissions';
+import { canRecordContributions, canActAs } from '@/lib/permissions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Upload, ArrowLeft, FileText } from 'lucide-react';
@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function ImportContributionsPage() {
   const user = await requireUser();
-  if (!canRecordContributions(user.role)) {
+  if (!canActAs(user, canRecordContributions)) {
     redirect('/dashboard');
   }
 

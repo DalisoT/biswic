@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatCurrency, formatDate, toNumber } from '@/lib/utils';
-import { canApproveWelfare, canViewAllMembers } from '@/lib/permissions';
+import { canApproveWelfare, canViewAllMembers, canActAs } from '@/lib/permissions';
 import { hasRequiredSignatures } from '@/lib/claim-rules';
 import { config } from '@/lib/config';
 import { ApprovalForm } from '@/components/claims/approval-form';
@@ -31,7 +31,7 @@ export default async function ClaimDetailPage({ params }: { params: { id: string
 
   if (!claim) notFound();
 
-  const canView = canViewAllMembers(user.role) || claim.memberId === user.id;
+  const canView = canActAs(user, canViewAllMembers) || claim.memberId === user.id;
   if (!canView) {
     return <div className="text-center py-12"><p>You do not have permission to view this claim.</p></div>;
   }
@@ -41,7 +41,7 @@ export default async function ClaimDetailPage({ params }: { params: { id: string
   const welfareOfficerAppointed =
     (await prisma.user.count({ where: { role: 'WELFARE_OFFICER', isActive: true } })) > 0;
 
-  const canApprove = canApproveWelfare(user.role) && claim.status === 'PENDING';
+  const canApprove = canActAs(user, canApproveWelfare) && claim.status === 'PENDING';
   const needsTwoSigs = Number(claim.amountApproved ?? claim.amountRequested) > config.governance.twoSignatureThreshold;
   const sigsOk = hasRequiredSignatures(claim, welfareOfficerAppointed);
 

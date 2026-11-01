@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireUser } from '@/lib/auth/require-user';
 import { prisma } from '@/lib/db';
-import { canPostMinutes } from '@/lib/permissions';
+import { canPostMinutes, canActAs } from '@/lib/permissions';
 import { logAudit, AUDIT_ACTIONS } from '@/lib/audit';
 import { z } from 'zod';
 import { notifyAllMembers } from '@/server/actions/notifications';
@@ -17,7 +17,7 @@ const schema = z.object({
 export async function POST(req: NextRequest) {
   const user = await requireUser();
 
-  if (!canPostMinutes(user.role)) {
+  if (!canActAs(user, canPostMinutes)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

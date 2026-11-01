@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireUser } from '@/lib/auth/require-user';
 import { prisma } from '@/lib/db';
-import { canManageDocuments } from '@/lib/permissions';
+import { canManageDocuments, canActAs } from '@/lib/permissions';
 import { logAudit, AUDIT_ACTIONS } from '@/lib/audit';
 import { z } from 'zod';
 import { notifyAllMembers, notifyAdmins } from '@/server/actions/notifications';
@@ -19,7 +19,7 @@ const schema = z.object({
 export async function POST(req: NextRequest) {
   const user = await requireUser();
 
-  if (!canManageDocuments(user.role)) {
+  if (!canActAs(user, canManageDocuments)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

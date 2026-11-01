@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatCurrency, formatDate, toNumber } from '@/lib/utils';
-import { canViewAllMembers } from '@/lib/permissions';
+import { canViewAllMembers, canActAs } from '@/lib/permissions';
 import { HandCoins, Inbox } from 'lucide-react';
 import Link from 'next/link';
 
@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function SoftLoanApplicationsPage() {
   const user = await requireUser();
-  if (!canViewAllMembers(user.role) && user.role !== 'TREASURER' && user.role !== 'DEPUTY_TREASURER') {
+  if (!canActAs(user, canViewAllMembers)) {
     return <div className="text-center py-12"><p>You do not have permission to view this page.</p></div>;
   }
 

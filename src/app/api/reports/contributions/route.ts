@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireUser } from '@/lib/auth/require-user';
 import { prisma } from '@/lib/db';
-import { canViewAllMembers } from '@/lib/permissions';
+import { canViewAllMembers, canActAs } from '@/lib/permissions';
 import { config } from '@/lib/config';
 import {
   buildContributionReport,
@@ -19,7 +19,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: Request) {
   const user = await requireUser();
-  if (!canViewAllMembers(user.role)) {
+  if (!canActAs(user, canViewAllMembers)) {
     return NextResponse.json(
       { error: 'Not authorised to view the contributions report.' },
       { status: 403 },

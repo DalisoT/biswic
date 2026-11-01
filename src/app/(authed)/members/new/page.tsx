@@ -1,5 +1,5 @@
 import { requireUser } from '@/lib/auth/require-user';
-import { canManageMembers } from '@/lib/permissions';
+import { canManageMembers, canActAs } from '@/lib/permissions';
 import { isFoundingLockActive } from '@/lib/config';
 import { NewMemberForm } from '@/components/members/new-member-form';
 import { Card, CardContent } from '@/components/ui/card';
@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function NewMemberPage() {
   const user = await requireUser();
-  if (!canManageMembers(user.role)) {
+  if (!canActAs(user, canManageMembers)) {
     return (
       <div className="text-center py-12">
         <p>Only the Chairperson or Secretary may add new members.</p>

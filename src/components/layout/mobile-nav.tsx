@@ -18,16 +18,18 @@ import { NAV_SECTIONS, navItemsForRole, MOBILE_TAB_HREFS, type NavItem } from '@
 interface Props {
   role: string;
   unreadCount: number;
+  /** Global admin override -- widens the "More" sheet to every destination. */
+  isAdmin?: boolean;
 }
 
-export function MobileNav({ role, unreadCount }: Props) {
+export function MobileNav({ role, unreadCount, isAdmin }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const [moreOpen, setMoreOpen] = useState(false);
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
 
-  const allItems = navItemsForRole(role);
+  const allItems = navItemsForRole(role, isAdmin);
   const tabs: NavItem[] = MOBILE_TAB_HREFS.map((href) => {
     const found = allItems.find((i) => i.href === href);
     // Fallback keeps the bar renderable even if a tab is ever removed.

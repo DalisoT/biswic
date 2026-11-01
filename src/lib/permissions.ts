@@ -153,6 +153,20 @@ export function canActAs(
   return hasAdminAccess(user) || roleCheck(user.role);
 }
 
+/**
+ * Same idea as `canActAs`, for screens that gate on an explicit list of roles
+ * rather than one of the named permission helpers (e.g. `allowedRoles` arrays
+ * in the land, businesses and reports pages).
+ *
+ * Use this instead of `allowedRoles.includes(user.role)`.
+ */
+export function canActAsAnyRole(
+  user: { role: string; isAdmin?: boolean },
+  allowedRoles: readonly string[],
+): boolean {
+  return hasAdminAccess(user) || allowedRoles.includes(user.role);
+}
+
 export function canPostMinutes(role: Role | string): boolean {
   return POST_MEETING_MINUTES_ROLES.includes(role as Role);
 }

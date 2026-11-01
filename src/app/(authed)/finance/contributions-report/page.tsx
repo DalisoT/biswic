@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/utils';
-import { canViewAllMembers } from '@/lib/permissions';
+import { canViewAllMembers, canActAs } from '@/lib/permissions';
 import { config } from '@/lib/config';
 import {
   buildContributionReport,
@@ -24,7 +24,7 @@ interface PageProps {
 
 export default async function ContributionsReportPage({ searchParams }: PageProps) {
   const user = await requireUser();
-  if (!canViewAllMembers(user.role)) {
+  if (!canActAs(user, canViewAllMembers)) {
     redirect('/dashboard');
   }
 

@@ -75,9 +75,11 @@ interface TopBarProps {
   fullName: string;
   serviceNumber: string;
   unreadCount: number;
+  /** Global admin override -- widens the command palette's result list. */
+  isAdmin: boolean;
 }
 
-export function TopBar({ userId, role, fullName, serviceNumber, unreadCount }: TopBarProps) {
+export function TopBar({ userId, role, fullName, serviceNumber, unreadCount, isAdmin }: TopBarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -233,6 +235,7 @@ export function TopBar({ userId, role, fullName, serviceNumber, unreadCount }: T
       <CommandPalette
         userId={userId}
         role={role}
+        isAdmin={isAdmin}
         open={searchOpen}
         onOpenChange={setSearchOpen}
       />

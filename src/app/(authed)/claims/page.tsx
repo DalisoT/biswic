@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatCurrency, formatDate, sumField, toNumber } from '@/lib/utils';
-import { canApproveWelfare, canViewAllMembers } from '@/lib/permissions';
+import { canApproveWelfare, canViewAllMembers, canActAs } from '@/lib/permissions';
 import { config } from '@/lib/config';
 import { Heart, Plus } from 'lucide-react';
 import Link from 'next/link';
@@ -16,8 +16,8 @@ export default async function ClaimsPage() {
   const user = await requireUser();
 
   const role = user.role;
-  const canApprove = canApproveWelfare(role);
-  const canViewAll = canViewAllMembers(role);
+  const canApprove = canActAs(user, canApproveWelfare);
+  const canViewAll = canActAs(user, canViewAllMembers);
 
   const claims = await prisma.welfareClaim.findMany({
     where: canViewAll ? {} : { memberId: user.id },

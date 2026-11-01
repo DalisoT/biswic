@@ -280,10 +280,20 @@ export const NAV_SECTIONS: NavSection[] = [
   },
 ];
 
-/** Flat, role-filtered list -- used by the desktop sidebar. */
-export function navItemsForRole(role: string): NavItem[] {
+/**
+ * Flat, role-filtered list -- used by the desktop sidebar, the mobile nav and
+ * the command palette.
+ *
+ * `isAdmin` widens the list to every destination. The global admin override
+ * is documented as bypassing *every* role check, so the navigation has to
+ * honour it too: otherwise the owner is given access to a screen by the
+ * permission layer but is never shown the link that reaches it, which is the
+ * same class of "the feature exists but you cannot get to it" bug that hid
+ * /learn on phones.
+ */
+export function navItemsForRole(role: string, isAdmin = false): NavItem[] {
   return NAV_SECTIONS.flatMap((section) => section.items).filter(
-    (item) => !item.roles || item.roles.includes(role),
+    (item) => !item.roles || isAdmin || item.roles.includes(role),
   );
 }
 
