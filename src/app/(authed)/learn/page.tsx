@@ -1,9 +1,8 @@
 import Link from 'next/link';
-import { ArrowRight, BookOpen, CheckCircle2, GraduationCap, Sparkles } from 'lucide-react';
+import { ArrowRight, CheckCircle2 } from 'lucide-react';
 import { prisma } from '@/lib/db';
 import { getUser } from '@/lib/auth/require-user';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
 export const dynamic = 'force-dynamic';
@@ -70,157 +69,153 @@ export default async function LearnHomePage() {
     const lessonIds = m.lessons.map((l) => l.id);
     return sum + lessonIds.filter((id) => progresses.some((p) => p.lessonId === id)).length;
   }, 0);
+  const quizCount = visible.filter((m) => m.quiz).length;
+  const overallPct = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+
+  const stats = [
+    { label: 'Modules', value: visible.length },
+    { label: 'Lessons', value: totalLessons },
+    { label: 'Quizzes', value: quizCount },
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-emerald-50/40 via-background to-background">
-      <header className="border-b bg-card/50 backdrop-blur">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-emerald-100 text-emerald-700 rounded-lg p-2">
-              <GraduationCap className="h-6 w-6" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold font-heading">Financial Literacy Hub</h1>
-              <p className="text-sm text-muted-foreground">
-                Learn the cooperative. Pass the quizzes. Become a better member.
-              </p>
-            </div>
+    <div className="space-y-8">
+      {/* Header -- the app TopBar already carries the section name, so this
+          is a content heading, not a second title bar. */}
+      <header className="space-y-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gold-700">
+          Financial literacy
+        </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">
+              Learn the cooperative
+            </h1>
+            <p className="mt-1.5 max-w-xl text-sm text-muted-foreground sm:text-base">
+              Short lessons in plain language, with a quiz at the end of every module.
+            </p>
           </div>
-          {user ? (
-            <Button asChild variant="outline">
+          {user && (
+            <Button asChild variant="outline" className="shrink-0">
               <Link href="/learn/me">
                 My progress
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
-          ) : (
-            <Button asChild>
-              <Link href="/login">Sign in to track progress</Link>
-            </Button>
           )}
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
-        {/* Hero summary */}
-        <section className="mb-10">
-          <Card className="bg-gradient-to-br from-emerald-600 to-emerald-700 text-white border-0">
-            <CardContent className="p-8">
-              <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-                <div>
-                  <p className="text-emerald-100 text-sm uppercase tracking-wider font-medium">
-                    Available to all members
-                  </p>
-                  <h2 className="text-3xl font-bold font-heading mt-1">
-                    {visible.length} modules · {totalLessons} lessons
-                  </h2>
-                  <p className="text-emerald-100 mt-2 max-w-xl">
-                    From soft-loan math to AGM prep, this hub covers what every BISWIC member needs to know.
-                    Each module ends with a short quiz.
-                  </p>
-                </div>
-                {user && totalLessons > 0 && (
-                  <div className="text-right">
-                    <p className="text-4xl font-bold">
-                      {Math.round((completedLessons / totalLessons) * 100)}%
-                    </p>
-                    <p className="text-emerald-100 text-sm">complete</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </section>
+      {/* Stat strip */}
+      <section aria-label="Library overview" className="grid grid-cols-3 gap-2.5 sm:gap-3">
+        {stats.map((s) => (
+          <div key={s.label} className="rounded-lg border bg-card px-3 py-2.5 sm:px-4 sm:py-3">
+            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              {s.label}
+            </p>
+            <p className="mt-0.5 font-heading text-xl font-bold sm:text-2xl">{s.value}</p>
+          </div>
+        ))}
+      </section>
 
-        {/* Module grid */}
-        <section>
-          <h2 className="text-xl font-semibold font-heading mb-4 flex items-center gap-2">
-            <BookOpen className="h-5 w-5" /> Modules
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {visible.map((m) => {
-              const lessonIds = m.lessons.map((l) => l.id);
-              const progress = user ? progressFor(progresses, lessonIds) : 0;
-              const quizBest = user && m.quiz
+      {/* Overall progress */}
+      {user && totalLessons > 0 && (
+        <section className="rounded-lg border bg-card p-4">
+          <div className="flex items-baseline justify-between gap-3">
+            <p className="text-sm font-medium">Your progress</p>
+            <p className="font-heading text-sm font-bold text-navy-700">{overallPct}%</p>
+          </div>
+          <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-navy-700 transition-all"
+              style={{ width: `${overallPct}%` }}
+            />
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {completedLessons} of {totalLessons} lessons complete
+          </p>
+        </section>
+      )}
+
+      {/* Module grid */}
+      <section>
+        <h2 className="mb-3 font-heading text-lg font-semibold">Modules</h2>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
+          {visible.map((m) => {
+            const lessonIds = m.lessons.map((l) => l.id);
+            const progress = user ? progressFor(progresses, lessonIds) : 0;
+            const quizBest =
+              user && m.quiz
                 ? bestQuizScore(attempts.filter((a) => a.quizId === m.quiz!.id))
                 : { score: null, passed: null };
-              return (
-                <Link
-                  key={m.id}
-                  href={`/learn/${m.slug}`}
-                  className="group block focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-xl"
-                >
-                  <Card className="h-full transition-all group-hover:shadow-md group-hover:-translate-y-0.5">
-                    <CardHeader>
-                      <div className="flex items-start justify-between gap-2">
-                        <CardTitle className="text-lg group-hover:text-emerald-700 transition-colors">
-                          {m.title}
-                        </CardTitle>
-                        {m.quiz && quizBest.passed === true && (
-                          <Badge variant="default" className="bg-emerald-100 text-emerald-700 border-0">
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            Passed
-                          </Badge>
-                        )}
-                      </div>
-                      <CardDescription className="line-clamp-2">{m.summary}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                        <span>{m.lessons.length} lessons</span>
-                        {m.quiz && <span>· quiz ({m.quiz.passingScore}% to pass)</span>}
-                      </div>
-                      {user && progress > 0 && (
-                        <div className="mt-3">
-                          <div className="h-1.5 w-full bg-emerald-100 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-emerald-500 transition-all"
-                              style={{ width: `${progress}%` }}
-                            />
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-1">{progress}% complete</p>
-                        </div>
-                      )}
-                      {m.quiz && quizBest.score !== null && (
-                        <p className="text-xs mt-2">
-                          <span
-                            className={
-                              quizBest.passed
-                                ? 'text-emerald-700 font-medium'
-                                : 'text-amber-700 font-medium'
-                            }
-                          >
-                            Best score: {quizBest.score}%
-                          </span>
-                        </p>
-                      )}
-                    </CardContent>
-                  </Card>
-                </Link>
-              );
-            })}
-          </div>
-        </section>
+            return (
+              <Link
+                key={m.id}
+                href={`/learn/${m.slug}`}
+                className="group rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              >
+                <article className="flex h-full flex-col rounded-lg border bg-card p-4 transition-colors group-hover:border-navy-300">
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-gold-200 bg-gold-50 font-heading text-sm font-bold text-gold-700">
+                      {String(m.order).padStart(2, '0')}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-heading font-semibold leading-snug transition-colors group-hover:text-navy-800">
+                        {m.title}
+                      </h3>
+                      <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{m.summary}</p>
+                    </div>
+                  </div>
 
-        {/* CTA for non-logged-in users */}
-        {!user && (
-          <section className="mt-10 text-center">
-            <Card className="bg-muted/50">
-              <CardContent className="p-8">
-                <Sparkles className="h-8 w-8 mx-auto text-emerald-600 mb-3" />
-                <h3 className="text-lg font-semibold mb-1">Track your progress</h3>
-                <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
-                  Sign in to mark lessons complete, take quizzes, and see your overall literacy progress
-                  on the dashboard.
-                </p>
-                <Button asChild>
-                  <Link href="/login">Sign in</Link>
-                </Button>
-              </CardContent>
-            </Card>
-          </section>
-        )}
-      </main>
+                  <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                    <span>
+                      {m.lessons.length} {m.lessons.length === 1 ? 'lesson' : 'lessons'}
+                    </span>
+                    {m.quiz && (
+                      <>
+                        <span aria-hidden="true">·</span>
+                        <span>Quiz, {m.quiz.passingScore}% to pass</span>
+                      </>
+                    )}
+                    {quizBest.passed === true && (
+                      <Badge variant="success" className="ml-auto">
+                        <CheckCircle2 className="mr-1 h-3 w-3" />
+                        Passed
+                      </Badge>
+                    )}
+                  </div>
+
+                  {user && progress > 0 && (
+                    <div className="mt-3">
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full bg-navy-700 transition-all"
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">{progress}% complete</p>
+                    </div>
+                  )}
+
+                  {m.quiz && quizBest.score !== null && (
+                    <p className="mt-2 text-xs">
+                      <span
+                        className={
+                          quizBest.passed
+                            ? 'font-medium text-emerald-700'
+                            : 'font-medium text-amber-700'
+                        }
+                      >
+                        Best score: {quizBest.score}%
+                      </span>
+                    </p>
+                  )}
+                </article>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
     </div>
   );
 }

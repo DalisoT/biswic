@@ -38,7 +38,7 @@ export function MarkCompleteButton({
       <Button
         variant="outline"
         disabled
-        className="text-emerald-700 border-emerald-200 bg-emerald-50"
+        className="h-11 w-full border-emerald-200 bg-emerald-50 text-emerald-700 disabled:opacity-100 sm:w-auto"
       >
         <CheckCircle2 className="mr-2 h-4 w-4" />
         Completed
@@ -47,12 +47,12 @@ export function MarkCompleteButton({
   }
 
   return (
-    <div className="flex flex-col items-end gap-1">
-      <Button onClick={handleClick} disabled={pending}>
+    <div className="flex w-full flex-col gap-1 sm:w-auto sm:items-end">
+      <Button onClick={handleClick} disabled={pending} className="h-11 w-full sm:w-auto">
         {pending ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Saving...
+            Saving
           </>
         ) : (
           <>

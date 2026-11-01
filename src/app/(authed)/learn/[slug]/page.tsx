@@ -1,11 +1,9 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, Clock, GraduationCap, ListChecks } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, ChevronRight, Clock, GraduationCap, ListChecks } from 'lucide-react';
 import { prisma } from '@/lib/db';
 import { getUser } from '@/lib/auth/require-user';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { renderMarkdown } from '@/lib/utils-markdown';
 
 export const dynamic = 'force-dynamic';
@@ -15,6 +13,9 @@ function isAudienceMatch(audience: string[], role: string, isAdmin: boolean): bo
   if (audience.length === 0) return true;
   return audience.includes(role);
 }
+
+/** The seed writes this placeholder instead of real module content. */
+const MODULE_CONTENT_PLACEHOLDER = 'See lessons for content.';
 
 export default async function LearnModulePage({
   params,
@@ -65,152 +66,150 @@ export default async function LearnModulePage({
   const completedCount = learningModule.lessons.filter((l) => completedLessonIds.has(l.id)).length;
   const allLessonsDone = completedCount === totalLessons && totalLessons > 0;
   const totalMinutes = learningModule.lessons.reduce((sum, l) => sum + l.estimatedMin, 0);
+  const progressPct = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
+
+  // The module summary is already printed in the header, so the "about" card
+  // is only worth showing when the module carries content of its own.
+  const moduleContent = (learningModule.content ?? '').trim();
+  const showAbout =
+    moduleContent.length > 0 &&
+    moduleContent !== MODULE_CONTENT_PLACEHOLDER &&
+    moduleContent !== (learningModule.summary ?? '').trim();
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-emerald-50/40 via-background to-background">
-      <header className="border-b bg-card/50 backdrop-blur">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6">
-          <Button asChild variant="ghost" size="sm" className="mb-3 -ml-2 text-muted-foreground">
-            <Link href="/learn">
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              All modules
-            </Link>
-          </Button>
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <Badge variant="secondary" className="mb-2">
-                <GraduationCap className="h-3 w-3 mr-1" />
-                Module {learningModule.order}
-              </Badge>
-              <h1 className="text-3xl font-bold font-heading">{learningModule.title}</h1>
-              <p className="text-muted-foreground mt-2 max-w-2xl">{learningModule.summary}</p>
-              <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <BookOpen className="h-4 w-4" /> {totalLessons} lessons
+    <div className="mx-auto w-full max-w-3xl space-y-8">
+      <header className="space-y-3">
+        <Button asChild variant="ghost" size="sm" className="-ml-3 h-9 text-muted-foreground">
+          <Link href="/learn">
+            <ArrowLeft className="mr-1.5 h-4 w-4" />
+            All modules
+          </Link>
+        </Button>
+
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-gold-200 bg-gold-50 px-2.5 py-0.5 text-xs font-semibold text-gold-700">
+              <GraduationCap className="h-3 w-3" />
+              Module {learningModule.order}
+            </span>
+            <h1 className="mt-2.5 font-heading text-2xl font-bold tracking-tight sm:text-3xl">
+              {learningModule.title}
+            </h1>
+            <p className="mt-1.5 max-w-2xl text-sm text-muted-foreground sm:text-base">
+              {learningModule.summary}
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <Clock className="h-4 w-4" />~{totalMinutes} min
+              </span>
+              <span>
+                {totalLessons} {totalLessons === 1 ? 'lesson' : 'lessons'}
+              </span>
+              {learningModule.quiz && (
+                <span className="flex items-center gap-1.5">
+                  <ListChecks className="h-4 w-4" />
+                  {learningModule.quiz.passingScore}% to pass
                 </span>
-                <span className="flex items-center gap-1">
-                  <Clock className="h-4 w-4" /> ~{totalMinutes} min
-                </span>
-                {learningModule.quiz && (
-                  <span className="flex items-center gap-1">
-                    <ListChecks className="h-4 w-4" /> {learningModule.quiz.passingScore}% to pass
-                  </span>
-                )}
-              </div>
+              )}
             </div>
-            {user && totalLessons > 0 && (
-              <div className="text-right shrink-0">
-                <p className="text-2xl font-bold">
-                  {Math.round((completedCount / totalLessons) * 100)}%
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {completedCount}/{totalLessons} lessons
-                </p>
-              </div>
-            )}
           </div>
+
+          {user && totalLessons > 0 && (
+            <div className="shrink-0 rounded-lg border bg-card px-4 py-3 text-right">
+              <p className="font-heading text-2xl font-bold text-navy-700">{progressPct}%</p>
+              <p className="text-xs text-muted-foreground">
+                {completedCount}/{totalLessons} lessons
+              </p>
+            </div>
+          )}
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-10 space-y-8">
-        {/* Module summary */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">About this module</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div
-              className="prose prose-sm sm:prose-base max-w-none"
-              dangerouslySetInnerHTML={{ __html: renderMarkdown(learningModule.content) }}
-            />
-          </CardContent>
-        </Card>
+      {/* About this module -- only when there is content beyond the summary */}
+      {showAbout && (
+        <section className="rounded-lg border bg-card p-4 sm:p-6">
+          <h2 className="mb-3 font-heading text-lg font-semibold">About this module</h2>
+          <div className="lesson-content" dangerouslySetInnerHTML={{ __html: renderMarkdown(moduleContent) }} />
+        </section>
+      )}
 
-        {/* Lessons list */}
-        <section>
-          <h2 className="text-xl font-semibold font-heading mb-4 flex items-center gap-2">
-            <BookOpen className="h-5 w-5" /> Lessons
-          </h2>
-          <ol className="space-y-3">
-            {learningModule.lessons.map((lesson, idx) => {
-              const completed = completedLessonIds.has(lesson.id);
-              const next = learningModule.lessons[idx + 1];
-              return (
-                <li key={lesson.id}>
-                  <Link
-                    href={`/learn/${learningModule.slug}/${lesson.id}`}
-                    className="flex items-center gap-3 p-4 rounded-lg border bg-card hover:border-emerald-300 hover:shadow-sm transition-all"
+      {/* Lessons */}
+      <section>
+        <h2 className="mb-3 font-heading text-lg font-semibold">Lessons</h2>
+        <ol className="divide-y overflow-hidden rounded-lg border bg-card">
+          {learningModule.lessons.map((lesson, idx) => {
+            const completed = completedLessonIds.has(lesson.id);
+            return (
+              <li key={lesson.id}>
+                <Link
+                  href={`/learn/${learningModule.slug}/${lesson.id}`}
+                  className="flex min-h-[64px] items-center gap-3 p-3.5 transition-colors hover:bg-muted/60 focus:outline-none focus-visible:bg-muted/60"
+                >
+                  <span
+                    className={
+                      'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold ' +
+                      (completed
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : 'border border-navy-200 bg-navy-50 text-navy-700')
+                    }
                   >
-                    <div
+                    {completed ? <CheckCircle2 className="h-4 w-4" /> : idx + 1}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-medium leading-snug">{lesson.title}</span>
+                    <span className="mt-0.5 block text-xs text-muted-foreground">
+                      ~{lesson.estimatedMin} min
+                    </span>
+                  </span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </Link>
+              </li>
+            );
+          })}
+        </ol>
+      </section>
+
+      {/* Quiz CTA */}
+      {learningModule.quiz && (
+        <section className="rounded-lg border border-gold-200 bg-gold-50/60 p-4 sm:p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h2 className="flex items-center gap-2 font-heading text-base font-semibold">
+                <ListChecks className="h-5 w-5 text-gold-700" />
+                End-of-module quiz
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {learningModule.quiz.passingScore}% to pass. Retake it as many times as you need.
+                {bestQuizScore !== null && (
+                  <>
+                    {' '}
+                    Best score so far:{' '}
+                    <span
                       className={
-                        'shrink-0 h-8 w-8 rounded-full flex items-center justify-center text-sm font-medium ' +
-                        (completed
-                          ? 'bg-emerald-100 text-emerald-700'
-                          : 'bg-muted text-muted-foreground')
+                        bestQuizPassed ? 'font-semibold text-emerald-700' : 'font-semibold text-amber-700'
                       }
                     >
-                      {completed ? <CheckCircle2 className="h-4 w-4" /> : idx + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{lesson.title}</p>
-                      <p className="text-xs text-muted-foreground">~{lesson.estimatedMin} min</p>
-                    </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                  </Link>
-                </li>
-              );
-            })}
-          </ol>
-        </section>
-
-        {/* Quiz CTA */}
-        {learningModule.quiz && (
-          <section>
-            <Card className="bg-emerald-50/60 border-emerald-200">
-              <CardHeader>
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <ListChecks className="h-5 w-5" /> End-of-module quiz
-                    </CardTitle>
-                    <CardDescription>
-                      {learningModule.quiz.passingScore}% to pass. You can retake as many times as you need.
-                      {bestQuizScore !== null && (
-                        <>
-                          {' '}
-                          Best score so far:{' '}
-                          <span className={bestQuizPassed ? 'text-emerald-700 font-semibold' : 'text-amber-700 font-semibold'}>
-                            {bestQuizScore}%
-                          </span>
-                          {bestQuizPassed ? ' (passed)' : ' (try again)'}
-                        </>
-                      )}
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {!user ? (
-                  <p className="text-sm text-muted-foreground">
-                    Sign in to take the quiz.
-                  </p>
-                ) : !allLessonsDone ? (
-                  <p className="text-sm text-muted-foreground">
-                    Complete all {totalLessons} lessons first to unlock the quiz.
-                  </p>
-                ) : (
-                  <Button asChild>
-                    <Link href={`/learn/${learningModule.slug}/quiz`}>
-                      {bestQuizScore === null ? 'Start quiz' : 'Retake quiz'}
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                  </Button>
+                      {bestQuizScore}%
+                    </span>
+                    {bestQuizPassed ? ' (passed)' : ' (try again)'}
+                  </>
                 )}
-              </CardContent>
-            </Card>
-          </section>
-        )}
-      </main>
+              </p>
+            </div>
+            <Button asChild className="shrink-0">
+              <Link href={`/learn/${learningModule.slug}/quiz`}>
+                {bestQuizScore === null ? 'Start quiz' : 'Retake quiz'}
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+          {!allLessonsDone && user && (
+            <p className="mt-3 text-sm text-muted-foreground">
+              Complete all {totalLessons} lessons to unlock the quiz.
+            </p>
+          )}
+        </section>
+      )}
     </div>
   );
 }

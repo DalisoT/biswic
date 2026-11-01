@@ -16,52 +16,7 @@ import { signOutAction } from '@/server/actions/auth';
 import { CommandPalette } from '@/components/layout/command-palette';
 import { useDismissable } from '@/lib/hooks/use-dismissable';
 import { cn } from '@/lib/utils';
-
-/**
- * Map a route segment to a human-readable page title.
- * The first match wins; fallback = titleized segment.
- */
-const ROUTE_TITLES: Record<string, string> = {
-  '/dashboard': 'Dashboard',
-  '/group': 'Group',
-  '/contributions': 'Contributions',
-  '/claims': 'Welfare Claims',
-  '/soft-loans': 'Soft Loans',
-  '/soft-loans/apply': 'Apply for loan',
-  '/members': 'Members',
-  '/members/new': 'Add member',
-  '/meetings': 'Meetings',
-  '/documents': 'Documents',
-  '/statement': 'Statement',
-  '/land': 'Land Pipeline',
-  '/businesses': 'Businesses',
-  '/events': 'Events & Charity',
-  '/audit': 'Audit Log',
-  '/reports': 'Reports',
-  '/notifications': 'Notifications',
-  '/settings': 'Settings',
-  '/finance': 'Finance',
-  '/finance/contributions': 'Contributions',
-  '/finance/contributions/import': 'Import payroll',
-  '/finance/soft-loan-applications': 'Loan applications',
-  '/finance/soft-loan-register': 'Loan register',
-  '/finance/soft-loan-defaults': 'Loan defaults',
-};
-
-function deriveTitle(pathname: string): string {
-  if (ROUTE_TITLES[pathname]) return ROUTE_TITLES[pathname];
-  // Try matching longest prefix
-  const segments = pathname.split('/').filter(Boolean);
-  for (let i = segments.length; i > 0; i--) {
-    const prefix = '/' + segments.slice(0, i).join('/');
-    if (ROUTE_TITLES[prefix]) return ROUTE_TITLES[prefix];
-  }
-  // Fallback: titleize last segment
-  const last = segments[segments.length - 1] ?? '';
-  return last
-    .replace(/[-_]/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase());
-}
+import { deriveTitle } from '@/lib/route-titles';
 
 function shouldShowBack(pathname: string): boolean {
   if (pathname === '/' || pathname === '/dashboard') return false;

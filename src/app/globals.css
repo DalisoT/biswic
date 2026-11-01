@@ -179,3 +179,166 @@ nav a, nav button {
   from { opacity: 0; transform: scale(0.95); }
   to { opacity: 1; transform: scale(1); }
 }
+
+/* ----------------------------------------------------------------------------
+   Literacy hub content styling
+   ----------------------------------------------------------------------------
+   The literacy hub renders trusted markdown through src/lib/utils-markdown.ts.
+   That renderer emits plain semantic HTML with no utility classes, and this
+   block styles it. The @tailwindcss/typography plugin is deliberately NOT
+   installed -- it was never a dependency, so every `prose` class the learn
+   pages carried was a no-op. Putting the styles here keeps them in one
+   place and keeps the lesson pages free of a class soup.
+
+   Colour roles for the hub: navy = structure (links, table headers, focus),
+   gold = the hub's own identity (eyebrows, module numbers, "up next"),
+   emerald = success only (completed, passed, correct).
+*/
+.lesson-content {
+  color: hsl(var(--foreground));
+  font-size: 1rem;
+  line-height: 1.75;
+  max-width: 42rem;
+}
+
+@media (min-width: 640px) {
+  .lesson-content { font-size: 1.0625rem; }
+}
+
+.lesson-content > * + * { margin-top: 1rem; }
+.lesson-content > :first-child { margin-top: 0; }
+
+.lesson-content h1,
+.lesson-content h2,
+.lesson-content h3 {
+  font-family: 'IBM Plex Sans', 'Inter', system-ui, sans-serif;
+  letter-spacing: -0.01em;
+  color: hsl(var(--foreground));
+  font-weight: 700;
+  line-height: 1.3;
+}
+.lesson-content h1 { font-size: 1.5rem; margin-top: 1.75rem; }
+.lesson-content h2 { font-size: 1.25rem; margin-top: 1.75rem; }
+.lesson-content h3 { font-size: 1.0625rem; margin-top: 1.5rem; }
+
+.lesson-content p { margin: 0; }
+
+.lesson-content ul { list-style: disc; padding-left: 1.35rem; margin: 0; }
+.lesson-content ol { list-style: decimal; padding-left: 1.35rem; margin: 0; }
+.lesson-content li { margin: 0.35rem 0; }
+.lesson-content li::marker { color: hsl(var(--muted-foreground)); }
+
+.lesson-content a {
+  color: hsl(var(--primary));
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: #b9cce0;
+  text-underline-offset: 3px;
+}
+.lesson-content a:hover { text-decoration-color: currentColor; }
+
+.lesson-content strong { font-weight: 700; }
+.lesson-content em { font-style: italic; }
+
+.lesson-content code {
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+  border-radius: 4px;
+  padding: 0.15em 0.35em;
+  font-size: 0.875em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.lesson-content blockquote {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  border-left: 3px solid #d88621;
+  border-radius: 0 6px 6px 0;
+  background: #fdf8ed;
+  color: hsl(var(--muted-foreground));
+}
+
+.lesson-content hr {
+  border: 0;
+  border-top: 1px solid hsl(var(--border));
+  margin: 1.75rem 0;
+}
+
+/* Tables -- wrapped in .scroll-x so a wide table scrolls on a phone
+   instead of stretching the page. */
+.lesson-content .scroll-x {
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+}
+.lesson-content table {
+  width: 100%;
+  min-width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+.lesson-content thead th {
+  background: #0a3a5c;
+  color: #ffffff;
+  text-align: left;
+  font-weight: 600;
+  padding: 0.6rem 0.75rem;
+  white-space: nowrap;
+}
+.lesson-content tbody td {
+  padding: 0.6rem 0.75rem;
+  border-top: 1px solid hsl(var(--border));
+  vertical-align: top;
+}
+.lesson-content tbody tr:nth-child(even) { background: hsl(var(--muted)); }
+
+/* The hub is light-mode only today (nothing sets the `dark` class yet), but
+   keep the new blocks readable if a theme toggle ever lands. */
+.dark .lesson-content blockquote {
+  background: rgba(216, 134, 33, 0.14);
+  color: hsl(var(--foreground));
+}
+
+/* ----------------------------------------------------------------------------
+   Literacy hub action bar
+   ----------------------------------------------------------------------------
+   The lesson nav bar and the quiz Next/Submit bar are pinned to the bottom of
+   the phone screen so the primary action is always in reach. On desktop they
+   fall back to an ordinary in-flow row.
+
+   `fixed` rather than `sticky` on purpose: a sticky element only pins while
+   its natural position is still below the viewport, so a bar that is the
+   last child of the page would not appear until you reached the end. The
+   offset clears the app's own fixed bottom tab bar.
+*/
+:root {
+  /* Height of the phone tab bar in src/components/layout/mobile-nav.tsx */
+  --mobile-nav-h: 56px;
+}
+
+@media (min-width: 768px) {
+  :root { --mobile-nav-h: 0px; }
+}
+
+.learn-action-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--mobile-nav-h) + env(safe-area-inset-bottom, 0px));
+  z-index: 40;
+  background: hsl(var(--card));
+  border-top: 1px solid hsl(var(--border));
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.06);
+  padding: 0.625rem 1rem;
+}
+
+@media (min-width: 768px) {
+  .learn-action-bar {
+    position: static;
+    bottom: auto;
+    border-top: 0;
+    box-shadow: none;
+    background: transparent;
+    padding: 0;
+  }
+}

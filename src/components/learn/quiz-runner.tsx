@@ -4,8 +4,6 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, Send, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { startQuizAttemptAction, submitQuizAttemptAction } from '@/server/actions/learn';
 
 type QuestionType = 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'MULTI_SELECT';
@@ -23,6 +21,12 @@ interface Option {
   text: string;
   order: number;
 }
+
+const TYPE_LABEL: Record<QuestionType, string> = {
+  MULTIPLE_CHOICE: 'Multiple choice',
+  TRUE_FALSE: 'True / False',
+  MULTI_SELECT: 'Multi-select',
+};
 
 export function QuizRunner({
   quizId,
@@ -69,6 +73,7 @@ export function QuizRunner({
   const total = questions.length;
   const selected = q ? (answers[q.id] ?? []) : [];
   const allAnswered = questions.every((qq) => (answers[qq.id] ?? []).length > 0);
+  const answeredCount = questions.filter((qq) => (answers[qq.id] ?? []).length > 0).length;
 
   const toggle = (optionId: string) => {
     if (!q) return;
@@ -123,26 +128,30 @@ export function QuizRunner({
   return (
     <div className="space-y-4">
       {/* Progress */}
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>
-          Question {current + 1} of {total}
-        </span>
-        <span>{Object.keys(answers).filter((k) => (answers[k] ?? []).length > 0).length} answered</span>
-      </div>
-      <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-        <div
-          className="h-full bg-emerald-500 transition-all"
-          style={{ width: `${((current + 1) / total) * 100}%` }}
-        />
+      <div>
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">
+            Question {current + 1} of {total}
+          </span>
+          <span>
+            {answeredCount} of {total} answered
+          </span>
+        </div>
+        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+          <div
+            className="h-full rounded-full bg-navy-700 transition-all"
+            style={{ width: `${((current + 1) / total) * 100}%` }}
+          />
+        </div>
       </div>
 
-      {/* Question card */}
-      <Card className="border-2">
-        <CardContent className="p-6 space-y-4">
+      {/* Question */}
+      <section className="rounded-lg border bg-card p-4 sm:p-6">
+        <div className="space-y-4">
           <div className="flex items-start gap-2">
-            <Badge variant="secondary" className="shrink-0 mt-1">
-              {q.type === 'MULTI_SELECT' ? 'Multi-select' : q.type === 'TRUE_FALSE' ? 'True / False' : 'Multiple choice'}
-            </Badge>
+            <span className="mt-1 shrink-0 rounded-full border border-navy-200 bg-navy-50 px-2.5 py-0.5 text-xs font-semibold text-navy-700">
+              {TYPE_LABEL[q.type]}
+            </span>
             <p className="text-lg font-medium leading-relaxed">{q.prompt}</p>
           </div>
 
@@ -153,10 +162,10 @@ export function QuizRunner({
                 <li key={o.id}>
                   <label
                     className={
-                      'flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ' +
+                      'flex min-h-[52px] cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors ' +
                       (checked
-                        ? 'border-emerald-500 bg-emerald-50'
-                        : 'hover:border-emerald-300 hover:bg-emerald-50/50')
+                        ? 'border-navy-500 bg-navy-50'
+                        : 'hover:border-navy-300 hover:bg-navy-50/50')
                     }
                   >
                     <input
@@ -165,7 +174,7 @@ export function QuizRunner({
                       value={o.id}
                       checked={checked}
                       onChange={() => toggle(o.id)}
-                      className="mt-1 h-4 w-4 accent-emerald-600"
+                      className="mt-0.5 h-5 w-5 shrink-0 accent-navy-700"
                     />
                     <span className="text-sm leading-relaxed">{o.text}</span>
                   </label>
@@ -173,71 +182,80 @@ export function QuizRunner({
               );
             })}
           </ul>
-        </CardContent>
-      </Card>
-
-      {/* Nav */}
-      <div className="flex items-center justify-between gap-3">
-        <Button variant="outline" onClick={goPrev} disabled={current === 0}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Previous
-        </Button>
-
-        {current < total - 1 ? (
-          <Button onClick={goNext} disabled={!canAdvance}>
-            Next
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        ) : (
-          <Button
-            onClick={submit}
-            disabled={!allAnswered || submitting}
-            className="bg-emerald-600 hover:bg-emerald-700"
-          >
-            {submitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Submitting...
-              </>
-            ) : (
-              <>
-                <Send className="mr-2 h-4 w-4" />
-                Submit quiz
-              </>
-            )}
-          </Button>
-        )}
-      </div>
+        </div>
+      </section>
 
       {/* Quick-jump */}
-      <div className="flex flex-wrap gap-1.5 pt-2">
+      <div className="flex flex-wrap gap-2">
         {questions.map((qq, i) => {
           const answered = (answers[qq.id] ?? []).length > 0;
           return (
             <button
               key={qq.id}
               onClick={() => setCurrent(i)}
+              aria-label={`Go to question ${i + 1}${answered ? ' (answered)' : ''}`}
+              aria-current={i === current ? 'true' : undefined}
               className={
-                'h-8 w-8 rounded-md text-xs font-medium border transition-colors ' +
+                'flex h-11 w-11 items-center justify-center rounded-lg border text-sm font-medium transition-colors ' +
                 (i === current
-                  ? 'bg-emerald-600 text-white border-emerald-600'
+                  ? 'border-navy-700 bg-navy-700 text-white'
                   : answered
-                  ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
-                  : 'bg-background text-muted-foreground hover:border-emerald-300')
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                  : 'bg-background text-muted-foreground hover:border-navy-300')
               }
             >
-              {answered && i !== current ? <CheckCircle2 className="h-4 w-4 mx-auto" /> : i + 1}
+              {answered && i !== current ? <CheckCircle2 className="mx-auto h-4 w-4" /> : i + 1}
             </button>
           );
         })}
       </div>
 
       {error && (
-        <div className="flex items-center gap-2 p-3 rounded-md bg-destructive/10 text-destructive text-sm">
+        <div className="flex items-center gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
           <XCircle className="h-4 w-4 shrink-0" />
           {error}
         </div>
       )}
+
+      {/* Action bar -- pinned to the bottom of a phone, in flow on desktop */}
+      <div className="learn-action-bar">
+        <div className="mx-auto flex max-w-3xl items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={goPrev}
+            disabled={current === 0}
+            className="h-11 shrink-0"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Previous
+          </Button>
+
+          {current < total - 1 ? (
+            <Button onClick={goNext} disabled={!canAdvance} className="h-11 flex-1">
+              Next
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          ) : (
+            <Button
+              onClick={submit}
+              disabled={!allAnswered || submitting}
+              className="h-11 flex-1"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Submitting
+                </>
+              ) : (
+                <>
+                  <Send className="mr-2 h-4 w-4" />
+                  Submit quiz
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

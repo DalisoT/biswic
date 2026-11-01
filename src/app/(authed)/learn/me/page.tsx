@@ -1,11 +1,10 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { ArrowRight, BookOpen, CheckCircle2, ListChecks, XCircle } from 'lucide-react';
+import { ArrowRight, CheckCircle2, ListChecks, XCircle } from 'lucide-react';
 import { prisma } from '@/lib/db';
 import { getUser } from '@/lib/auth/require-user';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export const dynamic = 'force-dynamic';
 
@@ -71,166 +70,166 @@ export default async function MyLearningPage() {
     .filter((a) => a.completedAt !== null)
     .slice(0, 5);
 
+  const stats = [
+    { label: 'Modules started', value: modulesStarted, total: visible.length, success: false },
+    { label: 'Modules completed', value: modulesCompleted, total: null, success: true },
+    { label: 'Lessons done', value: lessonsDone, total: totalLessons, success: false },
+    { label: 'Quizzes passed', value: quizzesPassed, total: null, success: true },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-emerald-50/40 via-background to-background">
-      <header className="border-b bg-card/50 backdrop-blur">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
-          <h1 className="text-2xl font-bold font-heading">My learning</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Track your progress through the cooperative&apos;s financial literacy modules.
-          </p>
-        </div>
+    <div className="space-y-8">
+      <header className="space-y-1.5">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gold-700">
+          Your progress
+        </p>
+        <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">My learning</h1>
+        <p className="max-w-xl text-sm text-muted-foreground sm:text-base">
+          Track where you are through the cooperative&apos;s financial literacy modules.
+        </p>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-10 space-y-8">
-        {/* Stat cards */}
-        <section className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Modules started</p>
-              <p className="text-2xl font-bold mt-1">
-                {modulesStarted}
-                <span className="text-sm font-normal text-muted-foreground">/{visible.length}</span>
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Modules completed</p>
-              <p className="text-2xl font-bold mt-1 text-emerald-700">{modulesCompleted}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Lessons done</p>
-              <p className="text-2xl font-bold mt-1">
-                {lessonsDone}
-                <span className="text-sm font-normal text-muted-foreground">/{totalLessons}</span>
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Quizzes passed</p>
-              <p className="text-2xl font-bold mt-1 text-emerald-700">{quizzesPassed}</p>
-            </CardContent>
-          </Card>
-        </section>
+      {/* Stat grid -- 2x2 on a phone, 4 across on a wider screen */}
+      <section aria-label="Progress summary" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {stats.map((s) => (
+          <div key={s.label} className="rounded-lg border bg-card px-3.5 py-3">
+            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              {s.label}
+            </p>
+            <p
+              className={
+                'mt-0.5 font-heading text-2xl font-bold ' +
+                (s.success ? 'text-emerald-700' : 'text-navy-700')
+              }
+            >
+              {s.value}
+              {s.total !== null && (
+                <span className="text-sm font-normal text-muted-foreground">/{s.total}</span>
+              )}
+            </p>
+          </div>
+        ))}
+      </section>
 
-        {/* Module list with progress */}
+      {/* Module list with progress */}
+      <section>
+        <h2 className="mb-3 font-heading text-lg font-semibold">Modules</h2>
+        <div className="space-y-3">
+          {visible.map((m) => {
+            const lessonIds = m.lessons.map((l) => l.id);
+            const done = lessonIds.filter((id) => completedLessonSet.has(id)).length;
+            const total = lessonIds.length;
+            const progress = total > 0 ? Math.round((done / total) * 100) : 0;
+            const completed = total > 0 && done === total;
+            const bestAttempt = m.quiz
+              ? allAttempts
+                  .filter(
+                    (a): a is (typeof allAttempts)[number] & { completedAt: Date } =>
+                      a.quizId === m.quiz!.id && a.completedAt !== null,
+                  )
+                  .reduce<null | { score: number; passed: boolean; completedAt: Date }>(
+                    (acc, cur) => (!acc || cur.score > acc.score ? cur : acc),
+                    null,
+                  )
+              : null;
+            return (
+              <article
+                key={m.id}
+                className={
+                  'rounded-lg border bg-card p-4 ' + (completed ? 'border-emerald-200' : '')
+                }
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="flex items-center gap-2 font-heading font-semibold leading-snug">
+                      {completed && <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />}
+                      <span className="min-w-0">{m.title}</span>
+                    </h3>
+                    <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{m.summary}</p>
+                  </div>
+                  {m.quiz && bestAttempt && (
+                    <Badge
+                      variant={bestAttempt.passed ? 'success' : 'destructive'}
+                      className="shrink-0"
+                    >
+                      Best: {bestAttempt.score}%
+                    </Badge>
+                  )}
+                </div>
+
+                <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>
+                    {done}/{total} lessons
+                  </span>
+                  <span aria-hidden="true">·</span>
+                  <span>{progress}%</span>
+                </div>
+                <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-navy-700 transition-all"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+
+                <Button asChild size="sm" variant={completed ? 'outline' : 'default'} className="mt-3">
+                  <Link href={`/learn/${m.slug}`}>
+                    {done === 0 ? 'Start' : done < total ? 'Continue' : 'Review'}
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Recent activity */}
+      {recentAttempts.length > 0 && (
         <section>
-          <h2 className="text-xl font-semibold font-heading mb-4 flex items-center gap-2">
-            <BookOpen className="h-5 w-5" /> Modules
+          <h2 className="mb-3 flex items-center gap-2 font-heading text-lg font-semibold">
+            <ListChecks className="h-5 w-5" />
+            Recent quiz attempts
           </h2>
-          <div className="space-y-3">
-            {visible.map((m) => {
-              const lessonIds = m.lessons.map((l) => l.id);
-              const done = lessonIds.filter((id) => completedLessonSet.has(id)).length;
-              const total = lessonIds.length;
-              const progress = total > 0 ? Math.round((done / total) * 100) : 0;
-              const completed = total > 0 && done === total;
-              const bestAttempt = m.quiz
-                ? allAttempts
-                    .filter(
-                      (a): a is (typeof allAttempts)[number] & { completedAt: Date } =>
-                        a.quizId === m.quiz!.id && a.completedAt !== null,
-                    )
-                    .reduce<null | { score: number; passed: boolean; completedAt: Date }>(
-                      (acc, cur) => (!acc || cur.score > acc.score ? cur : acc),
-                      null,
-                    )
-                : null;
-              return (
-                <Card key={m.id} className={completed ? 'border-emerald-200' : ''}>
-                  <CardHeader>
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <CardTitle className="text-base flex items-center gap-2">
-                          {completed && <CheckCircle2 className="h-4 w-4 text-emerald-600" />}
-                          {m.title}
-                        </CardTitle>
-                        <CardDescription className="line-clamp-1">{m.summary}</CardDescription>
-                      </div>
-                      {m.quiz && bestAttempt && (
-                        <Badge variant={bestAttempt.passed ? 'default' : 'destructive'}>
-                          Best: {bestAttempt.score}%
-                        </Badge>
-                      )}
+          <div className="overflow-hidden rounded-lg border bg-card">
+            <ul className="divide-y">
+              {recentAttempts.map((a) => {
+                const mod = visible.find((m) => m.quiz?.id === a.quizId);
+                return (
+                  <li key={a.id} className="flex items-center gap-3 p-3.5">
+                    {a.passed ? (
+                      <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
+                    ) : (
+                      <XCircle className="h-5 w-5 shrink-0 text-amber-600" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium leading-snug">
+                        {mod?.title ?? 'Unknown module'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {a.completedAt?.toLocaleString() ?? 'in progress'}
+                      </p>
                     </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>
-                        {done}/{total} lessons
-                      </span>
-                      <span>·</span>
-                      <span>{progress}%</span>
-                    </div>
-                    <div className="h-2 w-full bg-emerald-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-emerald-500 transition-all" style={{ width: `${progress}%` }} />
-                    </div>
-                    <Button asChild size="sm" variant={completed ? 'outline' : 'default'}>
-                      <Link href={`/learn/${m.slug}`}>
-                        {done === 0 ? 'Start' : done < total ? 'Continue' : 'Review'}
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Link>
-                    </Button>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                    <Badge variant={a.passed ? 'success' : 'destructive'} className="shrink-0">
+                      {a.score}%
+                    </Badge>
+                    {mod && (
+                      <Button asChild size="sm" variant="ghost" className="shrink-0">
+                        <Link href={`/learn/${mod.slug}/quiz/result?attempt=${a.id}`}>View</Link>
+                      </Button>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
           </div>
         </section>
+      )}
 
-        {/* Recent activity */}
-        {recentAttempts.length > 0 && (
-          <section>
-            <h2 className="text-xl font-semibold font-heading mb-4 flex items-center gap-2">
-              <ListChecks className="h-5 w-5" /> Recent quiz attempts
-            </h2>
-            <Card>
-              <CardContent className="p-0">
-                <ul>
-                  {recentAttempts.map((a) => {
-                    const mod = visible.find((m) => m.quiz?.id === a.quizId);
-                    return (
-                      <li key={a.id} className="p-4 border-b last:border-0 flex items-center gap-3">
-                        {a.passed ? (
-                          <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
-                        ) : (
-                          <XCircle className="h-5 w-5 text-amber-600 shrink-0" />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">
-                            {mod?.title ?? 'Unknown module'}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {a.completedAt?.toLocaleString() ?? 'in progress'}
-                          </p>
-                        </div>
-                        <Badge variant={a.passed ? 'default' : 'destructive'}>{a.score}%</Badge>
-                        {mod && (
-                          <Button asChild size="sm" variant="ghost">
-                            <Link href={`/learn/${mod.slug}/quiz/result?attempt=${a.id}`}>View</Link>
-                          </Button>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-              </CardContent>
-            </Card>
-          </section>
-        )}
-
-        {visible.length === 0 && (
-          <Card>
-            <CardContent className="p-8 text-center text-muted-foreground">
-              No modules are available for your role yet. Check back later.
-            </CardContent>
-          </Card>
-        )}
-      </main>
+      {visible.length === 0 && (
+        <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
+          No modules are available for your role yet. Check back later.
+        </div>
+      )}
     </div>
   );
 }

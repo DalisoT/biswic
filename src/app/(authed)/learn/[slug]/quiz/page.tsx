@@ -1,11 +1,9 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { ArrowLeft, ArrowRight, ListChecks } from 'lucide-react';
+import { ArrowLeft, ListChecks } from 'lucide-react';
 import { prisma } from '@/lib/db';
 import { getUser } from '@/lib/auth/require-user';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { QuizRunner } from '@/components/learn/quiz-runner';
 
 export const dynamic = 'force-dynamic';
@@ -71,51 +69,46 @@ export default async function QuizStartPage({
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-emerald-50/40 via-background to-background">
-      <header className="border-b bg-card/50 backdrop-blur">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-5">
-          <Button asChild variant="ghost" size="sm" className="mb-2 -ml-2 text-muted-foreground">
-            <Link href={`/learn/${params.slug}`}>
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              {learningModule.title}
-            </Link>
-          </Button>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Badge variant="secondary">
-              <ListChecks className="h-3 w-3 mr-1" />
-              Quiz
-            </Badge>
-            <span>·</span>
-            <span>{questions.length} questions</span>
-            <span>·</span>
-            <span>{learningModule.quiz.passingScore}% to pass</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-bold font-heading mt-2">{learningModule.quiz.title}</h1>
+    <div className="mx-auto w-full max-w-3xl space-y-6 pb-28 md:pb-0">
+      <header className="space-y-3">
+        <Button asChild variant="ghost" size="sm" className="-ml-3 h-9 text-muted-foreground">
+          <Link href={`/learn/${params.slug}`}>
+            <ArrowLeft className="mr-1.5 h-4 w-4" />
+            {learningModule.title}
+          </Link>
+        </Button>
+
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-navy-200 bg-navy-50 px-2.5 py-0.5 font-semibold text-navy-700">
+            <ListChecks className="h-3 w-3" />
+            Quiz
+          </span>
+          <span>{questions.length} questions</span>
+          <span aria-hidden="true">·</span>
+          <span>{learningModule.quiz.passingScore}% to pass</span>
         </div>
+
+        <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">
+          {learningModule.quiz.title}
+        </h1>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-10 space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>How the quiz works</CardTitle>
-            <CardDescription>
-              One question at a time. Select your answer and click <strong>Next</strong>. You can
-              change your selection before submitting. Once you click <strong>Submit</strong> on
-              the last question, the quiz is graded immediately and you can retake if you don&apos;t
-              pass.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <QuizRunner
-              quizId={learningModule.quiz.id}
-              moduleSlug={params.slug}
-              questions={questions}
-              options={options}
-              existingAttemptId={searchParams.attempt ?? null}
-            />
-          </CardContent>
-        </Card>
-      </main>
+      <section className="rounded-lg border bg-card p-4">
+        <h2 className="font-heading text-sm font-semibold">How the quiz works</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          One question at a time. Select your answer and press <strong className="text-foreground">Next</strong>.
+          You can change your selection before submitting. The quiz is graded the moment you submit, and you
+          can retake it if you do not pass.
+        </p>
+      </section>
+
+      <QuizRunner
+        quizId={learningModule.quiz.id}
+        moduleSlug={params.slug}
+        questions={questions}
+        options={options}
+        existingAttemptId={searchParams.attempt ?? null}
+      />
     </div>
   );
 }
