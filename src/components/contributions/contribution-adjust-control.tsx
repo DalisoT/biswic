@@ -128,6 +128,14 @@ export function ContributionAdjustControl({
               paid && !isCurrent ? 'opacity-40' : '',
             ].join(' ')}
           >
+            {/* The month the payment is booked against is locked on, so its
+                checkbox is disabled -- and a disabled checkbox is NOT sent by
+                the browser. Without this hidden field the month the payment
+                already sits on would be missing from the split, and the
+                server would refuse the whole thing. */}
+            {isCurrent && (
+              <input type="hidden" name="months" value={y + '-' + value} />
+            )}
             <input
               type="checkbox"
               name="months"
