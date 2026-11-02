@@ -39,7 +39,7 @@ src/app/(authed)/admin/learning/page.tsx          the admin learning editor
 src/server/actions/learning-admin.ts        lesson update + bundle apply actions
 tests/unit/quiz-grading.test.ts
 tests/unit/learning-import.test.ts
-docs/learning-bundles/*.json                the content bundles, versioned
+public/learning-bundles/*.json             the content bundles, versioned and served
 ```
 
 **Modified**
@@ -1925,8 +1925,12 @@ git commit -m "Add the admin learning editor and the bundle apply action"
 ### Task 8: The content bundles
 
 **Files:**
-- Create: `docs/learning-bundles/01-existing-modules.json`
-- Create: `docs/learning-bundles/02-new-modules.json`
+- Create: `public/learning-bundles/01-a-salary-and-debt.json`
+- Create: `public/learning-bundles/01-b-emergency-napsa-banking.json`
+- Create: `public/learning-bundles/01-c-insurance-cooperative-scams.json`
+- Create: `public/learning-bundles/01-d-land-and-family.json`
+- Create: `public/learning-bundles/02-new-modules.json`
+- Create: `public/learning-bundles/index.json`   the manifest the panel reads
 
 **Interfaces:**
 - Consumes: the bundle shape from `@/lib/learning-import`.
@@ -1959,7 +1963,7 @@ Each module gets one to three lessons, a summary, and its own quiz, because a mo
 - [ ] **Step 6: Commit the bundles**
 
 ```bash
-git add docs/learning-bundles
+git add public/learning-bundles
 git commit -m "Add the researched content bundles"
 ```
 

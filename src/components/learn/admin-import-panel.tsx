@@ -1,10 +1,12 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
-import { FileUp, Upload } from 'lucide-react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
+import { CloudDownload, FileUp, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { applyLearningBundleAction } from '@/server/actions/learning-admin';
 import { parseBundle, planLearningImport } from '@/lib/learning-import';
+
+type BundleEntry = { file: string; label: string };
 
 /**
  * Apply a content bundle.
@@ -18,6 +20,24 @@ export function AdminImportPanel() {
   const [error, setError] = useState<string | null>(null);
   const [applied, setApplied] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  const [manifest, setManifest] = useState<BundleEntry[]>([]);
+  const [bundleFile, setBundleFile] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/learning-bundles/index.json')
+      .then((r) => (r.ok ? r.json() : { bundles: [] }))
+      .then((data: { bundles?: BundleEntry[] }) => {
+        if (!cancelled) setManifest(data.bundles ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setManifest([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const parsed = useMemo(() => parseBundle(text), [text]);
 
@@ -36,6 +56,21 @@ export function AdminImportPanel() {
       setApplied(null);
     };
     reader.readAsText(file);
+  };
+
+  /** Pull one of the centrally kept bundles off the server and into the box. */
+  const loadFromServer = async () => {
+    if (!bundleFile) return;
+    setError(null);
+    setApplied(null);
+    try {
+      const res = await fetch(`/learning-bundles/${bundleFile}`);
+      if (!res.ok) throw new Error(`the server returned ${res.status}`);
+      const body = await res.text();
+      setText(body);
+    } catch (err) {
+      setError(`Could not load ${bundleFile}: ${(err as Error).message}`);
+    }
   };
 
   const apply = () => {
@@ -57,9 +92,33 @@ export function AdminImportPanel() {
     <section className="space-y-4 rounded-lg border bg-card p-4 sm:p-6">
       <h2 className="font-heading text-lg font-semibold">Apply a content bundle</h2>
       <p className="text-sm text-muted-foreground">
-        Paste a bundle or load a JSON file. Lessons are matched by module slug and lesson order. Nothing is
-        deleted, and members keep their progress.
+        Load one of the centrally kept bundles, paste your own, or load a JSON file. Lessons are matched by module
+        slug and lesson order. Nothing is deleted, and members keep their progress.
       </p>
+
+      {manifest.length > 0 && (
+        <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-muted/30 p-3">
+          <label className="min-w-[240px] flex-1 text-sm font-medium">
+            Bundle kept on the server
+            <select
+              value={bundleFile}
+              onChange={(e) => setBundleFile(e.target.value)}
+              className="mt-1 h-11 w-full rounded-lg border bg-background px-3 text-sm"
+            >
+              <option value="">Choose a bundle…</option>
+              {manifest.map((b) => (
+                <option key={b.file} value={b.file}>
+                  {b.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <Button type="button" variant="secondary" onClick={loadFromServer} disabled={!bundleFile}>
+            <CloudDownload className="mr-2 h-4 w-4" />
+            Load it
+          </Button>
+        </div>
+      )}
 
       <label className="block text-sm font-medium">
         Bundle JSON

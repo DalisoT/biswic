@@ -1,0 +1,24 @@
+{
+  "bundles": [
+    {
+      "file": "01-a-salary-and-debt.json",
+      "label": "1 · Salary, PAYE, NAPSA and the debt trap (modules 6-7)"
+    },
+    {
+      "file": "01-b-emergency-napsa-banking.json",
+      "label": "2 · Emergency fund, NAPSA and banking (modules 8-10)"
+    },
+    {
+      "file": "01-c-insurance-cooperative-scams.json",
+      "label": "3 · Insurance, the cooperative and scams (modules 11-13)"
+    },
+    {
+      "file": "01-d-land-and-family.json",
+      "label": "4 · Land, property and the family money talk (modules 14-15)"
+    },
+    {
+      "file": "02-new-modules.json",
+      "label": "5 · Three new modules: your cooperative, insurance and claims, small business"
+    }
+  ]
+}
