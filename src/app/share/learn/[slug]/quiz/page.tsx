@@ -66,7 +66,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const learningModule = await loadQuiz(params.slug);
   if (!learningModule) return { title: 'Quiz not found', robots: { index: false } };
 
-  const title = `${learningModule.quiz!.title} — ${learningModule.title}`;
+  // Every quiz title already carries its module's name ("... — Quiz"), so
+  // repeating the module title would read "X — Quiz — X" in the tab title and
+  // in the WhatsApp preview.
+  const title = learningModule.quiz!.title.includes(learningModule.title)
+    ? learningModule.quiz!.title
+    : `${learningModule.quiz!.title} — ${learningModule.title}`;
   return {
     title,
     description: learningModule.summary,
