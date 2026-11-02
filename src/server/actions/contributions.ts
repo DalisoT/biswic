@@ -8,8 +8,10 @@ import { prisma } from '@/lib/db';
 import { z } from 'zod';
 import { logAudit, AUDIT_ACTIONS } from '@/lib/audit';
 import { config } from '@/lib/config';
-import { monthName } from '@/lib/utils';
+import { formatDate, monthName } from '@/lib/utils';
 import { firstLiableMonth } from '@/lib/contribution-report';
+import { checkContributionMove } from '@/lib/contribution-move';
+import { formatMonthLabel } from '@/lib/member-leaving';
 import { createNotification, notifyAllMembers } from '@/server/actions/notifications';
 
 const singleSchema = z.object({
@@ -364,5 +366,142 @@ export async function getMonthlyContributionStats(
     totalActiveMembers: eligibleMembers.length,
     payerRate: eligibleMembers.length > 0 ? contributions.length / eligibleMembers.length : 0,
     topDefaulters: defaulters,
+  };
+}
+
+
+// ----------------------------------------------------------------------------
+// Moving a payment to a different month
+// ----------------------------------------------------------------------------
+// A contribution is booked against the month it belongs to, not the month the
+// money landed. Payroll is deducted late, mobile money is sent on the day the
+// money arrives, and a receipt typed in by hand gets booked against the wrong
+// month. On 1 and 2 November 2026 four members paid money that belongs to
+// October 2026 and it was booked under November 2026, which left them showing
+// as owing October.
+//
+// The row is updated in place. Only the period changes: the amount, the
+// method, the date received, the receipt number and the bucket allocations
+// are all left alone, and nothing is ever deleted.
+// ----------------------------------------------------------------------------
+
+const moveSchema = z.object({
+  contributionId: z.string().uuid(),
+  month: z.coerce.number().min(1).max(12),
+  year: z.coerce.number().min(2020).max(2100),
+});
+
+export type MoveContributionResult =
+  | { error: string }
+  | { success: true; message: string };
+
+export async function moveContributionAction(
+  formData: FormData,
+): Promise<MoveContributionResult> {
+  const user = await requireUser();
+
+  if (!canActAs(user, canRecordContributions)) {
+    return { error: 'You do not have permission to move contributions.' };
+  }
+
+  const parsed = moveSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    return {
+      error: 'Invalid input. ' + parsed.error.issues.map((i) => i.message).join(', '),
+    };
+  }
+
+  const { contributionId, month, year } = parsed.data;
+
+  const contribution = await prisma.contribution.findUnique({
+    where: { id: contributionId },
+    include: {
+      member: {
+        select: {
+          id: true,
+          serviceNumber: true,
+          fullName: true,
+          joinedAt: true,
+          isFoundingMember: true,
+        },
+      },
+    },
+  });
+  if (!contribution) {
+    return { error: 'That payment could not be found.' };
+  }
+
+  // The ledger allows one payment per member per month.
+  const clash = await prisma.contribution.findFirst({
+    where: {
+      memberId: contribution.memberId,
+      month,
+      year,
+      id: { not: contribution.id },
+    },
+    select: { id: true },
+  });
+
+  const check = checkContributionMove({
+    current: { year: contribution.year, month: contribution.month },
+    target: { year, month },
+    firstLiable: firstLiableMonth(contribution.member),
+    targetAlreadyPaid: !!clash,
+  });
+  if (!check.ok) {
+    return { error: check.error };
+  }
+
+  const before = { year: contribution.year, month: contribution.month };
+  const after = { year, month };
+
+  try {
+    await prisma.contribution.update({
+      where: { id: contribution.id },
+      data: { month, year },
+    });
+  } catch (err: any) {
+    return { error: err.message ?? 'Failed to move the payment.' };
+  }
+
+  await logAudit({
+    userId: user.id,
+    action: AUDIT_ACTIONS.CONTRIBUTION_MOVED,
+    entity: 'Contribution',
+    entityId: contribution.id,
+    beforeValue: before,
+    afterValue: after,
+    notes:
+      'Payment of ' + config.currency + Number(contribution.amount) + ' for ' +
+      contribution.member.fullName + ' (' + contribution.member.serviceNumber +
+      ') moved from ' + formatMonthLabel(before) + ' to ' + formatMonthLabel(after) +
+      '. The amount, method, date received and receipt number were not changed.',
+  });
+
+  // The member was told their payment was recorded for the old month, so
+  // correct the record rather than leave the two contradicting each other.
+  await createNotification({
+    userId: contribution.memberId,
+    type: 'CONTRIBUTION',
+    title: 'Contribution period corrected',
+    body:
+      'Your ' + config.currency + Number(contribution.amount) +
+      ' contribution received on ' + formatDate(contribution.receivedAt) +
+      ' now stands for ' + formatMonthLabel(after) +
+      ' (it was recorded under ' + formatMonthLabel(before) + ').',
+    link: '/contributions',
+  });
+
+  revalidatePath('/finance/contributions');
+  revalidatePath('/finance/contributions-report');
+  revalidatePath('/finance');
+  revalidatePath('/contributions');
+  revalidatePath('/dashboard');
+  revalidatePath('/group');
+  revalidatePath('/notifications');
+
+  return {
+    success: true,
+    message: 'Payment moved to ' + formatMonthLabel(after) + '.',
   };
 }

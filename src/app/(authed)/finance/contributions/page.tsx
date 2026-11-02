@@ -10,6 +10,7 @@ import { canViewAllMembers, canRecordContributions, canActAs } from '@/lib/permi
 import { config } from '@/lib/config';
 import Link from 'next/link';
 import { Upload, FileText } from 'lucide-react';
+import { MoveMonthControl } from '@/components/contributions/move-month-control';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +25,7 @@ export default async function FinanceContributionsPage({ searchParams }: PagePro
   }
 
   const sp = await searchParams;
+  const canRecord = canActAs(user, canRecordContributions);
   const now = new Date();
   const month = sp.month ? Number(sp.month) : now.getMonth() + 1;
   const year = sp.year ? Number(sp.year) : now.getFullYear();
@@ -61,7 +63,7 @@ export default async function FinanceContributionsPage({ searchParams }: PagePro
             {monthAgg._count} of {totalActive} paid · {formatCurrency(totalReceived)} of {formatCurrency(expected)} ({payerRate.toFixed(0)}%)
           </p>
         </div>
-        {canActAs(user, canRecordContributions) && (
+        {canRecord && (
           <Button asChild>
             <Link href="/finance/contributions/import">
               <Upload className="h-4 w-4 mr-1" />
@@ -125,6 +127,7 @@ export default async function FinanceContributionsPage({ searchParams }: PagePro
                   <TableHead>Receipt</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Recorded by</TableHead>
+                  {canRecord && <TableHead>Adjust</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -142,6 +145,11 @@ export default async function FinanceContributionsPage({ searchParams }: PagePro
                     <TableCell className="text-xs text-muted-foreground">{c.receiptNumber ?? '—'}</TableCell>
                     <TableCell className="text-xs">{formatDate(c.receivedAt)}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{c.recordedBy.fullName}</TableCell>
+                    {canRecord && (
+                      <TableCell>
+                        <MoveMonthControl contributionId={c.id} month={c.month} year={c.year} />
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
