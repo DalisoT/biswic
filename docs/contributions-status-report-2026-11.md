@@ -2,7 +2,7 @@
 
 **Reporting period:** 22 July 2026 (founding) to 1 November 2026
 **Prepared for:** The Chairman and Committee of the Brothers in Service Welfare, Land & Investment Cooperative
-**Prepared:** 1 November 2026
+**Prepared:** 1 November 2026, re-verified against the live platform on 2 November 2026
 **Source:** BISWIC member platform (live ledger) and the contributions report export of 1 November 2026
 
 > November contributions were still being recorded as this report was written, so the figures move during the month.
@@ -17,8 +17,9 @@ giving a compliance rate of **49%**.
 
 Three things need to be said plainly at the start:
 
-- **Collection has been falling sharply month on month.** The monthly rate went 82% (July) → 82% (August) → 67%
-  (September) → 42% (October). November is one day old and cannot yet be read either way.
+- **Collection has been falling sharply month on month.** The number of members paying fell from 49 in July to 25 in
+  October — a 49% fall in the paying base — and the money collected with it, from K5,000 to K2,500. November is one day
+  old and cannot yet be read either way.
 - **A quarter of the register has never paid anything.** 16 of the 67 members on the register have no contribution on
   record for any month they owed. Eight of those were deactivated on 2 November 2026 (leaving month recorded as
   November 2026) and seven had already left the cooperative, which means **K3,500 of the arrears are owed by people
@@ -65,6 +66,12 @@ due.
 | October 2026 | 25 of 60 | K2,500 | K6,000 | 42% |
 | November 2026 *(to 1st)* | 2 of 60 | K200 | K6,000 | 3% |
 | **Total** | **165** | **K17,000** | **K30,000** | **57%** |
+
+*The table is a snapshot of 1 November, when the register had 60 active members and the screen's monthly target was
+K6,000. Eight members were deactivated on 2 November, so **the screen now scores every month against 52 members and a
+target of K5,200**, and the earlier months read higher on it — July and August 94%, September 77%, October 48%,
+November 4%. **The money collected in each month does not change.** It is the K column and the number of members
+paying that carry the story, and both are the same on either basis.*
 
 165 contributions were recorded. **160 of them fall inside the months the member was actually liable for**; the other
 five are the pre-joining payments described in section 7.
@@ -171,7 +178,7 @@ and 6 August 2026. Section 7 sets out what happens when those joining months are
 
 It is worth recording these, because they are the foundation any recovery has to build on.
 
-- **The committee is current through October.** All six officers have paid four of the five months, 80% compliance,
+- **The committee is current through October.** All seven officers have paid four of the five months, 80% compliance,
   with only the November K100 outstanding:
 
   | Service # | Name | Office |
@@ -181,15 +188,19 @@ It is worth recording these, because they are the foundation any recovery has to
   | 106759 | RICHARD TEMBO | Chair of Capital Development |
   | 104879 | Chishimba Chanda | Secretary |
   | 106302 | NEEBA GEORGE | Treasurer |
+  | 104784 | BANDA L | Treasurer (from 1 November 2026) |
   | 105716 | MKEMBA W | Deputy Treasurer |
+
+  The register therefore carries two Treasurer posts, and both Treasurers are current through October.
 
 - **25 of the 52 active members (48%) have paid every month since they joined, through October.** These are the
   model's members and the proof that the K100 subscription is affordable.
 - **Some members pay in lumps.** Four members paid above K100 in a month: CHAMA J (K500 across three months),
   KUNDA G, MUTAMBO S and MWANSA J (one month at K200 each). These members are ahead of their schedule rather than
   behind it, and lump-sum payment is evidently an accepted habit in the membership.
-- **The ledger and the report reconcile.** 165 contribution rows, K17,000 received, K32,900 expected. The monthly
-  screens and the arrears report agree to the kwacha with no unexplained difference.
+- **The ledger and the report reconcile.** 165 contributions, K17,000 received against K32,900 expected. The monthly
+  screens and the arrears report agree to the kwacha, and section 8 sets out the K1,000 of the K17,000 that does not
+  cancel an arrears month.
 
 ---
 
@@ -254,8 +265,10 @@ arrears, and he was put back on the active register the same day. The ledger sup
 real cash against real receipts, collected on 15 July and 28 August 2026 in the same series as every other July
 payer. What is wrong is the **joining month on the register**, which for these three is the date their record was
 created on the platform (6 August, 6 September and 7 September 2026) rather than the month they were paying from.
-The three records also carry placeholder phone numbers (`+260 97 100 0001` and `+260 97 100 0007`) and blank
-ranks, so they may still be partly test data.
+Two of the three records carry placeholder phone numbers (`+260 97 100 0007` on Chewe J and `+260 97 100 0001` on
+Mphande George) and a blank rank and unit, so they may still be partly test data. **MUTALE JACK MWABA does not**: he
+carries a real rank and unit (SGT / 1CDO) and a real phone number, which strengthens the case that his joining month of
+6 August 2026 is simply wrong rather than a placeholder.
 
 Correcting the joining month for all three to **July 2026** would settle it without changing a single arrears
 figure: Chewe J becomes 2 of 5 months paid instead of 0 of 3, Mphande George 3 of 5 instead of 1 of 3, and MUTALE
@@ -271,13 +284,19 @@ If the joining months are left as they stand, the committee has to choose betwee
 
 ## 8. Notes on the figures
 
-Two points so that the committee is not caught out by arithmetic that looks wrong but is not.
+Three points so that the committee is not caught out by arithmetic that looks wrong but is not.
 
-- **The monthly screen's "K6,000" is a target, not a liability.** It is calculated as the number of active members
-  × K100 (52 as at 2 November 2026, after the eight deactivations) and
-  assumes that figure for every month, ignoring the fact that four members joined in August and September and that
-  seven who have since left were still on the register earlier in the year. Use the monthly screen for *cash in* and
+- **The monthly screen's target is a target, not a liability.** The screen divides the month's takings by the number
+  of **currently active** members × K100 — K6,000 while 60 members were active, **K5,200 now that 52 are** — and
+  applies that same figure to every month, ignoring the fact that four members joined in August and September and
+  that seven who have since left were still on the register earlier in the year. Every month's percentage therefore
+  moves when the register changes, without a single kwacha changing hands. Use the monthly screen for *cash in* and
   the arrears report for *what is owed*.
+- **K32,900 expected less K17,000 received is K15,900, not K16,900 — and the K1,000 is real, not a shortfall.**
+  Only **K16,000** of the money received settles months that members actually owed (160 member-months at K100). The
+  other **K1,000** is money that cannot cancel an arrears month: **K500 received before joining** (section 7, held
+  pending the committee's decision) and **K500 paid ahead of the months it covers** — CHAMA J K200, and KUNDA G,
+  MUTAMBO S and MWANSA J K100 each. Both are reported on their own line rather than quietly absorbed.
 - **The K30,000 in the trend table and the K32,900 in the position table are both correct**, and the K2,900
   difference is fully explained: K3,500 is owed by the seven departed members who were still on the register during
   the earlier months, less K600 for the four late joiners who were not yet liable for all five months.
@@ -289,6 +308,8 @@ Two points so that the committee is not caught out by arithmetic that looks wron
 - Contributions report export of 1 November 2026 (67 members, period 2026).
 - Monthly contribution screens for July, August, September, October and November 2026.
 - The contributions register on the BISWIC platform.
+- Re-verified against the live platform on 2 November 2026: the contributions report, all five monthly screens and
+  the full 67-member register were read again after the deactivations and after Chewe J was put back.
 
-*Prepared from the live ledger on 1 November 2026. Figures are as at the date of preparation and will move as
-November contributions are recorded.*
+*Prepared from the live ledger on 1 November 2026 and re-verified against the live platform on 2 November 2026.
+Figures are as at the date of preparation and will move as November contributions are recorded.*
