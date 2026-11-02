@@ -54,7 +54,7 @@ export type LeavingMonthValue = string;
 
 const MONTH_VALUE_RE = /^(\d{4})-(\d{2})$/;
 
-const MONTH_NAMES = [
+export const MONTH_NAMES = [
   'January',
   'February',
   'March',

@@ -29,6 +29,8 @@ interface Member {
   nextOfKin: NextOfKin | null;
   /** The leaving month as "YYYY-MM", or null when the member has not left. */
   leftAtValue: string | null;
+  /** The joining date as "YYYY-MM-DD". */
+  joinedAtValue: string;
 }
 
 interface Props {
@@ -160,35 +162,51 @@ export function EditMemberForm({ member, isSelf, isPlaceholder }: Props) {
         </div>
       </div>
 
-      {!isSelf && (
-        <div className="space-y-1 border-t pt-4 md:border-t-0 md:pt-0">
-          <Label htmlFor="leftAtMonth">Month the member left</Label>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 border-t pt-4 md:border-t-0 md:pt-0">
+        <div className="space-y-1">
+          <Label htmlFor="joinedAtDate">Date joined</Label>
           <Input
-            id="leftAtMonth"
-            name="leftAtMonth"
-            type="month"
-            defaultValue={member.leftAtValue ?? ''}
-            aria-describedby="leftAtMonthHelp"
+            id="joinedAtDate"
+            name="joinedAtDate"
+            type="date"
+            defaultValue={member.joinedAtValue}
+            aria-describedby="joinedAtDateHelp"
           />
-          <p id="leftAtMonthHelp" className="text-[10px] text-muted-foreground">
-            Contributions are due <strong>up to and including</strong> the month they
-            left. Leave this blank while the member is still active, or the leaving
-            month is cleared.
+          <p id="joinedAtDateHelp" className="text-[10px] text-muted-foreground">
+            Contributions are due from the month they joined. Correct this if the
+            record was created on a later date than the member actually joined.
           </p>
-          {!isActive && !member.leftAtValue && member.isActive && (
-            <p className="text-[10px] text-amber-700">
-              No leaving month recorded &mdash; deactivating this member will record
-              this month as the leaving month.
-            </p>
-          )}
-          {!isActive && !member.leftAtValue && !member.isActive && (
-            <p className="text-[10px] text-amber-700">
-              No leaving month recorded &mdash; enter the month this member left so
-              the contributions report stops billing them.
-            </p>
-          )}
         </div>
-      )}
+        {!isSelf && (
+          <div className="space-y-1">
+            <Label htmlFor="leftAtMonth">Month the member left</Label>
+            <Input
+              id="leftAtMonth"
+              name="leftAtMonth"
+              type="month"
+              defaultValue={member.leftAtValue ?? ''}
+              aria-describedby="leftAtMonthHelp"
+            />
+            <p id="leftAtMonthHelp" className="text-[10px] text-muted-foreground">
+              Contributions are due <strong>up to and including</strong> the month they
+              left. Leave this blank while the member is still active, or the leaving
+              month is cleared.
+            </p>
+            {!isActive && !member.leftAtValue && member.isActive && (
+              <p className="text-[10px] text-amber-700">
+                No leaving month recorded &mdash; deactivating this member will record
+                this month as the leaving month.
+              </p>
+            )}
+            {!isActive && !member.leftAtValue && !member.isActive && (
+              <p className="text-[10px] text-amber-700">
+                No leaving month recorded &mdash; enter the month this member left so
+                the contributions report stops billing them.
+              </p>
+            )}
+          </div>
+        )}
+      </div>
 
       <div className="border-t pt-4 space-y-3">
         <h3 className="text-sm font-semibold">Next of kin</h3>

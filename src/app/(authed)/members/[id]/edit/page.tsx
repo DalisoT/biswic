@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { EditMemberForm } from '@/components/members/edit-member-form';
 import { DeleteMemberForm } from '@/components/members/delete-member-form';
 import { isRedactedMember, leavingMonthValue, formatMonthLabel, monthKeyOf } from '@/lib/member-leaving';
+import { joiningDateValue } from '@/lib/member-joining';
 import { ArrowLeft, Info, AlertTriangle, Skull } from 'lucide-react';
 import Link from 'next/link';
 
@@ -134,6 +135,7 @@ export default async function EditMemberPage({
               isFoundingMember: member.isFoundingMember,
               nextOfKin: nextOfKin,
               leftAtValue: leavingMonthValue(member.leftAt),
+              joinedAtValue: joiningDateValue(member.joinedAt),
             }}
             isSelf={member.id === user.id}
             isPlaceholder={/^(CHAIR|VICE|FW|SEC|TR|DTR|TRUSTEE|CCD)-/.test(member.serviceNumber)}

@@ -24,6 +24,7 @@ import { canManageMembers, canActAs } from '@/lib/permissions';
 import { logAudit, AUDIT_ACTIONS } from '@/lib/audit';
 import { isFoundingLockActive } from '@/lib/config';
 import { resolveLeavingMonth, isRedactedMember, formatMonthLabel, monthKeyOf } from '@/lib/member-leaving';
+import { resolveJoiningDate, parseJoiningDate, formatJoiningDate } from '@/lib/member-joining';
 import { firstLiableMonth } from '@/lib/contribution-report';
 import { notifyAdmins } from '@/server/actions/notifications';
 
@@ -239,6 +240,9 @@ const updateSchema = z.object({
   // "no leaving month recorded" -- see src/lib/member-leaving.ts for what
   // that means when the member is being deactivated.
   leftAtMonth: z.string().optional().nullable(),
+  // The date the member actually joined, as "YYYY-MM-DD". Empty means "leave
+  // it as it is" -- see src/lib/member-joining.ts.
+  joinedAtDate: z.string().optional().nullable(),
   nextOfKinName: z.string().optional().nullable(),
   nextOfKinRelationship: z.string().optional().nullable(),
   nextOfKinPhone: z.string().optional().nullable(),
@@ -276,6 +280,7 @@ export async function updateMemberAction(formData: FormData): Promise<UpdateMemb
       ? true
       : formData.get('isActive') === 'on' || formData.get('isActive') === 'true',
     leftAtMonth: formData.get('leftAtMonth') || null,
+    joinedAtDate: formData.get('joinedAtDate') || null,
     nextOfKinName: formData.get('nextOfKinName') || null,
     nextOfKinRelationship: formData.get('nextOfKinRelationship') || null,
     nextOfKinPhone: formData.get('nextOfKinPhone') || null,
@@ -316,6 +321,19 @@ export async function updateMemberAction(formData: FormData): Promise<UpdateMemb
     return { error: 'Member not found.' };
   }
 
+  // Work out the joining date BEFORE any write, so a bad value cannot
+  // half-apply. The rules live in src/lib/member-joining.ts:
+  //   - the date is stored at midday UTC so the month reads the same in every
+  //     timezone;
+  //   - it cannot be in the future, cannot be before the cooperative was
+  //     founded, and cannot be later than the month the member left;
+  //   - a blank field leaves the date on file alone.
+  const parsedJoining = parseJoiningDate(data.joinedAtDate);
+  if (!parsedJoining.ok) {
+    return { error: parsedJoining.error };
+  }
+  const candidateJoinedAt = parsedJoining.date ?? before.joinedAt;
+
   // Work out the leaving month BEFORE any write, so a bad value cannot
   // half-apply. The rules live in src/lib/member-leaving.ts:
   //   - a stated month must not be before the member's first liable month,
@@ -323,6 +341,10 @@ export async function updateMemberAction(formData: FormData): Promise<UpdateMemb
   //   - deactivating without a stated month stops the contributions billing
   //     from the current month (it used to bill them forever);
   //   - reactivating clears the leaving month.
+  //
+  // The first liable month is computed from the CORRECTED joining date, so a
+  // member whose joining month moves earlier can still carry a leaving month
+  // that follows it.
   const leaving = resolveLeavingMonth({
     value: data.leftAtMonth,
     isActive: data.isActive,
@@ -333,11 +355,22 @@ export async function updateMemberAction(formData: FormData): Promise<UpdateMemb
     existingLeftAt: before.leftAt,
     firstLiable: firstLiableMonth({
       isFoundingMember: before.isFoundingMember,
-      joinedAt: before.joinedAt,
+      joinedAt: candidateJoinedAt,
     }),
   });
   if (!leaving.ok) {
     return { error: leaving.error };
+  }
+
+  // The joining date is checked once more against the SETTLED leaving month:
+  // nobody joins after the month they left.
+  const joining = resolveJoiningDate({
+    value: data.joinedAtDate,
+    existingJoinedAt: before.joinedAt,
+    leftAt: leaving.leftAt,
+  });
+  if (!joining.ok) {
+    return { error: joining.error };
   }
 
   // A blank email means "leave the email as it is" -- see updateSchema.
@@ -376,6 +409,7 @@ export async function updateMemberAction(formData: FormData): Promise<UpdateMemb
       unit: data.unit || null,
       role: data.role,
       isActive: data.isActive,
+      joinedAt: joining.joinedAt,
       leftAt: leaving.leftAt,
       nextOfKin: (nextOfKin as any) ?? null,
     },
@@ -414,6 +448,13 @@ export async function updateMemberAction(formData: FormData): Promise<UpdateMemb
       `Role changed: ${before.role} -> ${after.role} (Constitution Art. 6.4 - requires GM ratification)`,
     );
   }
+  if (joining.changed) {
+    auditNotes.push(
+      `Joining date changed: ${formatJoiningDate(before.joinedAt)} -> ${formatJoiningDate(
+        joining.joinedAt,
+      )} (contributions are due from the joining month)`,
+    );
+  }
   if (leaving.changed) {
     const beforeLabel = before.leftAt
       ? formatMonthLabel(monthKeyOf(before.leftAt))
@@ -439,6 +480,7 @@ export async function updateMemberAction(formData: FormData): Promise<UpdateMemb
       unit: after.unit,
       role: after.role,
       isActive: after.isActive,
+      joinedAt: after.joinedAt.toISOString(),
       leftAt: after.leftAt ? after.leftAt.toISOString() : null,
     },
     notes: auditNotes.length ? auditNotes.join(' | ') : undefined,
