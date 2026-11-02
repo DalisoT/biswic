@@ -533,8 +533,16 @@ export async function moveContributionAction(
 
 type BucketAllocationAmount = { bucketId: string; amount: number };
 
-/** Attach bucket allocations to a contribution and move the bucket balances. */
-async function writeBucketAllocations(
+/**
+ * Attach bucket allocations to a contribution, with the matching ledger rows.
+ *
+ * The balances are NOT moved here: a split moves no money between buckets, so
+ * the balance only changes when the two sets of allocations differ. That is
+ * netted once for the whole operation (see netBucketChange) rather than one
+ * update per bucket per row, which keeps the transaction short enough for the
+ * pooled database connection.
+ */
+async function setBucketAllocations(
   tx: Prisma.TransactionClient,
   args: {
     contributionId: string;
@@ -543,55 +551,75 @@ async function writeBucketAllocations(
     note: string;
   },
 ): Promise<void> {
-  for (const a of args.allocations) {
-    await tx.bucketAllocation.create({
-      data: {
-        contributionId: args.contributionId,
-        bucketId: a.bucketId,
-        amount: a.amount,
-      },
-    });
-    await tx.bucket.update({
-      where: { id: a.bucketId },
-      data: { balance: { increment: a.amount } },
-    });
-    await tx.bucketTransaction.create({
-      data: {
-        bucketId: a.bucketId,
-        amount: a.amount,
-        type: 'CONTRIBUTION_ALLOCATION',
-        referenceType: 'Contribution',
-        referenceId: args.contributionId,
-        note: args.note,
-        recordedById: args.recordedById,
-      },
-    });
-  }
+  if (args.allocations.length === 0) return;
+  await tx.bucketAllocation.createMany({
+    data: args.allocations.map((a) => ({
+      contributionId: args.contributionId,
+      bucketId: a.bucketId,
+      amount: a.amount,
+    })),
+  });
+  await tx.bucketTransaction.createMany({
+    data: args.allocations.map((a) => ({
+      bucketId: a.bucketId,
+      amount: a.amount,
+      type: 'CONTRIBUTION_ALLOCATION',
+      referenceType: 'Contribution',
+      referenceId: args.contributionId,
+      note: args.note,
+      recordedById: args.recordedById,
+    })),
+  });
 }
 
-/**
- * Take a contribution's bucket allocations off the books.
- *
- * The bucket balance moves down by the same amount that came off, and the
- * allocation rows and the matching ledger rows go with it, so the dashboard
- * reconciliation (balance vs ledger sum) stays at zero drift.
- */
+/** Take a contribution's bucket allocations and ledger rows off the books. */
 async function clearBucketAllocations(
   tx: Prisma.TransactionClient,
-  args: { contributionId: string; allocations: BucketAllocationAmount[] },
+  args: { contributionId: string },
 ): Promise<void> {
-  for (const a of args.allocations) {
-    await tx.bucket.update({
-      where: { id: a.bucketId },
-      data: { balance: { decrement: a.amount } },
-    });
-  }
   await tx.bucketAllocation.deleteMany({
     where: { contributionId: args.contributionId },
   });
   await tx.bucketTransaction.deleteMany({
     where: { referenceType: 'Contribution', referenceId: args.contributionId },
   });
+}
+
+/**
+ * The change each bucket's balance has to make.
+ *
+ * A split replaces one set of allocations with another: the money is in the
+ * same buckets, so most of the time the net change is nothing at all and the
+ * balance is left alone.
+ */
+function netBucketChange(
+  previous: BucketAllocationAmount[],
+  next: BucketAllocationAmount[],
+): Map<string, number> {
+  const deltas = new Map<string, number>();
+  for (const p of previous) {
+    deltas.set(p.bucketId, (deltas.get(p.bucketId) ?? 0) - p.amount);
+  }
+  for (const n of next) {
+    deltas.set(n.bucketId, (deltas.get(n.bucketId) ?? 0) + n.amount);
+  }
+  for (const [bucketId, delta] of Array.from(deltas)) {
+    if (Math.abs(delta) < 0.005) deltas.delete(bucketId);
+  }
+  return deltas;
+}
+
+/** Move the bucket balances by the net amount for each bucket. */
+async function moveBucketBalances(
+  tx: Prisma.TransactionClient,
+  deltas: Map<string, number>,
+): Promise<void> {
+  for (const [bucketId, delta] of deltas) {
+    await tx.bucket.update({
+      where: { id: bucketId },
+      data: { balance: { increment: delta } },
+    });
+  }
 }
 
 const splitSchema = z.object({
@@ -713,66 +741,72 @@ export async function splitContributionAction(
   const created: { id: string; month: number; year: number; amount: number }[] = [];
 
   try {
-    await prisma.$transaction(async (tx) => {
-      for (let j = 0; j < plan.shares.length; j++) {
-        const share = plan.shares[j]!;
-        // share.month is a MonthKey: the period this share covers.
-        const { month: shareMonth, year: shareYear } = share.month;
-        const shareAllocations = allocationsForShare(j);
+    await prisma.$transaction(
+      async (tx) => {
+        // The share each month gets, and the bucket allocations that go with
+        // it: every bucket's money is divided by the same number of parts, so
+        // the money stays in the buckets it was already in.
+        const shareAllocations = plan.shares.map((_, j) => allocationsForShare(j));
 
-        if (shareYear === contribution.year && shareMonth === contribution.month) {
-          // The month the payment is already booked against keeps the row.
-          await tx.contribution.update({
-            where: { id: contribution.id },
-            data: { amount: share.amount },
-          });
-          await clearBucketAllocations(tx, {
-            contributionId: contribution.id,
-            allocations: originalAllocations,
-          });
-          await writeBucketAllocations(tx, {
-            contributionId: contribution.id,
-            allocations: shareAllocations,
+        // One net movement for the whole operation. The shares add back to
+        // the original allocation, so the balances usually do not move.
+        await moveBucketBalances(
+          tx,
+          netBucketChange(originalAllocations, shareAllocations.flat()),
+        );
+
+        await clearBucketAllocations(tx, { contributionId: contribution.id });
+
+        for (let j = 0; j < plan.shares.length; j++) {
+          const share = plan.shares[j]!;
+          // share.month is a MonthKey: the period this share covers.
+          const { month: shareMonth, year: shareYear } = share.month;
+          const allocations = shareAllocations[j]!;
+
+          let rowId = contribution.id;
+          if (shareYear === contribution.year && shareMonth === contribution.month) {
+            // The month the payment is already booked against keeps the row.
+            await tx.contribution.update({
+              where: { id: contribution.id },
+              data: { amount: share.amount },
+            });
+          } else {
+            const row = await tx.contribution.create({
+              data: {
+                memberId: contribution.memberId,
+                amount: share.amount,
+                month: shareMonth,
+                year: shareYear,
+                paymentMethod: contribution.paymentMethod,
+                // One receipt covers one payment. The split rows are the same
+                // money seen month by month, so there is no second receipt.
+                receiptNumber: null,
+                receivedAt: contribution.receivedAt,
+                recordedById: contribution.recordedById,
+              },
+            });
+            rowId = row.id;
+          }
+
+          await setBucketAllocations(tx, {
+            contributionId: rowId,
+            allocations,
             recordedById: contribution.recordedById,
             note,
           });
+
           created.push({
-            id: contribution.id,
+            id: rowId,
             month: shareMonth,
             year: shareYear,
             amount: share.amount,
           });
-          continue;
         }
-
-        const row = await tx.contribution.create({
-          data: {
-            memberId: contribution.memberId,
-            amount: share.amount,
-            month: shareMonth,
-            year: shareYear,
-            paymentMethod: contribution.paymentMethod,
-            // One receipt covers one payment. The split rows are the same
-            // money seen month by month, so there is no second receipt.
-            receiptNumber: null,
-            receivedAt: contribution.receivedAt,
-            recordedById: contribution.recordedById,
-          },
-        });
-        await writeBucketAllocations(tx, {
-          contributionId: row.id,
-          allocations: shareAllocations,
-          recordedById: contribution.recordedById,
-          note,
-        });
-        created.push({
-          id: row.id,
-          month: shareMonth,
-          year: shareYear,
-          amount: share.amount,
-        });
-      }
-    });
+      },
+      // The pooled database connection closes a transaction that runs too
+      // long, and the split touches a dozen rows. Give it room.
+      { maxWait: 15000, timeout: 30000 },
+    );
   } catch (err: any) {
     return { error: err.message ?? 'Failed to split the payment.' };
   }
@@ -905,13 +939,15 @@ export async function voidContributionAction(
   }));
 
   try {
-    await prisma.$transaction(async (tx) => {
-      await clearBucketAllocations(tx, {
-        contributionId: contribution.id,
-        allocations,
-      });
-      await tx.contribution.delete({ where: { id: contribution.id } });
-    });
+    await prisma.$transaction(
+      async (tx) => {
+        // The money goes back off the buckets it was added to.
+        await moveBucketBalances(tx, netBucketChange(allocations, []));
+        await clearBucketAllocations(tx, { contributionId: contribution.id });
+        await tx.contribution.delete({ where: { id: contribution.id } });
+      },
+      { maxWait: 15000, timeout: 30000 },
+    );
   } catch (err: any) {
     return { error: err.message ?? 'Failed to void the entry.' };
   }
