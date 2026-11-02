@@ -19,7 +19,8 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import type { Role } from '@prisma/client';
+import type { QuizQuestionType, Role } from '@prisma/client';
+import type { BundleModule } from '@/lib/learning-import';
 import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth/require-user';
 import { logAudit, AUDIT_ACTIONS } from '@/lib/audit';
@@ -40,6 +41,35 @@ async function requireLearningEditor() {
   const user = await requireUser();
   if (!user.isAdmin && !OFFICER_ROLES.includes(user.role)) return null;
   return user;
+}
+
+/**
+ * The nested shape Prisma wants for a quiz and its questions.
+ *
+ * The bundle speaks in "correct"; the database speaks in "isCorrect".
+ * A quiz is only ever CREATED, never replaced: replacing one would
+ * clear every member's stored answers for it.
+ */
+function quizCreate(quiz: NonNullable<BundleModule['quiz']>) {
+  return {
+    title: quiz.title,
+    passingScore: quiz.passingScore,
+    questions: {
+      create: quiz.questions.map((qn) => ({
+        order: qn.order,
+        prompt: qn.prompt,
+        type: qn.type as QuizQuestionType,
+        explanation: qn.explanation ?? null,
+        options: {
+          create: qn.options.map((o) => ({
+            text: o.text,
+            isCorrect: o.correct,
+            order: o.order,
+          })),
+        },
+      })),
+    },
+  };
 }
 
 const lessonSchema = z.object({
@@ -135,8 +165,13 @@ export async function applyLearningBundleAction(formData: FormData) {
   for (const bm of bundle.modules) {
     const existing = current.find((m) => m.slug === bm.slug);
 
+    // A quiz is created only when the bundle brings one and the module
+    // has none: a brand new module obviously has none, and a module that
+    // was created without its quiz is given one.
+    const wantQuiz = !!bm.quiz && (!existing || existing.quiz === null);
+
     if (!existing) {
-      // A brand new module, with its lessons created alongside it.
+      // A brand new module, with its lessons and its quiz created alongside it.
       await prisma.learningModule.create({
         data: {
           slug: bm.slug,
@@ -154,6 +189,7 @@ export async function applyLearningBundleAction(formData: FormData) {
               estimatedMin: l.estimatedMin,
             })),
           },
+          ...(wantQuiz ? { quiz: { create: quizCreate(bm.quiz!) } } : {}),
         },
       });
       continue;
@@ -187,6 +223,17 @@ export async function applyLearningBundleAction(formData: FormData) {
           title: bl.title,
           content: bl.content,
           estimatedMin: bl.estimatedMin,
+        },
+      });
+    }
+
+    // The module existed but had no quiz. Give it the one the bundle
+    // carries, so every module in the hub ends with a quiz.
+    if (wantQuiz) {
+      await prisma.quiz.create({
+        data: {
+          moduleId: existing.id,
+          ...quizCreate(bm.quiz!),
         },
       });
     }

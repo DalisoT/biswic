@@ -121,6 +121,31 @@ describe('planLearningImport', () => {
     expect(plan.modules[0]!.quizAction).toBe('create');
   });
 
+  it('creates a quiz for a module that does not exist yet', () => {
+    const withQuiz = {
+      modules: [
+        {
+          ...bundle.modules[0]!,
+          quiz: {
+            title: 'Quiz',
+            passingScore: 70,
+            questions: [
+              {
+                order: 1,
+                prompt: 'Q?',
+                type: 'MULTIPLE_CHOICE',
+                options: [{ text: 'A', correct: true, order: 1 }],
+              },
+            ],
+          },
+        },
+      ],
+    };
+    const plan = planLearningImport([], withQuiz);
+    expect(plan.modules[0]!.action).toBe('create');
+    expect(plan.modules[0]!.quizAction).toBe('create');
+  });
+
   it('counts created and updated modules and lessons', () => {
     const plan = planLearningImport(
       [{ slug: 'existing-module', lessonOrders: [1], hasQuiz: true }],

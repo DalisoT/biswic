@@ -106,11 +106,12 @@ export function planLearningImport(
       title: bl.title,
     }));
 
-    // A quiz is only created when the module has none and the bundle brings
-    // one. An existing quiz is never replaced: that would clear every member's
-    // stored answers for it.
+    // A quiz is only created when the bundle brings one AND the module has
+    // no quiz yet. A module that does not exist yet obviously has no quiz, so
+    // a brand new module brings its quiz with it. An existing quiz is never
+    // replaced: that would clear every member's stored answers for it.
     const quizAction: 'create' | 'skip' =
-      bm.quiz && existing && !existing.hasQuiz ? 'create' : 'skip';
+      bm.quiz && (!existing || !existing.hasQuiz) ? 'create' : 'skip';
 
     return {
       action: existing ? ('update' as const) : ('create' as const),
