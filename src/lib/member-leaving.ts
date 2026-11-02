@@ -29,13 +29,19 @@ import { monthKey } from './contribution-report';
  *      month -- so a day-level leaving date would be false precision.
  *   2. A member owes contributions UP TO AND INCLUDING the month they left.
  *      Leaving in September means July, August and September are owed.
- *   3. Deactivating a member without naming a leaving month stops the billing
- *      from the CURRENT month. Leaving the field blank must never leave a
- *      member liable forever -- that was the bug this module fixes.
+ *   3. Deactivating a member (an active member being switched off) without
+ *      naming a leaving month stops the billing from the CURRENT month.
+ *      Leaving the field blank must never leave a member liable forever --
+ *      that was the bug this module fixes.
  *   4. Reactivating a member clears the leaving date: they are back on the
  *      register and liable to the end of the period again.
  *   5. A leaving month cannot be earlier than the first month the member owes,
  *      and cannot be in the future.
+ *   6. Editing a member who was ALREADY inactive, without naming a leaving
+ *      month, leaves the leaving date alone. An unrelated edit -- correcting
+ *      a phone number, say -- must not invent a leaving month for a member
+ *      whose real leaving month is still unknown. Those stay visibly
+ *      unrecorded until the committee supplies the month.
  */
 
 export interface MonthKey {
@@ -158,6 +164,12 @@ export interface ResolveLeavingInput {
   value: string | null | undefined;
   /** Is the member still on the register? */
   isActive: boolean;
+  /**
+   * Is this edit the moment the member is being deactivated (they were
+   * active and now are not)? Only then does a blank leaving month default to
+   * the current month -- see rule 3 and rule 6.
+   */
+  isDeactivating?: boolean;
   /** The leaving date already on file, if any. */
   existingLeftAt: Date | null;
   /** The first month this member is liable to pay for. */
@@ -231,15 +243,22 @@ export function resolveLeavingMonth(
     return { ok: true, leftAt: input.existingLeftAt, changed: false };
   }
 
-  // Rule 3: deactivating without a stated month stops the billing from this
-  // month. Never leave a member liable forever.
-  const fallback =
-    compareMonth(nowMonth, input.firstLiable) < 0 ? input.firstLiable : nowMonth;
-  return {
-    ok: true,
-    leftAt: monthAnchor(fallback.year, fallback.month),
-    changed: true,
-  };
+  // Rule 3: DEACTIVATING a member without a stated month stops the billing
+  // from this month. Never leave a newly-deactivated member liable forever.
+  if (input.isDeactivating) {
+    const fallback =
+      compareMonth(nowMonth, input.firstLiable) < 0 ? input.firstLiable : nowMonth;
+    return {
+      ok: true,
+      leftAt: monthAnchor(fallback.year, fallback.month),
+      changed: true,
+    };
+  }
+
+  // Rule 6: this member was ALREADY inactive and no leaving month was given.
+  // An unrelated edit must not invent a leaving month for a member whose real
+  // leaving month the committee has not supplied yet. Leave it unrecorded.
+  return { ok: true, leftAt: null, changed: false };
 }
 
 /**

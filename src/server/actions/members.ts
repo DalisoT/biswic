@@ -315,6 +315,10 @@ export async function updateMemberAction(formData: FormData): Promise<UpdateMemb
   const leaving = resolveLeavingMonth({
     value: data.leftAtMonth,
     isActive: data.isActive,
+    // Only a fresh deactivation (active -> inactive) falls back to "this
+    // month". Editing a member who was already inactive must not invent a
+    // leaving month for someone whose real leaving month is still unknown.
+    isDeactivating: before.isActive && !data.isActive,
     existingLeftAt: before.leftAt,
     firstLiable: firstLiableMonth({
       isFoundingMember: before.isFoundingMember,

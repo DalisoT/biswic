@@ -116,6 +116,11 @@ export default async function MembersPage() {
                           Left {formatMonthLabel(monthKeyOf(m.leftAt))}
                         </div>
                       )}
+                      {!m.isActive && !m.leftAt && (
+                        <div className="text-xs text-amber-700 mt-1 whitespace-nowrap">
+                          Leaving month not recorded
+                        </div>
+                      )}
                     </TableCell>
                     {canEdit && (
                       <TableCell>

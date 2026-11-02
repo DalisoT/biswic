@@ -148,11 +148,26 @@ describe('resolveLeavingMonth', () => {
   it('stops the billing from this month when a member is deactivated with no leaving month', () => {
     // This is the fix: before it, a deactivated member kept `leftAt = null`
     // and was billed for every month of the period, forever.
-    const result = resolveLeavingMonth({ ...base, value: '' });
+    const result = resolveLeavingMonth({
+      ...base,
+      value: '',
+      isDeactivating: true,
+    });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.leftAt?.toISOString()).toBe('2026-11-15T12:00:00.000Z');
     expect(result.changed).toBe(true);
+  });
+
+  it('leaves the leaving month unrecorded when an already-inactive member is edited', () => {
+    // An unrelated edit -- correcting a phone number, say -- must not invent
+    // a leaving month for a member whose real leaving month the committee
+    // has not supplied yet.
+    const result = resolveLeavingMonth({ ...base, value: '' });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.leftAt).toBeNull();
+    expect(result.changed).toBe(false);
   });
 
   it('keeps the leaving month already on file when the field is cleared', () => {
@@ -173,6 +188,7 @@ describe('resolveLeavingMonth', () => {
     const result = resolveLeavingMonth({
       ...base,
       value: '',
+      isDeactivating: true,
       now: localDate(2026, 8, 1),
       firstLiable: { year: 2026, month: 9 },
     });

@@ -172,10 +172,16 @@ export function EditMemberForm({ member, isSelf, isPlaceholder }: Props) {
             left. Leave this blank while the member is still active, or the leaving
             month is cleared.
           </p>
-          {!isActive && !member.leftAtValue && (
+          {!isActive && !member.leftAtValue && member.isActive && (
             <p className="text-[10px] text-amber-700">
               No leaving month recorded &mdash; deactivating this member will record
               this month as the leaving month.
+            </p>
+          )}
+          {!isActive && !member.leftAtValue && !member.isActive && (
+            <p className="text-[10px] text-amber-700">
+              No leaving month recorded &mdash; enter the month this member left so
+              the contributions report stops billing them.
             </p>
           )}
         </div>
