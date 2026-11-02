@@ -2,7 +2,7 @@
 
 **Reporting period:** 22 July 2026 (founding) to 2 November 2026
 **Prepared for:** The Chairman and Committee of the Brothers in Service Welfare, Land & Investment Cooperative
-**Prepared:** 1 November 2026, re-verified against the live platform on 2 November 2026
+**Prepared:** 1 November 2026, re-verified against the live platform on 2 November 2026, and again after the four November payments were re-booked to October
 **Source:** BISWIC member platform (live ledger) and the contributions report export of 1 November 2026
 
 > November contributions were still being recorded as this report was written, so the figures move during the month.
@@ -17,9 +17,10 @@ giving a compliance rate of **50%**.
 
 Three things need to be said plainly at the start:
 
-- **Collection has been falling sharply month on month.** The number of members paying fell from 49 in July to 25 in
-  October — a 49% fall in the paying base — and the money collected with it, from K5,000 to K2,500. November is two days
-  old and has brought in four payments (K400); it cannot yet be read either way.
+- **Collection has been falling sharply month on month.** The number of members paying fell from 49 in July to 29 in
+  October — a 41% fall in the paying base — and the money collected with it, from K5,000 to K2,900. November is two days
+  old and has brought in nothing at all; the four payments received on 1 and 2 November were for October and are now
+  booked against October.
 - **Fifteen of the 67 members have never paid anything.** Each of them owes exactly five months, K500. Eight were
   deactivated on 2 November 2026 (leaving month recorded as November 2026) and seven had already left the
   cooperative, which means **K3,500 of the arrears are owed by people who are no longer with us** and are unlikely to
@@ -29,11 +30,11 @@ Three things need to be said plainly at the start:
   paid cash on 15 July 2026. The chairman confirmed on 2 November 2026 that they joined on 22 July 2026, and the
   joining dates have been corrected (section 7). **The correction did not move the arrears at all** — the months that
   came into their liability window are months they had already paid.
-- **Four members paid in November for October, and the platform shows them as owing October.** BANDA L,
-  KAKOMA R, CHIRWA J and CHISENGA ABEL handed their money in on 1 and 2 November, for the month of October,
-  and the contributions were booked against November. The chairman has confirmed this. No money is missing and
-  the arrears do not change — but until those four bookings are moved to October, these four members look as
-  though they have skipped a month, and one of them is an officer.
+- **Four members paid in November for October, and their payments have now been moved to October.** BANDA L,
+  KAKOMA R, CHIRWA J and CHISENGA ABEL handed their money in on 1 and 2 November **for October**, and the
+  contributions were booked against November. The chairman has confirmed this, and on 2 November 2026 the four
+  bookings were moved to October (section 4). No money is missing and the arrears did not change: these four
+  members now show what they actually owe — November, like everyone else.
 
 The committee should treat the arrears as **two separate problems**: roughly K3,500 of dead debt from the seven
 members who left before their leaving month was recorded, and roughly K13,200 from members who are still on the
@@ -59,9 +60,9 @@ credited to the months it was paid for** (section 4). One member in particular m
 | Received before joining | K0 (was K500 — see section 7) |
 | Compliance rate | 50% |
 
-The arrears above are what the platform reports, and they do not change when the four November bookings are
-moved to October: the money was received, it is simply booked against the wrong month. What changes is **which**
-month those four members owe — November rather than October. See section 4.
+The arrears above are what the platform reports, and they did not change when the four November bookings were
+moved to October on 2 November 2026: the money was received, it was simply booked against the wrong month. What
+changed is **which** month those four members owe — November rather than October. See section 4.
 
 The cooperative's first money was received on **15 July 2026** and the founding register was signed on **22 July 2026**.
 Nothing was collected before that date, so July is the first month in which any contribution could legitimately be
@@ -76,8 +77,8 @@ due.
 | July 2026 | 49 of 52 | K5,000 | K5,200 | 94% |
 | August 2026 | 49 of 52 | K5,100 | K5,200 | 94% |
 | September 2026 | 40 of 52 | K4,200 | K5,200 | 77% |
-| October 2026 | 25 of 52 | K2,500 | K5,200 | 48% |
-| November 2026 *(to 2nd)* | 4 of 52 | K400 | K5,200 | 8% |
+| October 2026 | 29 of 52 | K2,900 | K5,200 | 56% |
+| November 2026 *(to 2nd)* | 0 of 52 | K0 | K5,200 | 0% |
 | **Total** | **167** | **K17,200** | **K26,000** | **64%** |
 
 *The "of 52" and the K5,200 target are the monthly screen's own figures: it divides each month by the number of
@@ -94,17 +95,18 @@ booked against, and the platform does not carry it forward (section 4 and sectio
 
 **The trend is downward and it is steep.** Comparing the first two months with the next two:
 
-- Average collected per month fell from **K5,050** (July–August) to **K3,350** (September–October) — a **34% fall**.
-- The number of members paying fell from 49 to 25 between July and October — a **49% fall** in the paying base.
-- Only four payments have been received for November (CHISENGA ABEL and BANDA L on 1 November, KAKOMA R and CHIRWA J
-  on 2 November, K100 each). **November must not be read as a collapse**; the month has barely started and it should
-  be judged at the November meeting.
+- Average collected per month fell from **K5,050** (July–August) to **K3,550** (September–October) — a **30% fall**.
+- The number of members paying fell from 49 to 29 between July and October — a **41% fall** in the paying base.
+- **No payment has been received for November.** The four payments that arrived on 1 and 2 November were for
+  **October** and are now booked against October, so November's ledger is empty. **November must not be read as a
+  collapse**; the month has barely started and it should be judged at the November meeting.
 
-**Four members paid in November for October.** CHISENGA ABEL and BANDA L handed their money in on 1 November, KAKOMA R
-and CHIRWA J on 2 November — but the contributions were booked against **November**, so October reads as unpaid and
-the platform shows each of them K100 short. The chairman has confirmed that the money was for **October**. Nothing
-is missing and nothing is owed twice: the bookings need to move to October, after which these four members owe only
-November, like everyone else.
+**Four members paid in November for October, and those bookings have now been moved.** CHISENGA ABEL and BANDA L
+handed their money in on 1 November, KAKOMA R and CHIRWA J on 2 November, and the contributions were booked against
+**November**, so October read as unpaid and the platform showed each of them K100 short. The chairman has confirmed
+that the money was for **October**, and on 2 November 2026 the four bookings were moved to October. Nothing is
+missing and nothing is owed twice: these four members now owe only November, like everyone else. October's screen
+now reads **29 of 52 paid · K2,900**, and November's reads **0 of 52 paid · K0**.
 
 **Why the pattern is not simply "members stopped paying".** The timing of the entries shows the *recording* cycle
 slipping as much as the paying cycle:
@@ -113,7 +115,8 @@ slipping as much as the paying cycle:
   (`RCT-2026-07-xxxxx`). This is what a properly collected month looks like.
 - October's contributions were entered as a **mobile-money bulk import on 1 November** — that is, the money for
   October did not reach the ledger until the first day of the following month. One member (Mwansa Jacob) paid in cash
-  on 28 October with a receipt.
+  on 28 October with a receipt. Four more October payments arrived by hand on 1 and 2 November and sat against
+  November until they were moved on 2 November.
 - If that slippage repeats, November's contributions will land on 1 December, and the cooperative will spend the
   life of this report always one month behind its own ledger.
 
@@ -123,7 +126,7 @@ Assuming each contributing member pays the standard K100:
 
 | If November collects | Months paid | Contributed | Arrears | Compliance |
 | --- | --- | --- | --- | --- |
-| Like October (25 members) | 192 | K19,700 | K14,200 | 57% |
+| Like October (29 members) | 196 | K20,100 | K13,800 | 59% |
 | Like September (40 members) | 207 | K21,200 | K12,700 | 62% |
 | Like July (49 members) | 216 | K22,100 | K11,800 | 65% |
 
@@ -147,13 +150,12 @@ Arrears are not spread evenly. They are concentrated in a small number of member
 
 *Shares are rounded.*
 
-**Four of the 26 members in the "4 of their months" row have paid for October, but the payment is booked against
-November.** They are 104784 BANDA L, 105257 KAKOMA R, 105046 CHIRWA J and 105065 CHISENGA ABEL. The chairman has
-confirmed that the money they handed in on 1 and 2 November was for **October**. The platform therefore shows each
-of them K100 short for October when they are not: they have paid every month from July to October, and what they
-owe is **November**. Moving those four bookings to October changes no money at all — the arrears stay at K16,700 and
-compliance at 50% — but it moves these four members from "behind on October" to "current, and owing November",
-which is what they are.
+**The four members who paid in November for October are now booked against October.** They are 104784 BANDA L,
+105257 KAKOMA R, 105046 CHIRWA J and 105065 CHISENGA ABEL. The chairman has confirmed that the money they handed in
+on 1 and 2 November was for **October**, and on 2 November 2026 their four bookings were moved to October. Moving
+them changed no money at all — the arrears stay at K16,700 and compliance at 50% — but it moved these four members
+from "behind on October" to "current, and owing November", which is what they are. All four rows still carry the
+date the money was received, 1 and 2 November 2026; only the period they are booked against changed.
 
 **Fifteen members — 22% of the register — carry 45% (K7,500) of all the money owed.** If the committee wants a
 single number to work from, it is this one: fifteen names, each owing exactly five months.
@@ -239,8 +241,8 @@ both months on its own. Recommendation 5 asks for that confirmation.
 
 It is worth recording these, because they are the foundation any recovery has to build on.
 
-- **The committee is current through October — with one exception.** Six of the seven officers have paid every month
-  since they joined through October.
+- **The committee is current through October.** All seven officers have paid every month since they joined through
+  October.
 
   | Service # | Name | Office |
   | --- | --- | --- |
@@ -253,12 +255,14 @@ It is worth recording these, because they are the foundation any recovery has to
   | 105716 | MKEMBA W | Deputy Treasurer |
 
   The register therefore carries two Treasurer posts. **104784 BANDA L paid on 1 November for October**, and the
-  chairman has confirmed it; the booking sits against November, so the platform shows him K100 short for October
-  when he is not. Once it is moved he owes only November, like the other six officers.
+  chairman has confirmed it; the booking was moved to October on 2 November 2026, so he owes only November, like the
+  other six officers.
 
 - **27 of the 52 active members (52%) have paid every month since they joined, through October.** These are the
   model's members and the proof that the K100 subscription is affordable. Four of them — CHISENGA ABEL, BANDA L,
   KAKOMA R and CHIRWA J — paid in November for October, and the chairman has confirmed that all four have paid.
+  Their bookings were moved to October on 2 November 2026, so **the platform now shows this figure itself** rather
+  than the report having to take the chairman's word for it.
 - **Some members pay in lumps.** Four members paid above K100 in a month: CHAMA J (K300), and KUNDA G, MUTAMBO S and
   MWANSA J (K200 each). These members are ahead of their schedule rather than behind it, and lump-sum payment is
   evidently an accepted habit in the membership. Section 4 explains why the platform does not yet show them as ahead.
@@ -280,11 +284,15 @@ It is worth recording these, because they are the foundation any recovery has to
    (`/members/<id>/edit`). Entering the leaving month stops the contributions report billing that member from the
    month they left, and the member list shows the month against every inactive member. The seven months below still
    need to be confirmed by the committee and entered.
-2. **Re-book the four November payments against October.** BANDA L (104784), KAKOMA R (105257), CHIRWA J (105046)
-   and CHISENGA ABEL (105065) each paid on 1 or 2 November **for October**, and the chairman has confirmed it, but
-   their contributions were booked against November. Move those four bookings to October: no money changes, the
-   arrears stay at K16,700 and compliance at 50%, but these four members stop showing as a month behind — one of
-   them is an officer — and start showing what they actually owe, which is November.
+2. **Re-book the four November payments against October — DONE on 2 November 2026.** BANDA L (104784), KAKOMA R
+   (105257), CHIRWA J (105046) and CHISENGA ABEL (105065) each paid on 1 or 2 November **for October**, and the
+   chairman has confirmed it, but their contributions were booked against November. Their four bookings have now been
+   moved to October: no money changed, the arrears stay at K16,700 and compliance at 50%, and these four members —
+   one of them an officer — now show what they actually owe, which is November. **The platform now has a control for
+   this**: the contributions screen carries an **Adjust** column with a **Move month** button, which moves a payment
+   to another period in place — the amount, the method, the date received and the receipt number are left untouched
+   and nothing is deleted — and records the move in the audit log, so any future correction can be seen and
+   explained.
 3. **Make a personal approach to the eight members who owe for every month they have been on the register** (K4,000
    combined). They were deactivated on 2 November 2026, so they can no longer sign in; the committee should decide
    whether to reinstate any of them if they come back and pay. These are not administrative cases — a phone call each
@@ -398,8 +406,9 @@ Three points so that the committee is not caught out by arithmetic that looks wr
 - Every receipt for the four members who paid above K100 was read from the monthly screens, including the four
   November payments recorded on 1 and 2 November 2026.
 - The chairman's confirmation of 2 November 2026 that 104784 BANDA L, 105257 KAKOMA R, 105046 CHIRWA J and 105065
-  CHISENGA ABEL paid on 1 and 2 November **for October**. The platform's records for these four are unchanged, and
-  the re-booking in recommendation 2 has not yet been made.
+  CHISENGA ABEL paid on 1 and 2 November **for October**. Their four bookings were moved to October on
+  2 November 2026 and each move is recorded in the platform's audit log. The October screen now reads
+  29 of 52 paid · K2,900, and November's reads 0 of 52 paid · K0.
 
-*Prepared from the live ledger on 1 November 2026 and re-verified against the live platform on 2 November 2026.
+*Prepared from the live ledger on 1 November 2026 and re-verified against the live platform on 2 November 2026, before and after the four November bookings were moved to October.
 Figures are as at the date of preparation and will move as November contributions are recorded.*
