@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { getUser } from '@/lib/auth/require-user';
 import { Button } from '@/components/ui/button';
 import { QuizRunner } from '@/components/learn/quiz-runner';
+import { ShareButton } from '@/components/learn/share-button';
 
 export const dynamic = 'force-dynamic';
 
@@ -92,6 +93,12 @@ export default async function QuizStartPage({
           {learningModule.quiz.title}
         </h1>
       </header>
+
+      <ShareButton
+        path={`/share/learn/${learningModule.slug}/quiz`}
+        title={learningModule.quiz.title}
+        label="Share quiz"
+      />
 
       <section className="rounded-lg border bg-card p-4">
         <h2 className="font-heading text-sm font-semibold">How the quiz works</h2>

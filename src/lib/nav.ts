@@ -17,6 +17,7 @@ import {
   Wallet,
   ShieldAlert,
   GraduationCap,
+  Pencil,
   Bell,
   FileBarChart,
   type LucideIcon,
@@ -146,6 +147,13 @@ export const NAV_SECTIONS: NavSection[] = [
         href: '/learn/me',
         icon: GraduationCap,
         description: 'Your progress + quizzes',
+      },
+      {
+        label: 'Learning editor',
+        href: '/admin/learning',
+        icon: Pencil,
+        roles: OFFICER_ROLES,
+        description: 'Edit the hub content',
       },
       {
         label: 'Statement',

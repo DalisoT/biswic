@@ -13,6 +13,7 @@ import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/auth/require-user';
 import { logAudit, AUDIT_ACTIONS } from '@/lib/audit';
 import { createNotification } from '@/server/actions/notifications';
+import { gradeQuiz, type GradingQuestionType } from '@/lib/quiz-grading';
 
 // ----------------------------------------------------------------------------
 // Lesson progress
@@ -160,40 +161,19 @@ export async function submitQuizAttemptAction(formData: FormData) {
     return { error: 'This attempt has already been submitted.' };
   }
 
-  // Grade
-  const totalQuestions = attempt.quiz.questions.length;
-  let correctCount = 0;
-  const gradedAnswers: {
-    questionId: string;
-    selectedOptionIds: string[];
-    isCorrect: boolean;
-  }[] = [];
-
-  for (const q of attempt.quiz.questions) {
-    const selectedIds = rawAnswers[q.id] ?? [];
-    const correctIds = q.options.filter((o) => o.isCorrect).map((o) => o.id);
-
-    let isCorrect = false;
-    if (q.type === 'MULTI_SELECT') {
-      // Exact set match (same options selected, no extras, no missing)
-      isCorrect =
-        selectedIds.length === correctIds.length &&
-        selectedIds.every((id) => correctIds.includes(id));
-    } else {
-      // SINGLE-ANSWER (MULTIPLE_CHOICE or TRUE_FALSE): exactly one correct option must be picked
-      isCorrect = selectedIds.length === 1 && correctIds.includes(selectedIds[0]!);
-    }
-
-    if (isCorrect) correctCount++;
-    gradedAnswers.push({
-      questionId: q.id,
-      selectedOptionIds: selectedIds,
-      isCorrect,
-    });
-  }
-
-  const score = totalQuestions === 0 ? 0 : Math.round((correctCount / totalQuestions) * 100);
-  const passed = score >= attempt.quiz.passingScore;
+  // Grade through the shared module so the server path and the shared-guest
+  // path can never disagree about the score.
+  const grade = gradeQuiz(
+    attempt.quiz.questions.map((q) => ({
+      id: q.id,
+      type: q.type as GradingQuestionType,
+      correctOptionIds: q.options.filter((o) => o.isCorrect).map((o) => o.id),
+    })),
+    rawAnswers,
+    attempt.quiz.passingScore,
+  );
+  const { score, passed } = grade;
+  const gradedAnswers = grade.answers;
 
   // Persist
   await prisma.$transaction([

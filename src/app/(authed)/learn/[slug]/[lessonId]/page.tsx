@@ -6,6 +6,7 @@ import { getUser } from '@/lib/auth/require-user';
 import { Button } from '@/components/ui/button';
 import { renderMarkdown, stripLeadingHeading } from '@/lib/utils-markdown';
 import { MarkCompleteButton } from '@/components/learn/mark-complete-button';
+import { ShareButton } from '@/components/learn/share-button';
 
 export const dynamic = 'force-dynamic';
 
@@ -81,6 +82,12 @@ export default async function LessonPage({
           {lesson.title}
         </h1>
       </header>
+
+      <ShareButton
+        path={`/share/learn/${lesson.module.slug}/${lesson.id}`}
+        title={lesson.title}
+        label="Share lesson"
+      />
 
       {/* Lesson body. Borderless -- the heading above already carries the
           title, and the body opens with a copy of it. */}
