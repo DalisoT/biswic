@@ -20,14 +20,17 @@ Three things need to be said plainly at the start:
 - **Collection has been falling sharply month on month.** The monthly rate went 82% (July) → 82% (August) → 67%
   (September) → 42% (October). November is one day old and cannot yet be read either way.
 - **A quarter of the register has never paid anything.** 16 of the 67 members on the register have no contribution on
-  record for any month they owed. Seven of those have since left the cooperative, which means **K3,500 of the arrears
-  are owed by people who are no longer with us** and are unlikely to be recovered.
+  record for any month they owed. Nine of those were deactivated on 2 November 2026 (leaving month recorded as
+  November 2026) and seven had already left the cooperative, which means **K3,500 of the arrears are owed by people
+  who are no longer with us** and are unlikely to be recovered.
 - **K500 of the money received was collected from three members for months before they joined.** It is reported
   separately and is pending a committee decision (section 7). If it is credited forward rather than refunded, the
   amount actually collectable falls from K16,900 to **K16,400**.
 
-The committee should treat the arrears as **two separate problems**: roughly K3,500 of dead debt from departed
-members, and roughly K13,400 of live debt from members who are still on the register and can still be collected.
+The committee should treat the arrears as **two separate problems**: roughly K3,500 of dead debt from the seven
+members who left before their leaving month was recorded, and roughly K13,400 from members who are still on the
+register — nine of whom (K4,300) were deactivated on 2 November 2026 and will need a personal approach before
+anything else can be done about them.
 
 ---
 
@@ -35,7 +38,7 @@ members, and roughly K13,400 of live debt from members who are still on the regi
 
 | Measure | Value |
 | --- | --- |
-| Members on the register | 67 (60 active, 7 departed) |
+| Members on the register | 67 (51 active, 16 departed) |
 | Member-months due (Jul–Nov 2026) | 329 |
 | Expected at K100 per member per month | K32,900 |
 | Contributions received | K17,000 (165 payments) |
@@ -118,8 +121,25 @@ single number to work from, it is this one: fifteen names, each owing exactly fi
 
 ### The 16 members who have paid for none of their months
 
-**Seven have departed the cooperative.** Their arrears (K500 each, K3,500 total) should not be chased and should not
-be reported as live debt:
+**Nine were deactivated on 2 November 2026**, on the chairman's instruction. Their leaving month is recorded as
+November 2026, so the contributions report keeps billing them for July to November — K500 each for the eight
+founding members, K300 for Chewe J, who joined in September. Their arrears are unchanged; what has changed is that
+they are no longer active members: they cannot sign in, and they are no longer eligible for soft loans.
+
+| Service # | Name | Arrears | Status |
+| --- | --- | --- | --- |
+| 104916 | Chewe J | K300 | Left November 2026 |
+| 104968 | CHILAMBE I | K500 | Left November 2026 |
+| 1051301 | CHUNGU I | K500 | Left November 2026 |
+| 105151 | SIANGA C F | K500 | Left November 2026 |
+| 105334 | KANGWA N | K500 | Left November 2026 |
+| 106303 | NENGUKE R | K500 | Left November 2026 |
+| 106542 | SAKAUMBA I | K500 | Left November 2026 |
+| 106592 | SIAMAZOMBA W | K500 | Left November 2026 |
+| 106645 | SILUPYA R | K500 | Left November 2026 |
+
+**Seven more had already departed the cooperative.** Their arrears (K500 each, K3,500 total) should not be chased
+and should not be reported as live debt:
 
 | Service # | Name | Status |
 | --- | --- | --- |
@@ -135,8 +155,10 @@ The K500 each is still being counted because **the month they left has never bee
 field for it. That field now exists (recommendation 1). Once the seven leaving months are entered, their liability
 stops at the month they left and the K3,500 falls away. Until then, treat it as a provision rather than as debt.
 
-**Nine are still active members** and represent **K4,300 of genuinely collectable arrears**. These are the priority
-recovery list:
+**Nine were active members until 2 November 2026**, when the chairman deactivated them for having never paid a
+single contribution. They represent **K4,300 of the money owed** and are the priority recovery list. Their arrears
+are unchanged — a November leaving month keeps them liable for July to November — but they can no longer sign in
+and are no longer eligible for soft loans:
 
 | Service # | Name | Rank | Arrears |
 | --- | --- | --- | --- |
@@ -171,7 +193,7 @@ It is worth recording these, because they are the foundation any recovery has to
   | 106302 | NEEBA GEORGE | Treasurer |
   | 105716 | MKEMBA W | Deputy Treasurer |
 
-- **25 of the 60 active members (42%) have paid every month since they joined, through October.** These are the
+- **25 of the 51 active members (49%) have paid every month since they joined, through October.** These are the
   model's members and the proof that the K100 subscription is affordable.
 - **Some members pay in lumps.** Four members paid above K100 in a month: CHAMA J (K500 across three months),
   KUNDA G, MUTAMBO S and MWANSA J (one month at K200 each). These members are ahead of their schedule rather than
@@ -190,8 +212,10 @@ It is worth recording these, because they are the foundation any recovery has to
    (`/members/<id>/edit`). Entering the leaving month stops the contributions report billing that member from the
    month they left, and the member list shows the month against every inactive member. The seven months below still
    need to be confirmed by the committee and entered.
-2. **Make a personal approach to the nine active members who owe for every month** (K4,300 combined). These are not
-   administrative cases; a phone call each will resolve whether they are refusing, unable, or simply unaware.
+2. **Make a personal approach to the nine members who owe for every month** (K4,300 combined). They were deactivated on
+   2 November 2026, so they can no longer sign in; the committee should decide whether to reinstate any of them if
+   they come back and pay. These are not administrative cases — a phone call each will resolve whether they are
+   refusing, unable, or simply unaware.
 3. **Bring the recording date forward.** October's money was booked on 1 November. The committee should set a
    standing rule that a month's contributions are recorded by the **15th of the following month**, so that each
    month's ledger is closed before the next meeting.
@@ -246,7 +270,8 @@ register. The K500 is held pending the chairman's confirmation.
 
 Two points so that the committee is not caught out by arithmetic that looks wrong but is not.
 
-- **The monthly screen's "K6,000" is a target, not a liability.** It is calculated as 60 active members × K100 and
+- **The monthly screen's "K6,000" is a target, not a liability.** It is calculated as the number of active members
+  × K100 (51 as at 2 November 2026, after the nine deactivations) and
   assumes that figure for every month, ignoring the fact that four members joined in August and September and that
   seven who have since left were still on the register earlier in the year. Use the monthly screen for *cash in* and
   the arrears report for *what is owed*.
