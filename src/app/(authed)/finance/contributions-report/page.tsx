@@ -195,6 +195,18 @@ export default async function ContributionsReportPage({ searchParams }: PageProp
         </div>
       )}
 
+      {t.receivedAfterLeaving > 0 && (
+        <div className="flex items-start gap-2 p-3 rounded-md bg-violet-50 text-violet-900 text-sm border border-violet-200">
+          <Info className="h-4 w-4 mt-0.5 shrink-0" />
+          <span>
+            {formatCurrency(t.receivedAfterLeaving)} was received for months
+            <strong> after those members left</strong>. It does not reduce
+            their arrears either &mdash; it is money the cooperative holds that
+            the committee may want to return to them.
+          </span>
+        </div>
+      )}
+
       {/* Per-member table */}
       <Card>
         <CardHeader>
@@ -246,6 +258,12 @@ export default async function ContributionsReportPage({ searchParams }: PageProp
                           joining
                         </div>
                       )}
+                  {r.receivedAfterLeaving > 0 && (
+                        <div className="text-xs font-normal text-violet-700 whitespace-normal">
+                          incl. {formatCurrency(r.receivedAfterLeaving)} after
+                          leaving
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
                       {r.arrears > 0 ? (
@@ -286,8 +304,8 @@ export default async function ContributionsReportPage({ searchParams }: PageProp
       <p className="text-xs text-muted-foreground">
         Arrears are counted month by month: a month a member owed with no
         contribution recorded for that month is one unpaid month. Money
-        received for months before the member joined is shown separately and
-        does not reduce their arrears.
+        received for months before the member joined, or after they left, is
+        shown separately and does not reduce their arrears.
       </p>
     </div>
   );

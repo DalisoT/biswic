@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { canManageMembers, roleLabel } from '@/lib/permissions';
 import { formatDate, formatPhone } from '@/lib/utils';
+import { formatMonthLabel, monthKeyOf } from '@/lib/member-leaving';
 import { UserPlus, Users, AlertTriangle, Pencil } from 'lucide-react';
 import Link from 'next/link';
 
@@ -28,6 +29,7 @@ export default async function MembersPage() {
       isFoundingMember: true,
       phone: true,
       joinedAt: true,
+      leftAt: true,
     },
   });
 
@@ -109,6 +111,11 @@ export default async function MembersPage() {
                       <Badge variant={m.isActive ? 'success' : 'destructive'}>
                         {m.isActive ? 'Active' : 'Inactive'}
                       </Badge>
+                      {!m.isActive && m.leftAt && (
+                        <div className="text-xs text-muted-foreground mt-1 whitespace-nowrap">
+                          Left {formatMonthLabel(monthKeyOf(m.leftAt))}
+                        </div>
+                      )}
                     </TableCell>
                     {canEdit && (
                       <TableCell>

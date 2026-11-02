@@ -23,6 +23,8 @@ import { requireUser } from '@/lib/auth/require-user';
 import { canManageMembers, canActAs } from '@/lib/permissions';
 import { logAudit, AUDIT_ACTIONS } from '@/lib/audit';
 import { isFoundingLockActive } from '@/lib/config';
+import { resolveLeavingMonth, isRedactedMember, formatMonthLabel, monthKeyOf } from '@/lib/member-leaving';
+import { firstLiableMonth } from '@/lib/contribution-report';
 import { notifyAdmins } from '@/server/actions/notifications';
 
 // Zambian phone format: +260 followed by 9 digits (e.g. +260971234567)
@@ -222,6 +224,10 @@ const updateSchema = z.object({
   unit: z.string().optional().nullable(),
   role: z.enum(ALL_ROLES as unknown as [Role, ...Role[]]),
   isActive: z.coerce.boolean().optional().default(true),
+  // The month the member left the cooperative, as "YYYY-MM". Empty means
+  // "no leaving month recorded" -- see src/lib/member-leaving.ts for what
+  // that means when the member is being deactivated.
+  leftAtMonth: z.string().optional().nullable(),
   nextOfKinName: z.string().optional().nullable(),
   nextOfKinRelationship: z.string().optional().nullable(),
   nextOfKinPhone: z.string().optional().nullable(),
@@ -240,6 +246,12 @@ export async function updateMemberAction(formData: FormData): Promise<UpdateMemb
     return { error: 'Only the Chairperson or Secretary may edit members.' };
   }
 
+  // Editing your OWN record: the role select and the "active" checkbox are
+  // disabled in the form, so the browser does not submit them. Fill them in
+  // from the signed-in user instead of failing validation -- otherwise an
+  // officer can never correct their own name, phone or next of kin.
+  const isSelf = formData.get('memberId') === user.id;
+
   const parsed = updateSchema.safeParse({
     memberId: formData.get('memberId'),
     fullName: formData.get('fullName'),
@@ -248,8 +260,11 @@ export async function updateMemberAction(formData: FormData): Promise<UpdateMemb
     nrc: formData.get('nrc') || null,
     rank: formData.get('rank') || null,
     unit: formData.get('unit') || null,
-    role: formData.get('role'),
-    isActive: formData.get('isActive') === 'on' || formData.get('isActive') === 'true',
+    role: isSelf ? user.role : formData.get('role'),
+    isActive: isSelf
+      ? true
+      : formData.get('isActive') === 'on' || formData.get('isActive') === 'true',
+    leftAtMonth: formData.get('leftAtMonth') || null,
     nextOfKinName: formData.get('nextOfKinName') || null,
     nextOfKinRelationship: formData.get('nextOfKinRelationship') || null,
     nextOfKinPhone: formData.get('nextOfKinPhone') || null,
@@ -281,10 +296,33 @@ export async function updateMemberAction(formData: FormData): Promise<UpdateMemb
       unit: true,
       role: true,
       isActive: true,
+      joinedAt: true,
+      leftAt: true,
+      isFoundingMember: true,
     },
   });
   if (!before) {
     return { error: 'Member not found.' };
+  }
+
+  // Work out the leaving month BEFORE any write, so a bad value cannot
+  // half-apply. The rules live in src/lib/member-leaving.ts:
+  //   - a stated month must not be before the member's first liable month,
+  //     and must not be in the future;
+  //   - deactivating without a stated month stops the contributions billing
+  //     from the current month (it used to bill them forever);
+  //   - reactivating clears the leaving month.
+  const leaving = resolveLeavingMonth({
+    value: data.leftAtMonth,
+    isActive: data.isActive,
+    existingLeftAt: before.leftAt,
+    firstLiable: firstLiableMonth({
+      isFoundingMember: before.isFoundingMember,
+      joinedAt: before.joinedAt,
+    }),
+  });
+  if (!leaving.ok) {
+    return { error: leaving.error };
   }
 
   // Uniqueness check on email + phone (excluding self)
@@ -320,6 +358,7 @@ export async function updateMemberAction(formData: FormData): Promise<UpdateMemb
       unit: data.unit || null,
       role: data.role,
       isActive: data.isActive,
+      leftAt: leaving.leftAt,
       nextOfKin: (nextOfKin as any) ?? null,
     },
   });
@@ -351,6 +390,22 @@ export async function updateMemberAction(formData: FormData): Promise<UpdateMemb
 
   const roleChanged = before.role !== after.role;
 
+  const auditNotes: string[] = [];
+  if (roleChanged) {
+    auditNotes.push(
+      `Role changed: ${before.role} -> ${after.role} (Constitution Art. 6.4 - requires GM ratification)`,
+    );
+  }
+  if (leaving.changed) {
+    const beforeLabel = before.leftAt
+      ? formatMonthLabel(monthKeyOf(before.leftAt))
+      : 'none';
+    const afterLabel = after.leftAt ? formatMonthLabel(monthKeyOf(after.leftAt)) : 'none';
+    auditNotes.push(
+      `Leaving month changed: ${beforeLabel} -> ${afterLabel} (contributions are due up to and including the leaving month)`,
+    );
+  }
+
   await logAudit({
     userId: user.id,
     action: AUDIT_ACTIONS.MEMBER_EDITED ?? 'MEMBER_EDITED',
@@ -366,10 +421,9 @@ export async function updateMemberAction(formData: FormData): Promise<UpdateMemb
       unit: after.unit,
       role: after.role,
       isActive: after.isActive,
+      leftAt: after.leftAt ? after.leftAt.toISOString() : null,
     },
-    notes: roleChanged
-      ? `Role changed: ${before.role} -> ${after.role} (Constitution Art. 6.4 - requires GM ratification)`
-      : undefined,
+    notes: auditNotes.length ? auditNotes.join(' | ') : undefined,
   });
 
   revalidatePath('/members');
@@ -479,7 +533,12 @@ export async function clearMemberLockAction(
 //       membershipRegisterSignatureUrl -> NULL
 //       foundingSignedAt, membershipRegisterSignedAt -> NULL
 //   - isActive -> false (no logins)
-//   - leftAt   -> NOW()   (the canonical "this member has left" timestamp)
+//   - leftAt   -> kept if the Treasurer already recorded a leaving month,
+//                 otherwise NOW(). Redacting the PII is not the same event as
+//                 leaving the cooperative, so a leaving month recorded earlier
+//                 must not be overwritten -- doing so would extend the
+//                 member's liability window and invent arrears for months
+//                 after they had already left.
 //   - The Supabase auth.users row is deleted so the redacted User can never
 //     be used to sign in.
 //
@@ -560,8 +619,8 @@ export async function deleteMemberAction(formData: FormData): Promise<DeleteMemb
   if (!target) {
     return { error: 'Member not found.' };
   }
-  if (target.leftAt) {
-    return { error: `This member was already removed on ${target.leftAt.toISOString().slice(0, 10)}.` };
+  if (isRedactedMember(target.serviceNumber)) {
+    return { error: 'This member has already been redacted.' };
   }
 
   // Confirmation: the typed service number must match the current one.
@@ -596,7 +655,10 @@ export async function deleteMemberAction(formData: FormData): Promise<DeleteMemb
       foundingSignedAt: null,
       membershipRegisterSignedAt: null,
       isActive: false,
-      leftAt: new Date(),
+      // Keep the leaving month the Treasurer recorded. Overwriting it with
+      // "now" would extend the member's liability window and invent arrears
+      // for months after they had already left.
+      leftAt: target.leftAt ?? new Date(),
     },
   });
 
@@ -625,7 +687,7 @@ export async function deleteMemberAction(formData: FormData): Promise<DeleteMemb
       serviceNumber: redactedServiceNumber,
       fullName: '[Redacted member]',
       isActive: false,
-      leftAt: new Date().toISOString(),
+      leftAt: (target.leftAt ?? new Date()).toISOString(),
       authUserDeleted: authDeleteSucceeded,
     },
     ipAddress: hdrs.get('x-forwarded-for') ?? 'unknown',

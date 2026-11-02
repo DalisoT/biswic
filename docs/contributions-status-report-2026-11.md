@@ -131,6 +131,10 @@ be reported as live debt:
 | 105550 | LUTANGU O | Left |
 | 105644 | MATE L | Left |
 
+The K500 each is still being counted because **the month they left has never been recorded** — the platform had no
+field for it. That field now exists (recommendation 1). Once the seven leaving months are entered, their liability
+stops at the month they left and the K3,500 falls away. Until then, treat it as a provision rather than as debt.
+
 **Nine are still active members** and represent **K4,300 of genuinely collectable arrears**. These are the priority
 recovery list:
 
@@ -181,9 +185,11 @@ It is worth recording these, because they are the foundation any recovery has to
 
 1. **Record the leaving month for the seven departed members** so their arrears can be closed off. All seven have
    paid nothing, so once their leaving months are on file the K3,500 will most likely fall away entirely. That alone
-   would take the arrears from K16,900 to K13,400 and lift compliance from 49% to about 54%. This needs a "left at"
-   field on the member record, which the platform does not currently have — the platform owner can add it and
-   backfill once the chairman confirms the months.
+   would take the arrears from K16,900 to K13,400 and lift compliance from 49% to about 54%.
+   *The platform now has the field for this*: a **"Month the member left"** picker on the member record
+   (`/members/<id>/edit`). Entering the leaving month stops the contributions report billing that member from the
+   month they left, and the member list shows the month against every inactive member. The seven months below still
+   need to be confirmed by the committee and entered.
 2. **Make a personal approach to the nine active members who owe for every month** (K4,300 combined). These are not
    administrative cases; a phone call each will resolve whether they are refusing, unable, or simply unaware.
 3. **Bring the recording date forward.** October's money was booked on 1 November. The committee should set a

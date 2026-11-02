@@ -59,7 +59,7 @@ export interface ContributionReportRow {
   /** Liability months with no contribution recorded for that month. */
   monthsMissed: number;
   /**
-   * Money received for months OUTSIDE the member's liability window -- in
+   * Money received for months BEFORE the member's liability window -- in
    * practice, months before they joined.
    *
    * It does not cancel an arrears month: the arrears figure counts the
@@ -68,6 +68,14 @@ export interface ContributionReportRow {
    * or carry it forward.
    */
   receivedBeforeJoining: number;
+  /**
+   * Money received for months AFTER the member's liability window -- in
+   * practice, months after they left the cooperative.
+   *
+   * Same treatment as `receivedBeforeJoining`: real money, reported on its
+   * own line, and never used to cancel an arrears month.
+   */
+  receivedAfterLeaving: number;
   /** monthsDue x monthly contribution. */
   expected: number;
   /** Sum of contributions recorded in the period. */
@@ -86,6 +94,7 @@ export interface ContributionReport {
     monthsPaid: number;
     monthsMissed: number;
     receivedBeforeJoining: number;
+    receivedAfterLeaving: number;
     expected: number;
     contributed: number;
     arrears: number;
@@ -294,15 +303,34 @@ export function buildContributionReport(
     const monthsDue = window.length;
     const windowKeys = new Set(window.map((m) => `${m.year}-${m.month}`));
 
+    // The start of the liability window, unclipped by the reporting period.
+    // A payment for a month before this was received BEFORE the member
+    // joined; a payment for a month after the window ended was received
+    // AFTER they left. Both are real money and both are reported on their own
+    // line rather than being lumped together.
+    const windowStart = eligibilityStart(member);
+
     const agg = byMember.get(member.id);
     let monthsPaid = 0;
     let receivedBeforeJoining = 0;
+    let receivedAfterLeaving = 0;
     if (agg) {
       for (const [key, amount] of agg.months) {
         if (windowKeys.has(key)) {
           monthsPaid += 1;
-        } else {
+          continue;
+        }
+        // Split the "YYYY-M" key back apart to compare it with the window.
+        const sep = key.lastIndexOf('-');
+        const paidYear = Number(key.slice(0, sep));
+        const paidMonth = Number(key.slice(sep + 1));
+        const isBeforeWindow =
+          paidYear < windowStart.year ||
+          (paidYear === windowStart.year && paidMonth < windowStart.month);
+        if (isBeforeWindow) {
           receivedBeforeJoining += amount;
+        } else {
+          receivedAfterLeaving += amount;
         }
       }
     }
@@ -325,6 +353,7 @@ export function buildContributionReport(
       monthsPaid,
       monthsMissed,
       receivedBeforeJoining,
+      receivedAfterLeaving,
       expected,
       contributed,
       arrears,
@@ -346,6 +375,7 @@ export function buildContributionReport(
       acc.monthsPaid += r.monthsPaid;
       acc.monthsMissed += r.monthsMissed;
       acc.receivedBeforeJoining += r.receivedBeforeJoining;
+      acc.receivedAfterLeaving += r.receivedAfterLeaving;
       acc.expected += r.expected;
       acc.contributed += r.contributed;
       acc.arrears += r.arrears;
@@ -357,6 +387,7 @@ export function buildContributionReport(
       monthsPaid: 0,
       monthsMissed: 0,
       receivedBeforeJoining: 0,
+      receivedAfterLeaving: 0,
       expected: 0,
       contributed: 0,
       arrears: 0,
@@ -434,6 +465,7 @@ export function reportToCsv(
     'Months Paid',
     'Months Missed',
     'Received Before Joining',
+    'Received After Leaving',
     `Expected (${currencyPrefix})`,
     `Contributed (${currencyPrefix})`,
     `Arrears (${currencyPrefix})`,
@@ -454,6 +486,7 @@ export function reportToCsv(
         r.monthsPaid,
         r.monthsMissed,
         r.receivedBeforeJoining.toFixed(2),
+        r.receivedAfterLeaving.toFixed(2),
         r.expected.toFixed(2),
         r.contributed.toFixed(2),
         r.arrears.toFixed(2),
@@ -476,6 +509,7 @@ export function reportToCsv(
       t.monthsPaid,
       t.monthsMissed,
       t.receivedBeforeJoining.toFixed(2),
+      t.receivedAfterLeaving.toFixed(2),
       t.expected.toFixed(2),
       t.contributed.toFixed(2),
       t.arrears.toFixed(2),

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { EditMemberForm } from '@/components/members/edit-member-form';
 import { DeleteMemberForm } from '@/components/members/delete-member-form';
+import { isRedactedMember, leavingMonthValue, formatMonthLabel, monthKeyOf } from '@/lib/member-leaving';
 import { ArrowLeft, Info, AlertTriangle, Skull } from 'lucide-react';
 import Link from 'next/link';
 
@@ -57,13 +58,13 @@ export default async function EditMemberPage({
     nextOfKin = member.nextOfKin as { name?: string; relationship?: string; phone?: string };
   }
 
-  // Show the danger zone only if:
-  //   - the actor has canManageMembers (officer or admin) -- already enforced above
-  //   - the member has not already been redacted
-  //   - OR the member is currently inactive (so the admin can purge)
-  // (The DeleteMemberForm itself shows the appropriate message for the actor's role.)
-  const isRedacted = !!member.leftAt;
+  // A member is "redacted" when their PII has been overwritten, which the
+  // redaction flow marks with a DELETED- service number. It is NOT the same
+  // thing as having left the cooperative: `leftAt` is the month they left and
+  // may be months before any redaction.
+  const isRedacted = isRedactedMember(member.serviceNumber);
   const showDangerZone = !isRedacted || user.isAdmin;
+  const leftAtLabel = member.leftAt ? formatMonthLabel(monthKeyOf(member.leftAt)) : null;
 
   return (
     <div className="max-w-3xl mx-auto space-y-4">
@@ -81,7 +82,10 @@ export default async function EditMemberPage({
         <p className="text-sm text-muted-foreground mt-1">
           {member.serviceNumber} · {member.fullName} · {member.rank ?? 'no rank'}
           {member.isFoundingMember && <span className="text-amber-700"> · Founding member</span>}
-          {isRedacted && <span className="text-red-700"> · PII redacted on {member.leftAt!.toISOString().slice(0, 10)}</span>}
+          {isRedacted && <span className="text-red-700"> · PII redacted</span>}
+          {!isRedacted && leftAtLabel && (
+            <span className="text-muted-foreground"> · Left {leftAtLabel}</span>
+          )}
         </p>
       </div>
 
@@ -129,6 +133,7 @@ export default async function EditMemberPage({
               isActive: member.isActive,
               isFoundingMember: member.isFoundingMember,
               nextOfKin: nextOfKin,
+              leftAtValue: leavingMonthValue(member.leftAt),
             }}
             isSelf={member.id === user.id}
             isPlaceholder={/^(CHAIR|VICE|FW|SEC|TR|DTR|TRUSTEE|CCD)-/.test(member.serviceNumber)}

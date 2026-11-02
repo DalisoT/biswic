@@ -341,6 +341,68 @@ describe('buildContributionReport', () => {
     expect(row.arrears).toBe(300);
     expect(row.receivedBeforeJoining).toBe(200);
   });
+
+  it('stops billing a member once the leaving month is recorded', () => {
+    // A member who left in August 2026 owes July and August. Without a
+    // leaving month on file the report kept billing them for every month of
+    // the period, which is what turned 7 departed members into K3,500 of
+    // arrears against people who had already left.
+    const m = member({ isActive: false, leftAt: localDate(2026, 8, 20) });
+    const report = buildContributionReport(
+      [m],
+      [],
+      allTimePeriod(localDate(2026, 11, 1)),
+    );
+
+    const row = report.rows[0];
+    expect(row.monthsDue).toBe(2); // July..August
+    expect(row.arrears).toBe(200);
+    expect(row.status).toBe('Left');
+  });
+
+  it('reports money received after a member left apart from money received before joining', () => {
+    // A member who left in August 2026 owes July and August. A September
+    // payment is real money the cooperative holds, but it falls outside the
+    // liability window, so it cannot cancel the unpaid August.
+    const m = member({ isActive: false, leftAt: localDate(2026, 8, 20) });
+    const contributions = [
+      contribution('m1', 2026, 7),
+      contribution('m1', 2026, 9),
+    ];
+    const report = buildContributionReport(
+      [m],
+      contributions,
+      allTimePeriod(localDate(2026, 11, 1)),
+    );
+
+    const row = report.rows[0];
+    expect(row.monthsDue).toBe(2); // July..August
+    expect(row.monthsPaid).toBe(1); // July only
+    expect(row.arrears).toBe(100); // August unpaid
+    expect(row.receivedAfterLeaving).toBe(100); // September
+    expect(row.receivedBeforeJoining).toBe(0);
+    expect(row.contributed).toBe(200);
+    expect(report.totals.receivedAfterLeaving).toBe(100);
+  });
+
+  it('counts money for months after the leaving month as neither a paid month nor an arrears month', () => {
+    // A member who left in July 2026 owes one month. A payment for August is
+    // outside the window entirely.
+    const m = member({ isActive: false, leftAt: localDate(2026, 7, 10) });
+    const contributions = [contribution('m1', 2026, 8)];
+    const report = buildContributionReport(
+      [m],
+      contributions,
+      allTimePeriod(localDate(2026, 11, 1)),
+    );
+
+    const row = report.rows[0];
+    expect(row.monthsDue).toBe(1);
+    expect(row.monthsPaid).toBe(0);
+    expect(row.arrears).toBe(100);
+    expect(row.receivedAfterLeaving).toBe(100);
+    expect(row.receivedBeforeJoining).toBe(0);
+  });
 });
 
 describe('liabilityMonths', () => {
@@ -468,6 +530,8 @@ describe('reportToCsv', () => {
 
     expect(lines[0]).toContain('Service Number');
     expect(lines[0]).toContain('Arrears');
+    expect(lines[0]).toContain('Received Before Joining');
+    expect(lines[0]).toContain('Received After Leaving');
     expect(lines).toHaveLength(3); // header + member + totals
     expect(lines[2]).toContain('TOTAL');
   });

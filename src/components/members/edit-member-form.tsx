@@ -27,6 +27,8 @@ interface Member {
   isActive: boolean;
   isFoundingMember: boolean;
   nextOfKin: NextOfKin | null;
+  /** The leaving month as "YYYY-MM", or null when the member has not left. */
+  leftAtValue: string | null;
 }
 
 interface Props {
@@ -38,6 +40,7 @@ interface Props {
 export function EditMemberForm({ member, isSelf, isPlaceholder }: Props) {
   const [pending, startTransition] = useTransition();
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [isActive, setIsActive] = useState(member.isActive);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -135,7 +138,8 @@ export function EditMemberForm({ member, isSelf, isPlaceholder }: Props) {
               type="checkbox"
               id="isActive"
               name="isActive"
-              defaultChecked={member.isActive}
+              checked={isActive}
+              onChange={(e) => setIsActive(e.target.checked)}
               disabled={isSelf}
               className="h-4 w-4 rounded border-gray-300"
             />
@@ -152,6 +156,30 @@ export function EditMemberForm({ member, isSelf, isPlaceholder }: Props) {
           )}
         </div>
       </div>
+
+      {!isSelf && (
+        <div className="space-y-1 border-t pt-4 md:border-t-0 md:pt-0">
+          <Label htmlFor="leftAtMonth">Month the member left</Label>
+          <Input
+            id="leftAtMonth"
+            name="leftAtMonth"
+            type="month"
+            defaultValue={member.leftAtValue ?? ''}
+            aria-describedby="leftAtMonthHelp"
+          />
+          <p id="leftAtMonthHelp" className="text-[10px] text-muted-foreground">
+            Contributions are due <strong>up to and including</strong> the month they
+            left. Leave this blank while the member is still active, or the leaving
+            month is cleared.
+          </p>
+          {!isActive && !member.leftAtValue && (
+            <p className="text-[10px] text-amber-700">
+              No leaving month recorded &mdash; deactivating this member will record
+              this month as the leaving month.
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="border-t pt-4 space-y-3">
         <h3 className="text-sm font-semibold">Next of kin</h3>
