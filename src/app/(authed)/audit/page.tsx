@@ -7,6 +7,8 @@ import { formatDate } from '@/lib/utils';
 import { canViewAuditLog, canActAs } from '@/lib/permissions';
 import { redirect } from 'next/navigation';
 import { Shield } from 'lucide-react';
+import { RestoreVoidedControl } from '@/components/audit/restore-voided-control';
+import { formatMonthLabel } from '@/lib/member-leaving';
 
 export const dynamic = 'force-dynamic';
 
@@ -84,6 +86,7 @@ export default async function AuditLogPage() {
                   <TableHead>Action</TableHead>
                   <TableHead>Entity</TableHead>
                   <TableHead>Notes</TableHead>
+                  <TableHead>Put back</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -101,6 +104,19 @@ export default async function AuditLogPage() {
                       {l.entityId && <div className="text-xs text-muted-foreground">{l.entityId.slice(0, 12)}</div>}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground max-w-md truncate">{l.notes ?? '—'}</TableCell>
+                    <TableCell>
+                      {l.action === 'CONTRIBUTION_VOIDED' && l.beforeValue ? (
+                        <RestoreVoidedControl
+                          auditLogId={l.id}
+                          memberName={String((l.beforeValue as Record<string, unknown>).memberName ?? '—')}
+                          monthLabel={formatMonthLabel({
+                            year: Number((l.beforeValue as Record<string, unknown>).year),
+                            month: Number((l.beforeValue as Record<string, unknown>).month),
+                          })}
+                          amount={Number((l.beforeValue as Record<string, unknown>).amount ?? 0)}
+                        />
+                      ) : null}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

@@ -12,6 +12,7 @@ import { config } from '@/lib/config';
 import { formatDate, monthName } from '@/lib/utils';
 import { firstLiableMonth } from '@/lib/contribution-report';
 import { checkContributionMove } from '@/lib/contribution-move';
+import { planContributionRestore } from '@/lib/contribution-restore';
 import {
   planContributionSplit,
   planContributionVoid,
@@ -1010,5 +1011,178 @@ export async function voidContributionAction(
       'Entry of ' + config.currency + amount.toFixed(2) + ' for ' + period +
       ' removed from the ledger.',
     warning: plan.warning,
+  };
+}
+
+// ----------------------------------------------------------------------------
+// Putting back a payment that was voided
+// ----------------------------------------------------------------------------
+// A void takes a row off the ledger. Sometimes the row was never a payment
+// and it must stay gone. Sometimes the void was the mistake: a real payment
+// read as a duplicate, and the member's ledger then says they never paid.
+//
+// The row is put back exactly as it was -- same amount, same month, same
+// receipt, same date received, and the same bucket allocations it was
+// recorded with -- because the whole row was written to the audit log before
+// it was removed. Re-recording it through the ordinary form would give it
+// today's bucket percentages instead, which would quietly move money between
+// buckets that a different constitution had set.
+// ----------------------------------------------------------------------------
+
+const restoreSchema = z.object({
+  auditLogId: z.string().uuid(),
+  reason: z.string().min(5),
+});
+
+export async function restoreVoidedContributionAction(
+  formData: FormData,
+): Promise<AdjustContributionResult> {
+  const user = await requireUser();
+
+  if (!canActAs(user, canRecordContributions)) {
+    return { error: 'You do not have permission to restore contributions.' };
+  }
+
+  const parsed = restoreSchema.safeParse({
+    auditLogId: formData.get('auditLogId'),
+    reason: formData.get('reason'),
+  });
+  if (!parsed.success) {
+    return {
+      error: 'Invalid input. ' + parsed.error.issues.map((i) => i.message).join(', '),
+    };
+  }
+
+  const entry = await prisma.auditLog.findUnique({
+    where: { id: parsed.data.auditLogId },
+  });
+  if (!entry) {
+    return { error: 'That audit entry could not be found.' };
+  }
+
+  const before = entry.beforeValue as Record<string, any> | null;
+  const serviceNumber =
+    typeof before?.memberServiceNumber === 'string' ? before.memberServiceNumber : null;
+
+  const member = serviceNumber
+    ? await prisma.user.findUnique({ where: { serviceNumber } })
+    : null;
+
+  const memberAlreadyPaid =
+    member && typeof before?.month === 'number' && typeof before?.year === 'number'
+      ? await prisma.contribution.findFirst({
+          where: { memberId: member.id, month: before.month, year: before.year },
+          select: { id: true },
+        })
+      : null;
+
+  const receiptTaken =
+    typeof before?.receiptNumber === 'string' && before.receiptNumber
+      ? await prisma.contribution.findFirst({
+          where: { receiptNumber: before.receiptNumber },
+          select: { id: true },
+        })
+      : null;
+
+  const plan = planContributionRestore({
+    action: entry.action,
+    before,
+    memberExists: !!member,
+    memberAlreadyPaid: !!memberAlreadyPaid,
+    receiptTaken: !!receiptTaken,
+    reason: parsed.data.reason,
+  });
+  if (!plan.ok) {
+    return { error: plan.error };
+  }
+
+  const allocations = (before!.allocations ?? []) as BucketAllocationAmount[];
+  const amount = Number(before!.amount);
+  const month = Number(before!.month);
+  const year = Number(before!.year);
+  const period = formatMonthLabel({ year, month });
+
+  let restoredId = '';
+  try {
+    await prisma.$transaction(
+      async (tx) => {
+        const row = await tx.contribution.create({
+          data: {
+            memberId: member!.id,
+            amount,
+            month,
+            year,
+            paymentMethod: (before!.paymentMethod ?? 'CASH') as
+              | 'PAYROLL_DEDUCTION'
+              | 'CASH'
+              | 'MOBILE_MONEY'
+              | 'BANK_TRANSFER',
+            receiptNumber: (before!.receiptNumber ?? null) as string | null,
+            receivedAt: new Date(String(before!.receivedAt)),
+            recordedById: user.id,
+          },
+        });
+        restoredId = row.id;
+        await setBucketAllocations(tx, {
+          contributionId: row.id,
+          allocations,
+          recordedById: user.id,
+          note: 'Restored: ' + parsed.data.reason,
+        });
+        // The money goes back into the buckets it was recorded in.
+        await moveBucketBalances(tx, netBucketChange([], allocations));
+      },
+      { maxWait: 15000, timeout: 30000 },
+    );
+  } catch (err: any) {
+    return { error: err.message ?? 'Failed to restore the payment.' };
+  }
+
+  await logAudit({
+    userId: user.id,
+    action: AUDIT_ACTIONS.CONTRIBUTION_RESTORED,
+    entity: 'Contribution',
+    entityId: restoredId,
+    beforeValue: before,
+    afterValue: {
+      restoredContributionId: restoredId,
+      memberServiceNumber: serviceNumber,
+      amount,
+      month,
+      year,
+      reason: parsed.data.reason,
+    },
+    notes:
+      'Payment of ' + config.currency + amount.toFixed(2) + ' for ' +
+      String(before!.memberName ?? serviceNumber) + ' (' + serviceNumber +
+      ') booked against ' + period + ' was put back on the ledger: it was a ' +
+      'real payment and the void was a mistake. The amount, month, receipt, ' +
+      'date received and bucket allocations are the ones recorded when it was ' +
+      'voided. Reason: ' + parsed.data.reason,
+  });
+
+  await createNotification({
+    userId: member!.id,
+    type: 'CONTRIBUTION',
+    title: 'Contribution restored',
+    body:
+      'Your ' + config.currency + amount.toFixed(2) + ' contribution for ' +
+      period + ' is back on the ledger. It had been removed by mistake.',
+    link: '/contributions',
+  });
+
+  revalidatePath('/finance/contributions');
+  revalidatePath('/finance/contributions-report');
+  revalidatePath('/finance');
+  revalidatePath('/contributions');
+  revalidatePath('/audit');
+  revalidatePath('/dashboard');
+  revalidatePath('/notifications');
+
+  return {
+    success: true,
+    message:
+      'The payment of ' + config.currency + amount.toFixed(2) + ' for ' +
+      period + ' has been put back on the ledger.',
   };
 }
