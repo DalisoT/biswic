@@ -217,7 +217,18 @@ import { ALL_ROLES, type Role } from '@/lib/permissions';
 const updateSchema = z.object({
   memberId: z.string().uuid(),
   fullName: z.string().min(2, 'Full name is required.').max(120),
-  email: z.string().email('Valid email is required.'),
+  // A member does not have to have an email. The seeded founding members
+  // never had one, and a required email field made their edit form
+  // unsubmittable -- the browser refused to submit at all, so an officer
+  // could not correct a phone number, change a role, or deactivate them.
+  // A blank field now means "leave the email as it is".
+  email: z
+    .string()
+    .trim()
+    .refine(
+      (v) => v === '' || z.string().email().safeParse(v).success,
+      'Valid email is required.',
+    ),
   phone: z.string().regex(PHONE_RE, 'Phone must be +260XXXXXXXXX (9 digits).'),
   nrc: z.string().optional().nullable(),
   rank: z.string().optional().nullable(),
@@ -329,16 +340,19 @@ export async function updateMemberAction(formData: FormData): Promise<UpdateMemb
     return { error: leaving.error };
   }
 
+  // A blank email means "leave the email as it is" -- see updateSchema.
+  const email = data.email ? data.email : before.email;
+
   // Uniqueness check on email + phone (excluding self)
   const conflict = await prisma.user.findFirst({
     where: {
       id: { not: data.memberId },
-      OR: [{ email: data.email }, { phone: data.phone }],
+      OR: [{ email: email ?? undefined }, { phone: data.phone }],
     },
     select: { email: true, phone: true },
   });
   if (conflict) {
-    if (conflict.email === data.email) return { error: `Email ${data.email} is already in use by another member.` };
+    if (email && conflict.email === email) return { error: `Email ${email} is already in use by another member.` };
     return { error: `Phone ${data.phone} is already in use by another member.` };
   }
 
@@ -355,7 +369,7 @@ export async function updateMemberAction(formData: FormData): Promise<UpdateMemb
     where: { id: data.memberId },
     data: {
       fullName: data.fullName,
-      email: data.email,
+      email: email ?? null,
       phone: data.phone,
       nationalRegistrationNumber: data.nrc || null,
       rank: data.rank || null,

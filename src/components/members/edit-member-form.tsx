@@ -79,8 +79,11 @@ export function EditMemberForm({ member, isSelf, isPlaceholder }: Props) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div className="space-y-1">
-          <Label htmlFor="email">Email *</Label>
-          <Input id="email" name="email" type="email" defaultValue={member.email ?? ''} required />
+          <Label htmlFor="email">Email</Label>
+          <Input id="email" name="email" type="email" defaultValue={member.email ?? ''} />
+          <p className="text-[10px] text-muted-foreground">
+            Optional. Leave blank to keep the current email.
+          </p>
         </div>
         <div className="space-y-1">
           <Label htmlFor="phone">Phone (+260XXXXXXXXX) *</Label>
