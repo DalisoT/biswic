@@ -10,7 +10,7 @@ import { canViewAllMembers, canRecordContributions, canActAs } from '@/lib/permi
 import { config } from '@/lib/config';
 import Link from 'next/link';
 import { Upload, FileText } from 'lucide-react';
-import { MoveMonthControl } from '@/components/contributions/move-month-control';
+import { ContributionAdjustControl } from '@/components/contributions/contribution-adjust-control';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,7 +30,7 @@ export default async function FinanceContributionsPage({ searchParams }: PagePro
   const month = sp.month ? Number(sp.month) : now.getMonth() + 1;
   const year = sp.year ? Number(sp.year) : now.getFullYear();
 
-  const [contribs, monthAgg, totalActive] = await Promise.all([
+  const [contribs, monthAgg, totalActive, allPeriods] = await Promise.all([
     prisma.contribution.findMany({
       where: { month, year },
       orderBy: { receivedAt: 'desc' },
@@ -45,11 +45,25 @@ export default async function FinanceContributionsPage({ searchParams }: PagePro
       _count: true,
     }),
     prisma.user.count({ where: { isActive: true } }),
+    // Every period the member has a payment booked against. The split control
+    // needs this to stop a split landing on a month already paid, and it has
+    // to cross a year boundary, so it reads the whole ledger rather than
+    // only the month on screen.
+    prisma.contribution.findMany({
+      select: { memberId: true, month: true, year: true },
+    }),
   ]);
 
   const totalReceived = Number(monthAgg._sum.amount ?? 0);
   const expected = totalActive * config.monthlyContributionPerMember;
   const payerRate = totalActive > 0 ? (monthAgg._count / totalActive) * 100 : 0;
+
+  const paidPeriodsByMember = new Map<string, { month: number; year: number }[]>();
+  for (const p of allPeriods) {
+    const list = paidPeriodsByMember.get(p.memberId) ?? [];
+    list.push({ month: p.month, year: p.year });
+    paidPeriodsByMember.set(p.memberId, list);
+  }
 
   return (
     <div className="space-y-6">
@@ -147,7 +161,14 @@ export default async function FinanceContributionsPage({ searchParams }: PagePro
                     <TableCell className="text-xs text-muted-foreground">{c.recordedBy.fullName}</TableCell>
                     {canRecord && (
                       <TableCell>
-                        <MoveMonthControl contributionId={c.id} month={c.month} year={c.year} />
+                        <ContributionAdjustControl
+                          contributionId={c.id}
+                          month={c.month}
+                          year={c.year}
+                          amount={Number(c.amount)}
+                          memberName={c.member.fullName}
+                          paidPeriods={paidPeriodsByMember.get(c.memberId) ?? []}
+                        />
                       </TableCell>
                     )}
                   </TableRow>

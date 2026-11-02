@@ -6,12 +6,18 @@ import { recordContribution, bulkRecordContributions } from '@/server/services/c
 import { canRecordContributions, canActAs } from '@/lib/permissions';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 import { logAudit, AUDIT_ACTIONS } from '@/lib/audit';
 import { config } from '@/lib/config';
 import { formatDate, monthName } from '@/lib/utils';
 import { firstLiableMonth } from '@/lib/contribution-report';
 import { checkContributionMove } from '@/lib/contribution-move';
-import { formatMonthLabel } from '@/lib/member-leaving';
+import {
+  planContributionSplit,
+  planContributionVoid,
+  splitAllocations,
+} from '@/lib/contribution-adjust';
+import { formatMonthLabel, type MonthKey } from '@/lib/member-leaving';
 import { createNotification, notifyAllMembers } from '@/server/actions/notifications';
 
 const singleSchema = z.object({
@@ -503,5 +509,470 @@ export async function moveContributionAction(
   return {
     success: true,
     message: 'Payment moved to ' + formatMonthLabel(after) + '.',
+  };
+}
+
+// ----------------------------------------------------------------------------
+// Splitting a payment across the months it covers
+// ----------------------------------------------------------------------------
+// A member pays a lump that covers several months. The arrears engine credits
+// ONE month per contribution row, whatever the amount, so a K300 payment that
+// covers three months only credits one of them and the member is shown as
+// owing the other two.
+//
+// A split neither moves money nor re-allocates money. The payment stays where
+// it is and gains the other months, the amount is divided evenly between
+// them, and the bucket allocations are divided with it -- so a payment made
+// before the FUNERAL and MEDICAL buckets were closed keeps its share of those
+// buckets.
+//
+// The row booked against one month keeps that month; the other months get new
+// rows with the same method, the same date received and no receipt number
+// (one receipt, one payment, one row per month).
+// ----------------------------------------------------------------------------
+
+type BucketAllocationAmount = { bucketId: string; amount: number };
+
+/** Attach bucket allocations to a contribution and move the bucket balances. */
+async function writeBucketAllocations(
+  tx: Prisma.TransactionClient,
+  args: {
+    contributionId: string;
+    allocations: BucketAllocationAmount[];
+    recordedById: string;
+    note: string;
+  },
+): Promise<void> {
+  for (const a of args.allocations) {
+    await tx.bucketAllocation.create({
+      data: {
+        contributionId: args.contributionId,
+        bucketId: a.bucketId,
+        amount: a.amount,
+      },
+    });
+    await tx.bucket.update({
+      where: { id: a.bucketId },
+      data: { balance: { increment: a.amount } },
+    });
+    await tx.bucketTransaction.create({
+      data: {
+        bucketId: a.bucketId,
+        amount: a.amount,
+        type: 'CONTRIBUTION_ALLOCATION',
+        referenceType: 'Contribution',
+        referenceId: args.contributionId,
+        note: args.note,
+        recordedById: args.recordedById,
+      },
+    });
+  }
+}
+
+/**
+ * Take a contribution's bucket allocations off the books.
+ *
+ * The bucket balance moves down by the same amount that came off, and the
+ * allocation rows and the matching ledger rows go with it, so the dashboard
+ * reconciliation (balance vs ledger sum) stays at zero drift.
+ */
+async function clearBucketAllocations(
+  tx: Prisma.TransactionClient,
+  args: { contributionId: string; allocations: BucketAllocationAmount[] },
+): Promise<void> {
+  for (const a of args.allocations) {
+    await tx.bucket.update({
+      where: { id: a.bucketId },
+      data: { balance: { decrement: a.amount } },
+    });
+  }
+  await tx.bucketAllocation.deleteMany({
+    where: { contributionId: args.contributionId },
+  });
+  await tx.bucketTransaction.deleteMany({
+    where: { referenceType: 'Contribution', referenceId: args.contributionId },
+  });
+}
+
+const splitSchema = z.object({
+  contributionId: z.string().uuid(),
+  reason: z.string().min(5),
+});
+
+const voidSchema = z.object({
+  contributionId: z.string().uuid(),
+  reason: z.string().min(5),
+});
+
+export type AdjustContributionResult =
+  | { error: string }
+  | { success: true; message: string; warning?: string };
+
+/** "2026-8" -> { year: 2026, month: 8 }. */
+const MONTH_VALUE = /^(\d{4})-(\d{1,2})$/;
+
+function parseMonthValues(values: string[]): MonthKey[] | null {
+  const out: MonthKey[] = [];
+  for (const raw of values) {
+    const m = MONTH_VALUE.exec(raw.trim());
+    if (!m) return null;
+    const year = Number(m[1]);
+    const month = Number(m[2]);
+    if (year < 2000 || year > 2100 || month < 1 || month > 12) return null;
+    out.push({ year, month });
+  }
+  return out;
+}
+
+export async function splitContributionAction(
+  formData: FormData,
+): Promise<AdjustContributionResult> {
+  const user = await requireUser();
+
+  if (!canActAs(user, canRecordContributions)) {
+    return { error: 'You do not have permission to split contributions.' };
+  }
+
+  const parsed = splitSchema.safeParse({
+    contributionId: formData.get('contributionId'),
+    reason: formData.get('reason'),
+  });
+  if (!parsed.success) {
+    return {
+      error: 'Invalid input. ' + parsed.error.issues.map((i) => i.message).join(', '),
+    };
+  }
+
+  const months = parseMonthValues(formData.getAll('months').map(String));
+  if (!months) {
+    return { error: 'Invalid input: the months could not be read.' };
+  }
+  if (months.length < 2) {
+    return {
+      error:
+        'Choose at least two months: the month this payment is booked against, ' +
+        'and the month or months it also covers.',
+    };
+  }
+
+  const contribution = await prisma.contribution.findUnique({
+    where: { id: parsed.data.contributionId },
+    include: {
+      member: {
+        select: {
+          id: true,
+          serviceNumber: true,
+          fullName: true,
+          joinedAt: true,
+          isFoundingMember: true,
+        },
+      },
+      allocations: true,
+    },
+  });
+  if (!contribution) {
+    return { error: 'That payment could not be found.' };
+  }
+
+  const memberPayments = await prisma.contribution.findMany({
+    where: { memberId: contribution.memberId },
+    select: { id: true, month: true, year: true },
+  });
+
+  const plan = planContributionSplit({
+    amount: Number(contribution.amount),
+    current: { year: contribution.year, month: contribution.month },
+    months,
+    firstLiable: firstLiableMonth(contribution.member),
+    alreadyPaid: memberPayments.map((p) => ({ year: p.year, month: p.month })),
+  });
+  if (!plan.ok) {
+    return { error: plan.error };
+  }
+
+  const amount = Number(contribution.amount);
+  const originalAllocations: BucketAllocationAmount[] = contribution.allocations.map((a) => ({
+    bucketId: a.bucketId,
+    amount: Number(a.amount),
+  }));
+  const parts = splitAllocations(originalAllocations, plan.shares.length);
+
+  // Share j's allocation for bucket i is parts[i].amounts[j]: each bucket's
+  // money is divided by the same number of parts, so the money stays in the
+  // buckets it was already in.
+  const allocationsForShare = (j: number): BucketAllocationAmount[] =>
+    contribution.allocations.map((a, i) => ({
+      bucketId: a.bucketId,
+      amount: parts[i]!.amounts[j]!,
+    }));
+
+  const note =
+    'Split from a ' + config.currency + amount.toFixed(2) + ' payment covering ' +
+    plan.shares.length + ' months.';
+
+  const created: { id: string; month: number; year: number; amount: number }[] = [];
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      for (let j = 0; j < plan.shares.length; j++) {
+        const share = plan.shares[j]!;
+        // share.month is a MonthKey: the period this share covers.
+        const { month: shareMonth, year: shareYear } = share.month;
+        const shareAllocations = allocationsForShare(j);
+
+        if (shareYear === contribution.year && shareMonth === contribution.month) {
+          // The month the payment is already booked against keeps the row.
+          await tx.contribution.update({
+            where: { id: contribution.id },
+            data: { amount: share.amount },
+          });
+          await clearBucketAllocations(tx, {
+            contributionId: contribution.id,
+            allocations: originalAllocations,
+          });
+          await writeBucketAllocations(tx, {
+            contributionId: contribution.id,
+            allocations: shareAllocations,
+            recordedById: contribution.recordedById,
+            note,
+          });
+          created.push({
+            id: contribution.id,
+            month: shareMonth,
+            year: shareYear,
+            amount: share.amount,
+          });
+          continue;
+        }
+
+        const row = await tx.contribution.create({
+          data: {
+            memberId: contribution.memberId,
+            amount: share.amount,
+            month: shareMonth,
+            year: shareYear,
+            paymentMethod: contribution.paymentMethod,
+            // One receipt covers one payment. The split rows are the same
+            // money seen month by month, so there is no second receipt.
+            receiptNumber: null,
+            receivedAt: contribution.receivedAt,
+            recordedById: contribution.recordedById,
+          },
+        });
+        await writeBucketAllocations(tx, {
+          contributionId: row.id,
+          allocations: shareAllocations,
+          recordedById: contribution.recordedById,
+          note,
+        });
+        created.push({
+          id: row.id,
+          month: shareMonth,
+          year: shareYear,
+          amount: share.amount,
+        });
+      }
+    });
+  } catch (err: any) {
+    return { error: err.message ?? 'Failed to split the payment.' };
+  }
+
+  const monthsLabel = plan.shares.map((s) => formatMonthLabel(s.month)).join(', ');
+
+  await logAudit({
+    userId: user.id,
+    action: AUDIT_ACTIONS.CONTRIBUTION_SPLIT,
+    entity: 'Contribution',
+    entityId: contribution.id,
+    beforeValue: {
+      memberServiceNumber: contribution.member.serviceNumber,
+      memberName: contribution.member.fullName,
+      amount,
+      month: contribution.month,
+      year: contribution.year,
+      paymentMethod: contribution.paymentMethod,
+      receiptNumber: contribution.receiptNumber,
+      receivedAt: contribution.receivedAt.toISOString(),
+      allocations: originalAllocations,
+    },
+    afterValue: {
+      reason: parsed.data.reason,
+      shares: created,
+    },
+    notes:
+      'Payment of ' + config.currency + amount.toFixed(2) + ' for ' +
+      contribution.member.fullName + ' (' + contribution.member.serviceNumber +
+      ') split across ' + monthsLabel + ' at ' +
+      config.currency + plan.shares[0]!.amount.toFixed(2) + ' each. ' +
+      'Reason: ' + parsed.data.reason,
+  });
+
+  await createNotification({
+    userId: contribution.memberId,
+    type: 'CONTRIBUTION',
+    title: 'Contribution period corrected',
+    body:
+      'Your ' + config.currency + amount.toFixed(2) + ' contribution received on ' +
+      formatDate(contribution.receivedAt) + ' now stands for ' + monthsLabel +
+      ' (' + config.currency + plan.shares[0]!.amount.toFixed(2) + ' each).',
+    link: '/contributions',
+  });
+
+  revalidatePath('/finance/contributions');
+  revalidatePath('/finance/contributions-report');
+  revalidatePath('/finance');
+  revalidatePath('/contributions');
+  revalidatePath('/dashboard');
+  revalidatePath('/group');
+  revalidatePath('/notifications');
+
+  return {
+    success: true,
+    message:
+      'Split across ' + monthsLabel + ' at ' +
+      config.currency + plan.shares[0]!.amount.toFixed(2) + ' each.',
+  };
+}
+
+// ----------------------------------------------------------------------------
+// Voiding an entry that was never a payment
+// ----------------------------------------------------------------------------
+// The other kind of wrong row. Three rows for MWANSA JACOB were written by a
+// script whose own header says they exist "so the login good standing gate
+// will let him in". They are money that was never received.
+//
+// A void is the only operation on the ledger that takes a row away, so it
+// demands a reason and it is written to the audit log with the whole row --
+// amount, month, receipt and bucket allocations -- before it goes. The bucket
+// allocations come off the buckets with it, so the balances stay true.
+// ----------------------------------------------------------------------------
+
+export async function voidContributionAction(
+  formData: FormData,
+): Promise<AdjustContributionResult> {
+  const user = await requireUser();
+
+  if (!canActAs(user, canRecordContributions)) {
+    return { error: 'You do not have permission to void contributions.' };
+  }
+
+  const parsed = voidSchema.safeParse({
+    contributionId: formData.get('contributionId'),
+    reason: formData.get('reason'),
+  });
+  if (!parsed.success) {
+    return {
+      error: 'Invalid input. ' + parsed.error.issues.map((i) => i.message).join(', '),
+    };
+  }
+
+  const confirmed = formData.get('confirm');
+  if (confirmed !== 'on' && confirmed !== 'true' && confirmed !== 'yes') {
+    return {
+      error: 'Confirm that the entry was never a payment before voiding it.',
+    };
+  }
+
+  const contribution = await prisma.contribution.findUnique({
+    where: { id: parsed.data.contributionId },
+    include: {
+      member: {
+        select: { id: true, serviceNumber: true, fullName: true },
+      },
+      allocations: true,
+    },
+  });
+  if (!contribution) {
+    return { error: 'That payment could not be found.' };
+  }
+
+  const otherPaymentCount = await prisma.contribution.count({
+    where: { memberId: contribution.memberId, id: { not: contribution.id } },
+  });
+
+  const plan = planContributionVoid({
+    otherPaymentCount,
+    reason: parsed.data.reason,
+  });
+  if (!plan.ok) {
+    return { error: plan.error };
+  }
+
+  const amount = Number(contribution.amount);
+  const allocations: BucketAllocationAmount[] = contribution.allocations.map((a) => ({
+    bucketId: a.bucketId,
+    amount: Number(a.amount),
+  }));
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await clearBucketAllocations(tx, {
+        contributionId: contribution.id,
+        allocations,
+      });
+      await tx.contribution.delete({ where: { id: contribution.id } });
+    });
+  } catch (err: any) {
+    return { error: err.message ?? 'Failed to void the entry.' };
+  }
+
+  const period = formatMonthLabel({ year: contribution.year, month: contribution.month });
+
+  await logAudit({
+    userId: user.id,
+    action: AUDIT_ACTIONS.CONTRIBUTION_VOIDED,
+    entity: 'Contribution',
+    entityId: contribution.id,
+    beforeValue: {
+      memberServiceNumber: contribution.member.serviceNumber,
+      memberName: contribution.member.fullName,
+      amount,
+      month: contribution.month,
+      year: contribution.year,
+      paymentMethod: contribution.paymentMethod,
+      receiptNumber: contribution.receiptNumber,
+      receivedAt: contribution.receivedAt.toISOString(),
+      allocations,
+    },
+    afterValue: {
+      voided: true,
+      reason: parsed.data.reason,
+    },
+    notes:
+      'Entry of ' + config.currency + amount.toFixed(2) + ' for ' +
+      contribution.member.fullName + ' (' + contribution.member.serviceNumber +
+      ') booked against ' + period + ' was voided: it was never a payment ' +
+      'received from the member, and the money has been taken back off the ' +
+      'buckets it was added to. Reason: ' + parsed.data.reason,
+  });
+
+  await createNotification({
+    userId: contribution.memberId,
+    type: 'CONTRIBUTION',
+    title: 'Ledger entry removed',
+    body:
+      'The entry of ' + config.currency + amount.toFixed(2) + ' recorded against ' +
+      period + ' has been removed from the ledger because it was never a ' +
+      'payment received from you. Reason: ' +
+      (parsed.data.reason.length > 160
+        ? parsed.data.reason.slice(0, 157) + '...'
+        : parsed.data.reason),
+    link: '/contributions',
+  });
+
+  revalidatePath('/finance/contributions');
+  revalidatePath('/finance/contributions-report');
+  revalidatePath('/finance');
+  revalidatePath('/contributions');
+  revalidatePath('/dashboard');
+  revalidatePath('/group');
+  revalidatePath('/notifications');
+
+  return {
+    success: true,
+    message:
+      'Entry of ' + config.currency + amount.toFixed(2) + ' for ' + period +
+      ' removed from the ledger.',
+    warning: plan.warning,
   };
 }
