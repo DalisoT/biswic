@@ -31,6 +31,7 @@ export default async function AdminLearningPage() {
       summary: true,
       isPublished: true,
       order: true,
+      quiz: { select: { id: true } },
       lessons: {
         orderBy: { order: 'asc' },
         select: { id: true, order: true, title: true, content: true, estimatedMin: true },
@@ -48,7 +49,13 @@ export default async function AdminLearningPage() {
       </header>
 
       <AdminLessonEditor modules={modules} />
-      <AdminImportPanel />
+      <AdminImportPanel
+        current={modules.map((m) => ({
+          slug: m.slug,
+          lessonOrders: m.lessons.map((l) => l.order),
+          hasQuiz: !!m.quiz,
+        }))}
+      />
     </div>
   );
 }

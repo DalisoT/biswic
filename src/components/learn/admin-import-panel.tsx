@@ -4,18 +4,19 @@ import { useEffect, useMemo, useState, useTransition } from 'react';
 import { CloudDownload, FileUp, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { applyLearningBundleAction } from '@/server/actions/learning-admin';
-import { parseBundle, planLearningImport } from '@/lib/learning-import';
+import { parseBundle, planLearningImport, type CurrentModule } from '@/lib/learning-import';
 
 type BundleEntry = { file: string; label: string };
 
 /**
  * Apply a content bundle.
  *
- * The dry-run summary below is computed from the bundle alone, so it is the
- * chairman's chance to see what will happen before anything is written. The
- * bundle never deletes: a lesson it does not mention stays exactly as it is.
+ * The dry-run summary below is computed against what is actually in the
+ * database right now, so it is the chairman's chance to see exactly what will
+ * change before anything is written. The bundle never deletes: a lesson it
+ * does not mention stays exactly as it is.
  */
-export function AdminImportPanel() {
+export function AdminImportPanel({ current = [] }: { current?: CurrentModule[] }) {
   const [text, setText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [applied, setApplied] = useState<string | null>(null);
@@ -43,10 +44,16 @@ export function AdminImportPanel() {
 
   const preview = useMemo(() => {
     if (!parsed.ok) return null;
-    // A dry run over an empty current state: it reports what the bundle
-    // contains, not what will be changed in the live database.
-    return planLearningImport([], parsed.bundle);
-  }, [parsed]);
+    // A dry run against what is actually in the database, so the summary
+    // says "2 modules to update" rather than "2 modules to create" for a
+    // bundle that rewrites modules which already exist.
+    return planLearningImport(current, parsed.bundle);
+  }, [parsed, current]);
+
+  const quizzesToCreate = useMemo(
+    () => (preview ? preview.modules.filter((m) => m.quizAction === 'create').length : 0),
+    [preview],
+  );
 
   const readFile = (file: File) => {
     const reader = new FileReader();
@@ -158,8 +165,9 @@ export function AdminImportPanel() {
 
       {parsed.ok && preview && (
         <p className="rounded-md bg-muted/50 p-3 text-sm">
-          Dry run: {preview.totals.modulesCreated} modules to create, {preview.totals.modulesUpdated} to update,{' '}
-          {preview.totals.lessonsCreated} lessons to create, {preview.totals.lessonsUpdated} to update,{' '}
+          Dry run against what is live now: {preview.totals.modulesCreated} modules to create,{' '}
+          {preview.totals.modulesUpdated} to update, {preview.totals.lessonsCreated} lessons to create,{' '}
+          {preview.totals.lessonsUpdated} to update, {quizzesToCreate} quizzes to create,{' '}
           {preview.totals.deleted} deleted.
         </p>
       )}
