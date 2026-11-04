@@ -15,7 +15,7 @@ Since the cooperative was founded on 22 July 2026, **K17,100** has been collecte
 **K33,400** for the five months July–November 2026. **K16,300** is outstanding, spread across 163 member-months,
 giving a compliance rate of **51%**.
 
-**The ledger was corrected on 4 November 2026, and the position is now clean.** Seven corrections were applied through
+**The ledger was corrected on 4 November 2026, and the position is now clean.** Eight corrections were applied through
 the platform itself, every one of them recorded in the audit log with a written reason (section 3):
 
 - **One payment that was never made was voided** — a row for Mwansa Jacob's October 2026 subscription that had been
@@ -30,13 +30,20 @@ before they joined, and the K500 that was paid ahead of the month it was booked 
 kwacha on the ledger cancels a month that was actually owed: K33,400 expected − K17,100 received = K16,300, which is
 exactly the arrears. There is no unexplained gap left in the arithmetic.
 
+**One caveat, and it is not an arithmetic one.** K200 of the K17,100 has never been received: the ledger still
+carries August and September payments of K100 each for 106139 Mwansa Jacob (LCPL) that were written by a script
+whose own header says they exist "so the login good standing gate will let him in". His October row was voided on
+2 November 2026; on the chairman's instruction of 4 November 2026 these two were left in place so that he does not
+lose access to the platform. **Cash actually received is K16,900 and the true arrears are K16,500.** Section 8 sets
+this out. Everything else in this report is the platform's own figures.
+
 The committee should treat the arrears as **two separate problems**: roughly K3,500 of dead debt from the seven
 members who left before their leaving month was recorded, and the rest from members who are still on the register —
 eight of whom (K4,000) were deactivated on 2 November 2026 and will need a personal approach before anything else can
 be done about them.
 
-Collection is still the bigger problem. The number of members paying fell from 50 in July and August to 29 in
-October — a 42% fall in the paying base — and the money collected with it, from K5,000 to K2,900.
+Collection is still the bigger problem. The number of members paying fell from 51 in July and 50 in August to 29 in
+October — a 43% fall in the paying base — and the money collected with it, from K5,100 to K2,900.
 
 ---
 
@@ -79,7 +86,8 @@ log. Nothing was edited behind the platform's back and nothing was deleted witho
 | 4 | Split (4 Nov) | CHAMA J (104865) | September K300 receipt RCT-2026-09-104865 split into **September, October and November 2026 at K100 each**. The paper list annotated it "catch-up for 3 months". July and August are paid separately. |
 | 5 | Split (4 Nov) | MWANSA J (106140) | July K200 receipt RCT-2026-07-106140 split into **July and August 2026 at K100 each**. |
 | 6 | Split (4 Nov) | MUTAMBO S (106010) | August K200 receipt RCT-2026-08-106010 split into **July and August 2026 at K100 each**. |
-| 7 | Split (4 Nov) | KUNDA G (105469) | August K200 receipt RCT-2026-08-105469 split into **August and September 2026 at K100 each**. |
+| 7 | Split (4 Nov) | KUNDA G (105469) | August K200 receipt RCT-2026-08-105469 split into **July and August 2026 at K100 each**. |
+| 8 | Moved (4 Nov) | KUNDA G (105469) | The September share was then **moved to July**, so that the ledger matches the Treasurer's August list, which records the K200 as "this month plus arrears from last month". The move is recorded in the audit log. **No total changed.** |
 
 **CHAMA J is now paid up through November**: five months paid, K500 contributed, **K0 arrears**, 100% compliance.
 
@@ -112,9 +120,9 @@ log:
 
 | Month | Members paid | Collected | Monthly target | Rate |
 | --- | --- | --- | --- | --- |
-| July 2026 | 50 of 52 | K5,000 | K5,200 | 96% |
+| July 2026 | 51 of 52 | K5,100 | K5,200 | 98% |
 | August 2026 | 50 of 52 | K5,000 | K5,200 | 96% |
-| September 2026 | 41 of 52 | K4,100 | K5,200 | 79% |
+| September 2026 | 40 of 52 | K4,000 | K5,200 | 77% |
 | October 2026 | 29 of 52 | K2,900 | K5,200 | 56% |
 | November 2026 *(to 4th)* | 1 of 52 | K100 | K5,200 | 2% |
 | **Total** | **171** | **K17,100** | **K26,000** | **66%** |
@@ -134,8 +142,8 @@ held on account as received before joining and K500 as paid ahead of the month i
 
 **The trend is downward and it is steep.** Comparing the first two months with the next two:
 
-- Average collected per month fell from **K5,000** (July–August) to **K3,500** (September–October) — a **30% fall**.
-- The number of members paying fell from 50 to 29 between July and October — a **42% fall** in the paying base.
+- Average collected per month fell from **K5,050** (July–August) to **K3,450** (September–October) — a **32% fall**.
+- The number of members paying fell from 51 to 29 between July and October — a **43% fall** in the paying base.
 - **Only one payment has been received for November**, and it was a September catch-up being credited forward (CHAMA
   J's November share). **November must not be read as a collapse**; the month is four days old and it should be
   judged at the November meeting.
@@ -158,10 +166,10 @@ Assuming each contributing member pays the standard K100:
 | If November collects | Months paid | Contributed | Arrears | Compliance |
 | --- | --- | --- | --- | --- |
 | Like October (29 members) | 200 | K20,000 | K13,400 | 60% |
-| Like September (41 members) | 212 | K21,200 | K12,200 | 63% |
-| Like July (50 members) | 221 | K22,100 | K11,300 | 66% |
+| Like September (40 members) | 211 | K21,100 | K12,300 | 63% |
+| Like July (51 members) | 222 | K22,200 | K11,200 | 66% |
 
-Returning to the July rate alone would take **K5,000 of arrears out of the books in a single month**. Nothing in the
+Returning to the July rate alone would take **K5,100 of arrears out of the books in a single month**. Nothing in the
 ledger says that is beyond the membership — July and August each proved 50 members will pay.
 
 ---
@@ -347,6 +355,14 @@ Four points so that the committee is not caught out by arithmetic that looks wro
 - **K33,400 expected less K17,100 received is K16,300, and that is exactly the arrears.** There is no reconciling
   item any more. Before 4 November the difference was K500, split between money received before joining and money
   paid ahead of the month it was booked against; both are now K0.
+- **K200 of the K17,100 has never been received.** The ledger still carries August and September payments of K100 each
+  for 106139 Mwansa Jacob (LCPL), written by a database script whose own header says they exist "so the login good
+  standing gate will let him in", with receipts dated the 28th of each month — and the "August" receipt is dated two
+  days before he joined on 30 August 2026. He is on none of the four paper lists. His October row was voided on
+  2 November 2026; on the chairman's instruction of 4 November 2026 the August and September rows were left in
+  place so that he keeps access to the platform. **Cash actually received is therefore K16,900, and the true arrears
+  are K16,500 over 165 member-months.** The platform's K17,100 and K16,300 are the figures it reports; these are the
+  cash figures.
 - **The K26,000 in the trend table and the K33,400 in the position table are both correct**, and the K7,400
   difference is fully explained: the fifteen members who have left were still on the register during the earlier
   months and are still billed for July to November (75 member-months), less K100 for Mwansa Jacob, who joined in
@@ -366,6 +382,7 @@ Four points so that the committee is not caught out by arithmetic that looks wro
 - The dashboard's bucket reconciliation, read on 4 November 2026: all six buckets balanced, drift K0.
 - The chairman's confirmation of 2 November 2026 that 104784 BANDA L, 105257 KAKOMA R, 105046 CHIRWA J and 105065
   CHISENGA ABEL paid on 1 and 2 November **for October**.
+- The consolidated contribution register for July to October 2026, docs/consolidated-contribution-register-2026-07-to-10.md, checked against the live platform on 4 November 2026. It carries the four original paper lists, the cash figures month by month and the differences between the paper lists and the platform.
 - The chairman's confirmation of 4 November 2026 that CHAMA J paid K100 in July, K100 in August and K300 in September,
   with the September receipt annotated "catch-up for 3 months" on the paper list, and that 106010 MUTAMBO S,
   106140 MWANSA J and 105469 KUNDA G each paid K200 in a single receipt covering two months.
