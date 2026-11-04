@@ -24,7 +24,6 @@ interface Props {
 
 const TYPE_ICONS: Record<string, string> = {
   CONTRIBUTION: '💰',
-  CLAIM: '🩺',
   MEETING: '📅',
   EVENT: '🎉',
   LOAN: '🤝',

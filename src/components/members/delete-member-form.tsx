@@ -5,7 +5,7 @@
  * ----------------------------------------------------------------------------
  * The most destructive action in the system. Permanently redacts the member's
  * PII (name, phone, email, service number, NRC, next-of-kin, signature URL)
- * while preserving the financial record (contributions, claims, audit log).
+ * while preserving the financial record (contributions, soft loans, audit log).
  *
  * Why "redacted deletion" instead of hard delete:
  *   - The User row has FKs from Contribution, WelfareClaim, SoftLoan,
@@ -123,7 +123,7 @@ export function DeleteMemberForm({ member, isSelf, isAdmin }: Props) {
         <ul className="list-disc pl-5 space-y-1 text-xs">
           <li>Their <strong>name, phone, email, service number, NRC, and next-of-kin</strong> are overwritten with redaction markers.</li>
           <li>Their <strong>Supabase login is deleted</strong> -- they cannot sign in again.</li>
-          <li>Their <strong>financial records are kept</strong> (contributions, welfare claims, audit log entries) because tax/audit law requires them to be retained. The User row stays in the database with a redacted name and a service number of <code>DELETED-xxxxxxxx</code>.</li>
+          <li>Their <strong>financial records are kept</strong> (contributions, soft loans, audit log entries) because tax/audit law requires them to be retained. The User row stays in the database with a redacted name and a service number of <code>DELETED-xxxxxxxx</code>.</li>
           <li>An <strong>audit log entry</strong> is written with the original PII in the <code>beforeValue</code> field. This is the only place the original data is preserved.</li>
         </ul>
         <p className="pt-1">If you just want to prevent this member from logging in, use the <strong>Active</strong> toggle above instead. It is reversible.</p>

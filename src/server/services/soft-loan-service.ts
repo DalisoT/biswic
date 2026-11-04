@@ -587,9 +587,7 @@ export async function recordRepayment(input: RecordRepaymentInput) {
 // ---------------------------------------------------------------------------
 // Sacred rule S7c: a loan is in default after 2 missed monthly payments.
 // Defaults also: ineligible for new loans (enforced in checkLoanEligibility),
-// reported to the Committee (DisputeCase queue), and welfare payouts may
-// be reduced by the outstanding balance with the member's written consent
-// (handled in claim-service.ts via the WelfareClaim.writtenConsent flag).
+// reported to the Committee (DisputeCase queue).
 //
 // This function is designed to be called by a monthly cron (or manually by
 // the Deputy Treasurer / FW). It:
@@ -731,27 +729,3 @@ export async function detectDefaults(
   };
 }
 
-/**
- * Apply a welfare offset (Constitution Art. 5.5(f)(iii)).
- * Returns the actual amount the member receives from the welfare bucket
- * (capped at 0) and the amount that is credited to the loan.
- * Caller is responsible for wrapping the bucket + loan updates in a
- * transaction and for NOT calling this if the written consent flag is false.
- */
-export async function applyWelfareOffset(
-  memberId: string,
-  approvedAmount: number,
-): Promise<{ welfareAmount: number; offsetAmount: number; loanId: string | null }> {
-  const outstanding = await getOutstandingLoan(memberId);
-  if (!outstanding || outstanding.status !== 'DEFAULTED') {
-    return { welfareAmount: approvedAmount, offsetAmount: 0, loanId: null };
-  }
-  const outstandingBal = Number(outstanding.balance);
-  if (outstandingBal <= 0) {
-    return { welfareAmount: approvedAmount, offsetAmount: 0, loanId: null };
-  }
-  const offset = Math.min(outstandingBal, approvedAmount);
-  const welfareAmount = Math.max(0, approvedAmount - offset);
-
-  return { welfareAmount, offsetAmount: offset, loanId: outstanding.id };
-}

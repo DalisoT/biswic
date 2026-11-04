@@ -2,7 +2,6 @@ import {
   LayoutDashboard,
   Users,
   Coins,
-  Heart,
   Calendar,
   FileText,
   Map,
@@ -129,12 +128,6 @@ export const NAV_SECTIONS: NavSection[] = [
         href: '/soft-loans',
         icon: HandCoins,
         description: 'Apply, repay, status',
-      },
-      {
-        label: 'Welfare Claims',
-        href: '/claims',
-        icon: Heart,
-        description: 'Submit or track a claim',
       },
       {
         label: 'Learn',

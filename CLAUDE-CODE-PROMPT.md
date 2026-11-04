@@ -485,7 +485,6 @@ biswic-platform/
 │   │   │   └── businesses.ts
 │   │   └── services/
 │   │       ├── bucket-service.ts
-│   │       ├── claim-service.ts
 │   │       └── statement-service.ts
 │   ├── hooks/
 │   ├── i18n/

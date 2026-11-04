@@ -7,7 +7,7 @@ import { config } from '@/lib/config';
 import { formatCurrency, formatDate, monthName, computeMonthlyInflow, computeBucketMonthly, anonymizeMember, toNumber } from '@/lib/utils';
 import { bucketColor, bucketLabel } from '@/lib/buckets';
 import { roleLabel } from '@/lib/permissions';
-import { FileText, Heart, Coins, Calendar, ArrowRight, KeyRound, X } from 'lucide-react';
+import { FileText, Coins, Calendar, ArrowRight, KeyRound, X } from 'lucide-react';
 import Link from 'next/link';
 import { BucketBars } from '@/components/dashboard/bucket-bars';
 import { PasswordSetupBanner } from '@/components/dashboard/password-setup-banner';
@@ -35,16 +35,6 @@ export default async function DashboardPage() {
   // before arithmetic - JS otherwise produces garbage on number+Decimal mixed ops.
   const myTotalContributions = myContributions.reduce((s, c) => s + Number(c.amount), 0);
 
-  // My claims
-  const myClaims = await prisma.welfareClaim.findMany({
-    where: { memberId: userId },
-    orderBy: { createdAt: 'desc' },
-  });
-  const myPaidClaims = myClaims.filter((c) => c.status === 'PAID');
-  const myTotalClaimed = myPaidClaims.reduce(
-    (s, c) => s + Number(c.amountApproved ?? 0),
-    0,
-  );
 
   // Buckets (active only — FUNERAL and MEDICAL were closed at the 2026-10 GM
   // and stay in the DB as inactive rows for audit-trail integrity).
@@ -154,7 +144,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Hero cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader className="pb-3">
             <CardDescription>My total contributions</CardDescription>
@@ -169,19 +159,6 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription>My welfare claims</CardDescription>
-            <CardTitle className="text-3xl font-bold font-heading text-gold-600">
-              {formatCurrency(myTotalClaimed)}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">
-              {myPaidClaims.length} approved · {myClaims.length - myPaidClaims.length} other
-            </p>
-          </CardContent>
-        </Card>
 
         <Card>
           <CardHeader className="pb-3">
@@ -204,13 +181,7 @@ export default async function DashboardPage() {
           <CardTitle className="text-base">Quick actions</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Button asChild variant="outline" className="h-auto py-3 flex-col gap-1">
-              <Link href="/claims/new">
-                <Heart className="h-5 w-5" />
-                <span className="text-xs">Submit claim</span>
-              </Link>
-            </Button>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <Button asChild variant="outline" className="h-auto py-3 flex-col gap-1">
               <Link href="/statement">
                 <FileText className="h-5 w-5" />

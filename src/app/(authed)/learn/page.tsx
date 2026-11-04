@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 export const metadata = {
   title: 'Financial Literacy Hub · BISWIC',
   description:
-    'Self-paced learning for BISWIC members. Cooperative basics, soft loans, welfare claims, AGM prep — with quizzes to verify understanding.',
+    'Self-paced learning for BISWIC members. Cooperative basics, soft loans, savings and AGM prep — with quizzes to verify understanding.',
 };
 
 function isAudienceMatch(audience: string[], role: string, isAdmin: boolean): boolean {

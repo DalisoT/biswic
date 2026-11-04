@@ -28,15 +28,6 @@ export default async function StatementPage() {
 
   const totalContributions = sumField(contributions, (c) => c.amount);
 
-  const claims = await prisma.welfareClaim.findMany({
-    where: { memberId: currentUser.id },
-    orderBy: { createdAt: 'desc' },
-  });
-
-  const claimedPaid = sumField(
-    claims.filter((c) => c.status === 'PAID'),
-    (c) => c.amountApproved ?? 0,
-  );
 
   const activeMemberCount = await prisma.user.count({ where: { isActive: true, role: 'MEMBER' } });
   const monthlyInflow = computeMonthlyInflow(activeMemberCount);
@@ -64,7 +55,7 @@ export default async function StatementPage() {
           <CardDescription>Generated on {formatDate(now)}</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
             <div>
               <div className="text-xs text-muted-foreground">Member since</div>
               <div className="font-semibold">{formatDate(user.joinedAt)}</div>
@@ -76,10 +67,6 @@ export default async function StatementPage() {
             <div>
               <div className="text-xs text-muted-foreground">YTD contributions</div>
               <div className="font-semibold">{formatCurrency(ytdTotal)}</div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground">Welfare received (life)</div>
-              <div className="font-semibold text-gold-600">{formatCurrency(claimedPaid)}</div>
             </div>
           </div>
 
@@ -111,39 +98,6 @@ export default async function StatementPage() {
             </Table>
           )}
 
-          <h3 className="font-semibold mt-6 mb-2">Welfare claims history</h3>
-          {claims.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No claims submitted.</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Event date</TableHead>
-                  <TableHead>Requested</TableHead>
-                  <TableHead>Approved</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {claims.map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell><Badge variant={c.type === 'FUNERAL' ? 'secondary' : 'outline'}>{c.type}</Badge></TableCell>
-                    <TableCell className="text-xs">{formatDate(c.eventDate)}</TableCell>
-                    <TableCell>{formatCurrency(toNumber(c.amountRequested))}</TableCell>
-                    <TableCell>{c.amountApproved ? formatCurrency(toNumber(c.amountApproved)) : '—'}</TableCell>
-                    <TableCell>
-                      <Badge variant={
-                        c.status === 'PAID' ? 'success' :
-                        c.status === 'APPROVED' ? 'default' :
-                        c.status === 'REJECTED' ? 'destructive' : 'warning'
-                      }>{c.status}</Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
 
           <div className="mt-8 pt-4 border-t text-xs text-muted-foreground">
             <p>This is a computer-generated statement. The cooperative&apos;s monthly inflow is {formatCurrency(monthlyInflow)} ({activeMemberCount} × {formatCurrency(config.monthlyContributionPerMember)}).</p>

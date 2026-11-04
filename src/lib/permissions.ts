@@ -38,11 +38,6 @@ export const OFFICER_ROLES: Role[] = [
   ROLES.TRUSTEE,
 ];
 
-export const APPROVE_WELFARE_ROLES: Role[] = [
-  ROLES.WELFARE_OFFICER,
-  ROLES.FW,
-  ROLES.CHAIRPERSON,
-];
 
 export const RECORD_CONTRIBUTION_ROLES: Role[] = [
   ROLES.TREASURER,
@@ -81,9 +76,6 @@ export function isOfficer(role: Role | string): boolean {
   return OFFICER_ROLES.includes(role as Role);
 }
 
-export function canApproveWelfare(role: Role | string): boolean {
-  return APPROVE_WELFARE_ROLES.includes(role as Role);
-}
 
 export function canRecordContributions(role: Role | string): boolean {
   return RECORD_CONTRIBUTION_ROLES.includes(role as Role);
@@ -141,7 +133,7 @@ export function hasAdminAccess(
  * role string only and would ignore a user whose `isAdmin` is true.
  *
  * The Chairman/admin (service 106759) is the platform owner and is expected
- * to be able to record contributions and approve welfare claims; before this
+ * to be able to record contributions and manage the register; before this
  * helper existed the override was applied in some actions and silently
  * missing in others, which meant the owner could be locked out of exactly
  * the screens they need most.

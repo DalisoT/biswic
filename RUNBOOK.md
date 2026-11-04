@@ -143,7 +143,7 @@ pnpm prisma:seed
 2. Sign in as `CHAIR-001` / `ChangeMe123!` (or your overridden password)
 3. Land on `/dashboard`. Welcome line should greet you, role badge should
    say "Chairperson".
-4. Click into `/contributions`, `/claims`, `/meetings`, `/documents`. The
+4. Click into `/contributions`, `/meetings`, `/documents`. The
    sidebar should render without errors.
 5. Sign out (top-right menu) → land on `/login`. Sign in as a member
    (`MEMBER-001`) → land on `/dashboard` with role "Member".
@@ -301,8 +301,9 @@ Remove-Item `
 - The `User.failedLoginAttempts` / `User.lockedUntil` columns — kept
   (used by the new lockout logic).
 - All sacred-rule business logic (`src/lib/buckets.ts`,
-  `src/lib/claim-rules.ts`, `src/lib/permissions.ts`,
-  `src/server/services/*`) — unchanged.
+  `src/lib/permissions.ts`, `src/server/services/*`) — unchanged.
+- The `WelfareClaim` table and the `WELFARE_OFFICER` role — left in the
+  database, unused. Removing them would be a separate migration.
 - The tRPC imports in `package.json` — listed but not actually used by
   any code in this tree. Removed them in this rewrite to keep the
   dependency list honest. If you plan to use tRPC in a later phase,

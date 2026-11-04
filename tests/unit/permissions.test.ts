@@ -14,7 +14,6 @@ import {
   canActAsAnyRole,
   hasAdminAccess,
   canRecordContributions,
-  canApproveWelfare,
   canViewAllMembers,
   canManageMembers,
 } from '../../src/lib/permissions';
@@ -44,13 +43,13 @@ describe('canActAs', () => {
     // the platform owner record contributions.
     expect(canActAs({ role: 'CHAIRPERSON', isAdmin: true }, canRecordContributions)).toBe(true);
     expect(canActAs({ role: 'CCD', isAdmin: true }, canRecordContributions)).toBe(true);
-    expect(canActAs({ role: 'MEMBER', isAdmin: true }, canApproveWelfare)).toBe(true);
+    expect(canActAs({ role: 'MEMBER', isAdmin: true }, canViewAllMembers)).toBe(true);
     expect(canActAs({ role: 'MEMBER', isAdmin: true }, canManageMembers)).toBe(true);
   });
 
   it('denies a non-admin whose role does not pass the check', () => {
     expect(canActAs({ role: 'CHAIRPERSON', isAdmin: false }, canRecordContributions)).toBe(false);
-    expect(canActAs({ role: 'MEMBER', isAdmin: false }, canApproveWelfare)).toBe(false);
+    expect(canActAs({ role: 'MEMBER', isAdmin: false }, canManageMembers)).toBe(false);
     expect(canActAs({ role: 'MEMBER', isAdmin: false }, canViewAllMembers)).toBe(false);
   });
 

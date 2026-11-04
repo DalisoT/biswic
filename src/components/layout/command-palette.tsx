@@ -6,7 +6,6 @@ import {
   Search,
   Users,
   Coins,
-  Heart,
   HandCoins,
   type LucideIcon,
 } from 'lucide-react';
@@ -48,13 +47,6 @@ type AnyItem = PageItem | MemberItem | RecentItem;
  * (not navigation targets) are listed separately here.
  */
 const ACTION_PAGES: PageItem[] = [
-  {
-    type: 'page',
-    href: '/claims/new',
-    label: 'Submit a claim',
-    icon: Heart,
-    section: 'Money',
-  },
   {
     type: 'page',
     href: '/soft-loans/apply',

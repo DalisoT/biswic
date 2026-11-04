@@ -13,6 +13,15 @@ const nextConfig = {
       bodySizeLimit: '10mb',
     },
   },
+  // The welfare claims feature was removed on 2026-11-02 (both funder
+  // buckets were closed by the GM of 2026-10-12). Members who bookmarked
+  // /claims or installed the old PWA shortcut land on their dashboard
+  // instead of a 404.
+  async redirects() {
+    return [
+      { source: '/claims/:path*', destination: '/dashboard', permanent: true },
+    ];
+  },
   async headers() {
     return [
       {

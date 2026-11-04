@@ -51,12 +51,6 @@
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Welfare Claims",
-      "short_name": "Claims",
-      "url": "/claims",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
-    },
-    {
       "name": "Soft Loans",
       "short_name": "Loans",
       "url": "/soft-loans",

@@ -69,8 +69,8 @@ export default async function SoftLoanDetailPage({ params }: { params: { id: str
             </CardTitle>
             <CardDescription>
               {missedCount} repayment{missedCount !== 1 ? 's' : ''} missed. Constitution Art. 5.5(f): you are
-              ineligible for new soft loans. Outstanding balance may be deducted from future welfare
-              payouts with your written consent. The case has been referred to the Committee.
+              ineligible for new soft loans. The outstanding balance must be cleared before a new
+              loan is issued. The case has been referred to the Committee.
             </CardDescription>
           </CardHeader>
         </Card>

@@ -29,16 +29,6 @@ export default async function GroupDashboardPage() {
     where: { month: currentMonth, year: currentYear, member: { isActive: true, role: 'MEMBER' } },
   });
 
-  const welfareClaimsYtd = await prisma.welfareClaim.aggregate({
-    _sum: { amountApproved: true },
-    _count: true,
-    where: {
-      status: { in: ['APPROVED', 'PAID'] },
-      paidAt: {
-        gte: new Date(currentYear, 0, 1),
-      },
-    },
-  });
 
   const recentActivity = await prisma.contribution.findMany({
     take: 20,
@@ -70,7 +60,7 @@ export default async function GroupDashboardPage() {
       </div>
 
       {/* Hero numbers */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Total Kitty</CardDescription>
@@ -87,14 +77,6 @@ export default async function GroupDashboardPage() {
           <CardHeader className="pb-2">
             <CardDescription>Paid this month</CardDescription>
             <CardTitle className="text-2xl font-bold">{paidThisMonth} / {activeMemberCount}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Welfare claims YTD</CardDescription>
-            <CardTitle className="text-2xl font-bold text-gold-600">
-              {formatCurrency(toNumber(welfareClaimsYtd._sum.amountApproved))}
-            </CardTitle>
           </CardHeader>
         </Card>
       </div>

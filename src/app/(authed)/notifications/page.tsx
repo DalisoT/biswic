@@ -8,7 +8,6 @@ export const dynamic = 'force-dynamic';
 
 const TYPE_ICONS: Record<string, string> = {
   CONTRIBUTION: '💰',
-  CLAIM: '🩺',
   MEETING: '📅',
   EVENT: '🎉',
   LOAN: '🤝',
@@ -56,7 +55,7 @@ export default async function NotificationsPage() {
               <Bell className="h-12 w-12 mx-auto text-muted-foreground/50" />
               <p className="text-muted-foreground mt-2">No notifications yet.</p>
               <p className="text-xs text-muted-foreground mt-1">
-                You&apos;ll see updates here when contributions are recorded, claims change status, meetings are scheduled, and events are announced.
+                You&apos;ll see updates here when contributions are recorded, meetings are scheduled, and events are announced.
               </p>
             </div>
           ) : (

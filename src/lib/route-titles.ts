@@ -15,7 +15,6 @@ export const ROUTE_TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard',
   '/group': 'Group',
   '/contributions': 'Contributions',
-  '/claims': 'Welfare Claims',
   '/soft-loans': 'Soft Loans',
   '/soft-loans/apply': 'Apply for loan',
   '/members': 'Members',

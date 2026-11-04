@@ -6,7 +6,6 @@
  * - 10 Main Committee users (chair, vice, ccd, fw, secretary, treasurer, deputy treasurer, 3 trustees)
  * - N Members (from config.defaultSeedMemberCount)
  * - 12 months of sample contributions
- * - 2 sample welfare claims
  * - 3 sample meetings
  * - 1 Constitution document
  * - 1 sample land opportunity
@@ -386,88 +385,9 @@ async function main() {
   }
   console.log(`  Created ${contributionCount} contributions`);
 
-  // ---------------------------------------------------------------------------
-  // 5. Sample welfare claims
-  // ---------------------------------------------------------------------------
-  console.log('\n--- Creating sample welfare claims ---');
-  // The FUNERAL and MEDICAL welfare pools were closed by the GM of
-  // 2026-10-12, so those buckets no longer exist in config.buckets. The
-  // sample claims for them are skipped rather than crashing the seed on
-  // `funeralBucket.id` of undefined. Historical claims already in the
-  // database stay untouched for audit.
-  const funeralBucket = buckets.find((b) => b.code === 'FUNERAL');
-  const medicalBucket = buckets.find((b) => b.code === 'MEDICAL');
-
-  // 1 funeral claim: approved and paid
-  const sampleMember1 = memberIds[0];
-  const existingFuneral = await prisma.welfareClaim.findFirst({
-    where: { memberId: sampleMember1, type: 'FUNERAL' },
-  });
-  if (funeralBucket && !existingFuneral) {
-    const funeralClaim = await prisma.welfareClaim.create({
-      data: {
-        memberId: sampleMember1,
-        type: 'FUNERAL',
-        beneficiary: 'parent',
-        eventDate: new Date(2026, 5, 15),
-        amountRequested: 8000,
-        amountApproved: 8000,
-        bucketId: funeralBucket.id,
-        status: 'PAID',
-        // No Finance Warrant is appointed on the live committee, so this is
-        // left null rather than attributed to an officer who did not approve
-        // it.
-        approvedByFwId: null,
-        approvedByFwAt: null,
-        approvedByChairId: chairUserId,
-        approvedByChairAt: new Date(2026, 5, 17),
-        description: "Death of member's father. Burial certificate #BC-2026-1234.",
-        supportingDocUrl: '/sample-docs/bc-2026-1234.pdf',
-        paidAt: new Date(2026, 5, 18),
-      },
-    });
-    await prisma.bucket.update({
-      where: { id: funeralBucket.id },
-      data: { balance: { decrement: 8000 } },
-    });
-    await prisma.bucketTransaction.create({
-      data: {
-        bucketId: funeralBucket.id,
-        amount: -8000,
-        type: 'WELFARE_PAYOUT',
-        referenceType: 'WelfareClaim',
-        referenceId: funeralClaim.id,
-      },
-    });
-  }
-
-  // 1 medical claim: pending
-  const sampleMember2 = memberIds[1];
-  const existingMedical = await prisma.welfareClaim.findFirst({
-    where: { memberId: sampleMember2, type: 'MEDICAL' },
-  });
-  if (medicalBucket && !existingMedical) {
-    await prisma.welfareClaim.create({
-      data: {
-        memberId: sampleMember2,
-        type: 'MEDICAL',
-        beneficiary: 'spouse',
-        eventDate: new Date(2026, 6, 20),
-        amountRequested: 2500,
-        status: 'PENDING',
-        description: 'Spouse hospital admission - maternity emergency.',
-        supportingDocUrl: '/sample-docs/hospital-2026-5678.pdf',
-      },
-    });
-  }
-  if (!funeralBucket && !medicalBucket) {
-    console.log('  Skipped: FUNERAL and MEDICAL pools are closed (GM 2026-10-12).');
-  } else {
-    console.log('  1 approved funeral claim + 1 pending medical claim');
-  }
 
   // ---------------------------------------------------------------------------
-  // 6. Sample meetings
+  // 5. Sample meetings
   // ---------------------------------------------------------------------------
   console.log('\n--- Creating sample meetings ---');
   const secUser = await prisma.user.findUnique({ where: { serviceNumber: '104879' } });
@@ -511,7 +431,7 @@ async function main() {
   console.log('  Created 3 meetings (2 past, 1 upcoming)');
 
   // ---------------------------------------------------------------------------
-  // 7. Constitution document
+  // 6. Constitution document
   // ---------------------------------------------------------------------------
   console.log('\n--- Creating sample documents ---');
   const existingDoc = await prisma.document.findFirst({
@@ -534,7 +454,7 @@ async function main() {
   console.log('  Created Constitution document');
 
   // ---------------------------------------------------------------------------
-  // 8. Sample land opportunity
+  // 7. Sample land opportunity
   // ---------------------------------------------------------------------------
   console.log('\n--- Creating sample land opportunity ---');
   // The CCD is Richard Tembo (106759). The old placeholder 'CCD-001' no longer
@@ -564,7 +484,7 @@ async function main() {
   console.log('  Created 1 land opportunity');
 
   // ---------------------------------------------------------------------------
-  // 9. Sample events
+  // 8. Sample events
   // ---------------------------------------------------------------------------
   console.log('\n--- Creating sample events ---');
   const chairUserRec = await prisma.user.findUnique({ where: { serviceNumber: '106147' } });
@@ -599,7 +519,7 @@ async function main() {
   console.log('  Created 2 events (1 past AGM, 1 upcoming Family Day)');
 
   // ---------------------------------------------------------------------------
-  // 10. Sample charity project
+  // 9. Sample charity project
   // ---------------------------------------------------------------------------
   console.log('\n--- Creating sample charity project ---');
   const existingCharity = await prisma.charityProject.findFirst({

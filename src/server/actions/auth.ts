@@ -107,7 +107,7 @@ export async function signInAction(
   // 2b. Payment gate (Constitution Art. -- "good standing" / paid-up members).
   // Members (role=MEMBER) must have at least one contribution record to log
   // in. Officers (any other role) bypass the check because they need access
-  // to record payments, approve claims, and resolve disputes. The check is
+  // to record payments and resolve disputes. The check is
   // off-by-config via BISWIC_REQUIRE_PAYMENT_TO_LOGIN so the chair can flip
   // it during the WhatsApp-onboarding rollout without a redeploy.
   // Admins bypass the good-standing gate even if their visible role is

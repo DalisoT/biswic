@@ -82,9 +82,9 @@ The seed creates Supabase Auth users with email `<service-number-lowercase>@bisw
 | # | Rule | Implementation |
 |---|---|---|
 | S1 | Bucket allocation — exact, no rounding | `src/lib/buckets.ts` (Decimal arithmetic) |
-| S2 | Welfare cap enforcement | `src/lib/claim-rules.ts` + `src/server/services/claim-service.ts` |
-| S3 | Two-signature rule (> K1,000) | `hasBothSignatures()` in `claim-rules.ts` |
-| S4 | No cross-bucket borrowing | `claim-service.ts` — deductions only from FUNERAL/MEDICAL |
+| S2 | Welfare cap enforcement | Retired 2026-11-02 with the claims feature; caps kept in `config.welfareCaps` (`disabled: true`) |
+| S3 | Two-signature rule (> K1,000) | Retired 2026-11-02 with the claims feature; threshold kept in `config.governance` |
+| S4 | No cross-bucket borrowing | Retired 2026-11-02 with the claims feature |
 | S5 | Surplus carry-forward | `Bucket.balance` rolling forward per year |
 | S6 | Audit log everything | `src/lib/audit.ts` + service wrappers |
 | S7 | Member attendance rule | Schema + helper in `permissions.ts` |
@@ -135,7 +135,6 @@ src/
 │   ├── layout/             # Sidebar, top bar, mobile nav
 │   ├── dashboard/          # Bucket bars, etc.
 │   ├── contributions/      # F4 forms
-│   ├── claims/             # F5 forms
 │   ├── settings/           # F14 forms
 │   └── shared/             # Print button, etc.
 ├── lib/
@@ -143,7 +142,6 @@ src/
 │   ├── db.ts               # Prisma singleton
 │   ├── permissions.ts      # RBAC (15 roles)
 │   ├── buckets.ts          # S1 - bucket allocation
-│   ├── claim-rules.ts      # S2/S3 - cap & 2-sig rules
 │   ├── audit.ts            # S6 - audit log
 │   ├── utils.ts            # currency, date, helpers
 │   ├── supabase/           # Supabase client helpers
@@ -157,9 +155,8 @@ src/
 │       └── auth-attempts.ts# App-layer lockout (uses User.failedLoginAttempts + lockedUntil)
 └── server/
     ├── services/
-    │   ├── contribution-service.ts   # F4 + S1
-    │   └── claim-service.ts          # F5 + S2/S3
-    └── actions/             # Server Actions (auth, profile, contributions, claims, notifications)
+    │   └── contribution-service.ts   # F4 + S1
+    └── actions/             # Server Actions (auth, profile, contributions, notifications)
 prisma/
 ├── schema.prisma           # All models
 └── seed.ts                 # Supabase-admin createUser + public upsert
@@ -171,7 +168,7 @@ supabase/
 middleware.ts               # Supabase session refresh on every request
 tests/unit/
 ├── buckets.test.ts         # S1 tests
-└── claim-rules.test.ts     # S2/S3 tests
+└── contribution-*.test.ts   # contribution ledger rules
 ```
 
 ---
@@ -190,26 +187,15 @@ assertAllocationsSumExactly(100, allocations); // throws if mismatch
 
 Tests: `tests/unit/buckets.test.ts`
 
-### 2. Welfare caps (S2)
+### 2. Welfare caps (S2) and the two-signature rule (S3) — retired
 
-- Funeral: K8,000 max per event (first 24 months), 1/year in Y1-2, 2/year from Y3
-- Medical: K3,000 max per event, 2/year max
-- Capital buckets (Land, Business) **CANNOT** be used for welfare — no override
-- Cap override requires a 2/3 note (logged)
-
-```ts
-// src/lib/claim-rules.ts
-const check = checkWelfareClaim({
-  type: 'FUNERAL',
-  amountRequested: 9000,
-  ...
-});
-if (!check.ok && !overrideNote) throw new Error(...);
-```
-
-### 3. Two-signature rule (S3)
-
-Any welfare payout above K1,000 requires approval from BOTH the FW and the Chairperson. The service enforces this; the UI shows two checkboxes.
+The GM of 2026-10-12 closed the FUNERAL and MEDICAL buckets along with the welfare
+pools they funded. The welfare claims feature was removed from the platform on
+2026-11-02, once the `WelfareClaim` table was confirmed empty. The cap values and
+the two-signature threshold remain in `src/lib/config.ts` as `disabled: true`
+blocks, and the `WelfareClaim` model stays in the Prisma schema, so the audit
+history of any pre-2026-10 payout remains queryable. `/claims` now redirects to
+`/dashboard`.
 
 ### 4. Audit log (S6)
 

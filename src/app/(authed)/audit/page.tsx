@@ -28,8 +28,6 @@ export default async function AuditLogPage() {
   // Summary stats
   const last24h = logs.filter((l) => Date.now() - l.createdAt.getTime() < 24 * 60 * 60 * 1000).length;
   const failedLogins = logs.filter((l) => l.action === 'FAILED_LOGIN').length;
-  const claimsSubmitted = logs.filter((l) => l.action === 'CLAIM_SUBMITTED').length;
-  const claimsApproved = logs.filter((l) => l.action === 'CLAIM_APPROVED').length;
 
   return (
     <div className="space-y-6">
@@ -43,7 +41,7 @@ export default async function AuditLogPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Last 24 hours</CardDescription>
@@ -54,18 +52,6 @@ export default async function AuditLogPage() {
           <CardHeader className="pb-2">
             <CardDescription>Failed logins</CardDescription>
             <CardTitle className="text-2xl">{failedLogins}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Claims submitted</CardDescription>
-            <CardTitle className="text-2xl">{claimsSubmitted}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Claims approved</CardDescription>
-            <CardTitle className="text-2xl">{claimsApproved}</CardTitle>
           </CardHeader>
         </Card>
       </div>

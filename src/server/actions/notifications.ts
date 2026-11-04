@@ -47,7 +47,7 @@ export async function markAllRead(userId: string) {
 /**
  * Internal helper: create a notification for a user.
  * Call from server actions (e.g. when a contribution is recorded, when a
- * claim is approved, when a meeting is scheduled, etc.).
+ * a meeting is scheduled, etc.).
  */
 export async function createNotification(input: {
   userId: string;
@@ -101,8 +101,8 @@ export async function notifyAllMembers(input: {
 /**
  * Internal helper: broadcast a notification to "the people who need to know"
  * — i.e. everyone with `isAdmin = true` plus the core officer roles
- * (Chair, Secretary, Treasurer, Deputy Treasurer, Finance/Welfare officer,
- * Welfare Officer, Internal Auditor, IT/Comms). Used for things like
+ * (Chair, Secretary, Treasurer, Deputy Treasurer, Finance Warrant,
+ * Internal Auditor, IT/Comms). Used for things like
  * "new member registered", "loan application received", "bucket running low".
  */
 export async function notifyAdmins(input: {

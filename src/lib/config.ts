@@ -30,8 +30,9 @@ export const config = {
   // FUNERAL and MEDICAL were dropped at the same GM. The freed 18% was
   // rebalanced +10/+7/+1. BUSINESS is unchanged. The four active buckets
   // total 100%. Two closed buckets (FUNERAL, MEDICAL) are kept in the DB
-  // with `isActive=false` for audit-trail integrity; new contributions and
-  // new welfare claims do not flow through them.
+  // with `isActive=false` for audit-trail integrity; contributions do not
+  // flow through them. The welfare claims feature was removed from the
+  // platform on 2026-11-02, once the claims table was confirmed empty.
   // At 74 members × K100/month: 4,440 + 1,480 + 1,110 + 370 = K7,400.
   buckets: {
     LAND_CAPITAL: {
@@ -61,11 +62,10 @@ export const config = {
   // FUNERAL and MEDICAL welfare payouts were discontinued at the GM of
   // 2026-10-12 along with their respective buckets. The twoSignatureThreshold
   // (governance.twoSignatureThreshold) is retained for any future welfare pool
-  // the GM may re-introduce. Claim submissions for FUNERAL/MEDICAL are
-  // rejected by claim-rules.ts; the WelfareClaim table itself stays in the
-  // schema so the audit history of pre-2026-10 payouts remains queryable.
-  // welfareCaps is kept as a `disabled: true` block to make the deprecation
-  // explicit without breaking any code that still imports the keys.
+  // the GM may re-introduce. The WelfareClaim table itself stays in the
+  // schema so the audit history of pre-2026-10 payouts remains queryable,
+  // and welfareCaps is kept as a `disabled: true` block to make the
+  // deprecation explicit.
   welfareCaps: {
     // The funeral cap is a single flat rule: one amount per event and one
     // annual limit. There is deliberately no "initial period" and no
