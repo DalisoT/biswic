@@ -39,6 +39,8 @@ export const ROUTE_TITLES: Record<string, string> = {
   // /learn/<slug>, /learn/<slug>/<lessonId> and quiz routes.
   '/learn': 'Literacy Hub',
   '/learn/me': 'My Learning',
+  '/provision': 'Daily Provision',
+  '/share/provision': 'Daily Provision',
 };
 
 /** A record id -- useless as a page title. */

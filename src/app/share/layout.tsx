@@ -38,7 +38,7 @@ export default function ShareLayout({ children }: { children: React.ReactNode })
 
       <footer className="border-t bg-muted/40">
         <div className="mx-auto max-w-3xl space-y-3 px-4 py-8 text-sm">
-          <p className="font-heading font-semibold">Enjoyed this lesson?</p>
+          <p className="font-heading font-semibold">Enjoyed this?</p>
           <p className="text-muted-foreground">
             BISWIC is a savings and investment cooperative for serving members. Membership costs K100 a month and
             opens the full hub. To join, ask any BISWIC member or speak to the committee at the next meeting.

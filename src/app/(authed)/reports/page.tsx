@@ -7,6 +7,7 @@ import { formatCurrency, computeMonthlyInflow, sumField } from '@/lib/utils';
 import { config } from '@/lib/config';
 import { redirect } from 'next/navigation';
 import { BucketBars } from '@/components/dashboard/bucket-bars';
+import { KittyScopeNote } from '@/components/buckets/kitty-scope-note';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,10 +23,10 @@ export default async function ReportsPage() {
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth() + 1;
 
-  const [buckets, contributionsThisYear, activeMemberCount] = await Promise.all([
+  const [allBuckets, contributionsThisYear, activeMemberCount] = await Promise.all([
     // Active buckets only — closed FUNERAL/MEDICAL are kept in the DB for
     // audit but hidden from operational views.
-    prisma.bucket.findMany({ where: { isActive: true }, orderBy: { code: 'asc' } }),
+    prisma.bucket.findMany({ orderBy: { code: 'asc' } }),
     prisma.contribution.findMany({
       where: { year: currentYear },
       include: { member: { select: { serviceNumber: true, fullName: true } } },
@@ -33,6 +34,10 @@ export default async function ReportsPage() {
     prisma.user.count({ where: { isActive: true, role: 'MEMBER' } }),
   ]);
 
+  const buckets = allBuckets.filter((b) => b.isActive);
+  const closedBuckets = allBuckets
+    .filter((b) => !b.isActive)
+    .map((b) => ({ code: b.code, balance: Number(b.balance) }));
   const totalKitty = sumField(buckets, (b) => b.balance);
   const totalContributionsThisYear = sumField(contributionsThisYear, (c) => c.amount);
 
@@ -59,8 +64,9 @@ export default async function ReportsPage() {
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Total kitty</CardDescription>
+            <CardDescription>Total kitty (active buckets)</CardDescription>
             <CardTitle className="text-2xl">{formatCurrency(totalKitty)}</CardTitle>
+            <KittyScopeNote closed={closedBuckets} />
           </CardHeader>
         </Card>
         <Card>

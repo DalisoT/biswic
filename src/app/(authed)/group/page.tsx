@@ -6,6 +6,7 @@ import { BucketBars } from '@/components/dashboard/bucket-bars';
 import { Calendar, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
+import { KittyScopeNote } from '@/components/buckets/kitty-scope-note';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,10 +16,13 @@ export default async function GroupDashboardPage() {
   });
   // Active buckets only — closed FUNERAL/MEDICAL are kept in the DB for
   // audit but hidden from operational views.
-  const buckets = await prisma.bucket.findMany({
-    where: { isActive: true },
+  const allBuckets = await prisma.bucket.findMany({
     orderBy: { code: 'asc' },
   });
+  const buckets = allBuckets.filter((b) => b.isActive);
+  const closedBuckets = allBuckets
+    .filter((b) => !b.isActive)
+    .map((b) => ({ code: b.code, balance: Number(b.balance) }));
   const totalKitty = sumField(buckets, (b) => b.balance);
 
   const now = new Date();
@@ -63,8 +67,9 @@ export default async function GroupDashboardPage() {
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Total Kitty</CardDescription>
+            <CardDescription>Total Kitty (active buckets)</CardDescription>
             <CardTitle className="text-2xl font-bold text-navy-700">{formatCurrency(totalKitty)}</CardTitle>
+            <KittyScopeNote closed={closedBuckets} />
           </CardHeader>
         </Card>
         <Card>

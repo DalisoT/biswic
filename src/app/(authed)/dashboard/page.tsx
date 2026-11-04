@@ -13,6 +13,14 @@ import { BucketBars } from '@/components/dashboard/bucket-bars';
 import { PasswordSetupBanner } from '@/components/dashboard/password-setup-banner';
 import { EmailSetupBanner } from '@/components/dashboard/email-setup-banner';
 import { ReconciliationWidget, type BucketReconciliation } from '@/components/dashboard/reconciliation-widget';
+import { DailyProvisionCard } from '@/components/provision/daily-provision-card';
+import { KittyScopeNote } from '@/components/buckets/kitty-scope-note';
+import {
+  ensureDailyProvisionForAll,
+  ensureDailyProvisionForUser,
+  getProvisionForUser,
+} from '@/server/services/daily-provision-service';
+import { OFFICER_ROLES } from '@/lib/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,6 +59,12 @@ export default async function DashboardPage() {
   // Includes inactive buckets in the reconciliation card so a closed
   // bucket's sweep can still be verified against its ledger.
   const allBuckets = await prisma.bucket.findMany({ orderBy: { code: 'asc' } });
+  // The kitty card sums the active buckets only. The closed ones are kept in
+  // the database for the audit trail and are shown on the reconciliation
+  // card below, with their own balances.
+  const closedBuckets = allBuckets
+    .filter((b) => !b.isActive)
+    .map((b) => ({ code: b.code, balance: Number(b.balance) }));
   const ledgerGroups = await prisma.bucketTransaction.groupBy({
     by: ['bucketId'],
     _sum: { amount: true },
@@ -116,6 +130,25 @@ export default async function DashboardPage() {
 
   const monthlyInflow = computeMonthlyInflow(activeMemberCount);
 
+  // The daily provision: a financial quote, a line from the literacy hub and
+  // the member's next unfinished lesson. An officer or the platform owner
+  // opening the platform writes it for everybody at once; everyone else
+  // writes their own.
+  const isPublisher = user.isAdmin || (OFFICER_ROLES as string[]).includes(user.role);
+  if (isPublisher) {
+    await ensureDailyProvisionForAll();
+  } else {
+    await ensureDailyProvisionForUser(user.id);
+  }
+
+  const provision = await getProvisionForUser(user.id);
+  const dateLabel = new Intl.DateTimeFormat('en-GB', {
+    timeZone: config.timezone,
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date());
+
   return (
     <div className="space-y-6">
       {/* Password setup nudge. Only renders when lastPasswordChangedAt is null
@@ -162,7 +195,7 @@ export default async function DashboardPage() {
 
         <Card>
           <CardHeader className="pb-3">
-            <CardDescription>Total cooperative kitty</CardDescription>
+            <CardDescription>Total cooperative kitty (active buckets)</CardDescription>
             <CardTitle className="text-3xl font-bold font-heading text-primary">
               {formatCurrency(totalKitty)}
             </CardTitle>
@@ -171,9 +204,26 @@ export default async function DashboardPage() {
             <p className="text-xs text-muted-foreground">
               {activeMemberCount} active members
             </p>
+            <KittyScopeNote closed={closedBuckets} />
           </CardContent>
         </Card>
       </div>
+
+      {/* Today's provision: the daily quote, the line from the literacy hub
+          and the member's next unfinished lesson. The same content is
+          written to the notification bell once a day. */}
+      <DailyProvisionCard
+        provision={{
+          dateLabel: dateLabel,
+          quote: provision.selection.quote.text,
+          author: provision.selection.quote.author ?? null,
+          moduleTitle: provision.selection.moduleTitle,
+          moduleLine: provision.selection.moduleLine,
+          lessonTitle: provision.reminder ? provision.reminder.lessonTitle : null,
+          moduleSlug: provision.reminder ? provision.reminder.moduleSlug : null,
+          lessonId: provision.reminder ? provision.reminder.lessonId : null,
+        }}
+      />
 
       {/* Quick actions */}
       <Card>
