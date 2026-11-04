@@ -19,6 +19,8 @@ import {
   Pencil,
   Bell,
   FileBarChart,
+  Receipt,
+  BookOpen,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -84,6 +86,23 @@ const OFFICER_ROLES = [
   'DEPUTY_TREASURER',
   'FW',
   'CCD',
+];
+
+/**
+ * The committee: every officer plus the internal auditor. These are the
+ * people who see the cooperative's books -- what was spent, on what, and the
+ * ledger behind every balance.
+ */
+const COMMITTEE_ROLES = [
+  'CHAIRPERSON',
+  'VICE_CHAIRPERSON',
+  'SECRETARY',
+  'TREASURER',
+  'DEPUTY_TREASURER',
+  'FW',
+  'CCD',
+  'TRUSTEE',
+  'INTERNAL_AUDITOR',
 ];
 
 /**
@@ -244,6 +263,20 @@ export const NAV_SECTIONS: NavSection[] = [
         icon: AlertCircle,
         roles: ['FW', 'CHAIRPERSON', 'TREASURER', 'DEPUTY_TREASURER', 'CCD'],
         description: 'Missed repayments',
+      },
+      {
+        label: 'Expenses',
+        href: '/expenses',
+        icon: Receipt,
+        roles: COMMITTEE_ROLES,
+        description: 'What administration has cost',
+      },
+      {
+        label: 'Bucket Ledger',
+        href: '/finance/bucket-ledger',
+        icon: BookOpen,
+        roles: COMMITTEE_ROLES,
+        description: 'Every bucket movement',
       },
       {
         label: 'Reports',

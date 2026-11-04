@@ -7,6 +7,7 @@ import { Calendar, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { KittyScopeNote } from '@/components/buckets/kitty-scope-note';
+import { getMoneyFlow } from '@/server/services/kitty-flow-service';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +25,8 @@ export default async function GroupDashboardPage() {
     .filter((b) => !b.isActive)
     .map((b) => ({ code: b.code, balance: Number(b.balance) }));
   const totalKitty = sumField(buckets, (b) => b.balance);
+  const moneyFlow = await getMoneyFlow();
+  const closedBucketTotal = closedBuckets.reduce((s, b) => s + b.balance, 0);
 
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
@@ -69,7 +72,12 @@ export default async function GroupDashboardPage() {
           <CardHeader className="pb-2">
             <CardDescription>Total Kitty (active buckets)</CardDescription>
             <CardTitle className="text-2xl font-bold text-navy-700">{formatCurrency(totalKitty)}</CardTitle>
-            <KittyScopeNote closed={closedBuckets} />
+            <KittyScopeNote
+              collected={moneyFlow.collected}
+              spent={moneyFlow.adminSpent}
+              lentOut={moneyFlow.lentOut}
+              closedTotal={closedBucketTotal}
+            />
           </CardHeader>
         </Card>
         <Card>

@@ -6,10 +6,18 @@ import { Button } from '@/components/ui/button';
 import { config } from '@/lib/config';
 import { formatCurrency, formatDate, monthName, computeMonthlyInflow, computeBucketMonthly, anonymizeMember, toNumber } from '@/lib/utils';
 import { bucketColor, bucketLabel } from '@/lib/buckets';
-import { roleLabel, OFFICER_ROLES, canActAs, canViewReconciliation } from '@/lib/permissions';
+import {
+  roleLabel,
+  OFFICER_ROLES,
+  canActAs,
+  canViewReconciliation,
+  canAdjustBuckets,
+} from '@/lib/permissions';
 import { FileText, Coins, Calendar, ArrowRight, KeyRound, X } from 'lucide-react';
 import Link from 'next/link';
 import { BucketBars } from '@/components/dashboard/bucket-bars';
+import { BucketAdjustmentForm } from '@/components/buckets/bucket-adjustment-form';
+import { getMoneyFlow } from '@/server/services/kitty-flow-service';
 import { PasswordSetupBanner } from '@/components/dashboard/password-setup-banner';
 import { EmailSetupBanner } from '@/components/dashboard/email-setup-banner';
 import { ReconciliationWidget, type BucketReconciliation } from '@/components/dashboard/reconciliation-widget';
@@ -50,6 +58,9 @@ export default async function DashboardPage() {
     orderBy: { code: 'asc' },
   });
   const totalKitty = buckets.reduce((s, b) => s + Number(b.balance), 0);
+  // What the members paid in, what has been spent on administration and what
+  // is out on soft loans. The kitty is what is left of the difference.
+  const moneyFlow = await getMoneyFlow();
 
   // The kitty card sums the active buckets only. The closed ones are kept in
   // the database for the audit trail and are shown to the committee on the
@@ -58,6 +69,7 @@ export default async function DashboardPage() {
   const closedBuckets = allBuckets
     .filter((b) => !b.isActive)
     .map((b) => ({ code: b.code, balance: Number(b.balance) }));
+  const closedBucketTotal = closedBuckets.reduce((s, b) => s + b.balance, 0);
 
   // Reconciliation: compare each bucket's live balance to the running sum of
   // its BucketTransaction rows. Drift = balance - ledgerSum. If non-zero, a
@@ -203,7 +215,7 @@ export default async function DashboardPage() {
 
         <Card>
           <CardHeader className="pb-3">
-            <CardDescription>Total cooperative kitty (active buckets)</CardDescription>
+            <CardDescription>Total cooperative kitty</CardDescription>
             <CardTitle className="text-3xl font-bold font-heading text-primary">
               {formatCurrency(totalKitty)}
             </CardTitle>
@@ -212,7 +224,13 @@ export default async function DashboardPage() {
             <p className="text-xs text-muted-foreground">
               {activeMemberCount} active members
             </p>
-            <KittyScopeNote closed={closedBuckets} showReconciliationCard={canSeeReconciliation} />
+            <KittyScopeNote
+              collected={moneyFlow.collected}
+              spent={moneyFlow.adminSpent}
+              lentOut={moneyFlow.lentOut}
+              closedTotal={closedBucketTotal}
+              showReconciliationCard={canSeeReconciliation}
+            />
           </CardContent>
         </Card>
       </div>
@@ -347,6 +365,14 @@ export default async function DashboardPage() {
             />
           </CardContent>
         </Card>
+      )}
+
+      {/* Moving money between buckets. Officers only -- it rewrites the books,
+          so it needs a written reason and lands in the audit log. */}
+      {canActAs(user, canAdjustBuckets) && (
+        <BucketAdjustmentForm
+          buckets={allBuckets.map((b) => ({ code: b.code, name: b.name }))}
+        />
       )}
 
       {/* My contribution timeline */}

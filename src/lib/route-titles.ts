@@ -35,6 +35,8 @@ export const ROUTE_TITLES: Record<string, string> = {
   '/finance/soft-loan-applications': 'Loan applications',
   '/finance/soft-loan-register': 'Loan register',
   '/finance/soft-loan-defaults': 'Loan defaults',
+  '/finance/bucket-ledger': 'Bucket ledger',
+  '/expenses': 'Administration expenses',
   // Literacy hub. The prefix match in deriveTitle() covers the deeper
   // /learn/<slug>, /learn/<slug>/<lessonId> and quiz routes.
   '/learn': 'Literacy Hub',

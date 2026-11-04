@@ -81,6 +81,23 @@ export const VIEW_RECONCILIATION_ROLES: Role[] = [
   ...OFFICER_ROLES,
   ROLES.INTERNAL_AUDITOR,
 ];
+
+/**
+ * Who may move money between buckets.
+ *
+ * A bucket adjustment rewrites the cooperative's books, so it is an officer's
+ * job and never a member's. The platform owner reaches it through the admin
+ * override.
+ */
+export const ADJUST_BUCKET_ROLES: Role[] = [...OFFICER_ROLES];
+
+/**
+ * Who may see the administration expenses.
+ *
+ * Officers and the internal auditor. These are the committee's books: what the
+ * cooperative spent, on what, and when.
+ */
+export const VIEW_EXPENSES_ROLES: Role[] = [...OFFICER_ROLES, ROLES.INTERNAL_AUDITOR];
 export const POST_MEETING_MINUTES_ROLES: Role[] = [ROLES.SECRETARY];
 
 /**
@@ -109,6 +126,20 @@ export function canViewAuditLog(role: Role | string): boolean {
  */
 export function canViewReconciliation(role: Role | string): boolean {
   return VIEW_RECONCILIATION_ROLES.includes(role as Role);
+}
+
+/**
+ * Whether a role may move money between buckets. See ADJUST_BUCKET_ROLES.
+ */
+export function canAdjustBuckets(role: Role | string): boolean {
+  return ADJUST_BUCKET_ROLES.includes(role as Role);
+}
+
+/**
+ * Whether a role may see the administration expenses. See VIEW_EXPENSES_ROLES.
+ */
+export function canViewExpenses(role: Role | string): boolean {
+  return VIEW_EXPENSES_ROLES.includes(role as Role);
 }
 
 export function canManageLand(role: Role | string): boolean {

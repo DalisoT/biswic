@@ -8,6 +8,7 @@ import { config } from '@/lib/config';
 import { redirect } from 'next/navigation';
 import { BucketBars } from '@/components/dashboard/bucket-bars';
 import { KittyScopeNote } from '@/components/buckets/kitty-scope-note';
+import { getMoneyFlow } from '@/server/services/kitty-flow-service';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +24,7 @@ export default async function ReportsPage() {
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth() + 1;
 
-  const [allBuckets, contributionsThisYear, activeMemberCount] = await Promise.all([
+  const [allBuckets, contributionsThisYear, activeMemberCount, moneyFlow] = await Promise.all([
     // Active buckets only — closed FUNERAL/MEDICAL are kept in the DB for
     // audit but hidden from operational views.
     prisma.bucket.findMany({ orderBy: { code: 'asc' } }),
@@ -32,6 +33,7 @@ export default async function ReportsPage() {
       include: { member: { select: { serviceNumber: true, fullName: true } } },
     }),
     prisma.user.count({ where: { isActive: true, role: 'MEMBER' } }),
+    getMoneyFlow(),
   ]);
 
   const buckets = allBuckets.filter((b) => b.isActive);
@@ -66,7 +68,13 @@ export default async function ReportsPage() {
           <CardHeader className="pb-2">
             <CardDescription>Total kitty (active buckets)</CardDescription>
             <CardTitle className="text-2xl">{formatCurrency(totalKitty)}</CardTitle>
-            <KittyScopeNote closed={closedBuckets} showReconciliationCard={canActAs(user, canViewReconciliation)} />
+            <KittyScopeNote
+              collected={moneyFlow.collected}
+              spent={moneyFlow.adminSpent}
+              lentOut={moneyFlow.lentOut}
+              closedTotal={closedBuckets.reduce((s, b) => s + b.balance, 0)}
+              showReconciliationCard={canActAs(user, canViewReconciliation)}
+            />
           </CardHeader>
         </Card>
         <Card>
