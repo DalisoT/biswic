@@ -21,7 +21,7 @@ export interface RecordContributionInput {
   month: number;
   year: number;
   paymentMethod: 'PAYROLL_DEDUCTION' | 'CASH' | 'MOBILE_MONEY' | 'BANK_TRANSFER';
-  receiptNumber?: string;
+  receiptNumber?: string | null;
   receivedAt: Date;
   recordedById: string;
 }
@@ -59,7 +59,7 @@ export async function recordContribution(input: RecordContributionInput) {
         month: input.month,
         year: input.year,
         paymentMethod: input.paymentMethod,
-        receiptNumber: input.receiptNumber,
+        receiptNumber: input.receiptNumber ?? null,
         receivedAt: input.receivedAt,
         recordedById: input.recordedById,
         allocations: {

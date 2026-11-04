@@ -1,7 +1,7 @@
 /**
  * Bucket Allocation Service (S1 - SACRED RULE)
  * ----------------------------------------------------------------------------
- * "Every contribution is split into the 6 buckets exactly per the percentages.
+ * "Every contribution is split into the active buckets exactly per the percentages.
  *  Total of allocations MUST equal the contribution amount exactly. No rounding errors."
  *
  * Uses decimal.js for exact arithmetic, then rounds to 2dp per bucket,
@@ -27,7 +27,7 @@ export interface BucketAllocationResult {
 }
 
 /**
- * Allocate a contribution amount across the 6 buckets.
+ * Allocate a contribution amount across the active buckets.
  * The first bucket (LAND) is the "remainder bucket" - it absorbs any
  * rounding difference so the total is always exactly the contribution amount.
  */

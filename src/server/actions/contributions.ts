@@ -19,6 +19,7 @@ import {
   splitAllocations,
 } from '@/lib/contribution-adjust';
 import { formatMonthLabel, type MonthKey } from '@/lib/member-leaving';
+import { normaliseReceiptNumber } from '@/lib/contribution-receipt';
 import { createNotification, notifyAllMembers } from '@/server/actions/notifications';
 
 const singleSchema = z.object({
@@ -93,7 +94,7 @@ export async function addContributionAction(formData: FormData) {
       month: rest.month,
       year: rest.year,
       paymentMethod: rest.paymentMethod,
-      receiptNumber: rest.receiptNumber,
+      receiptNumber: normaliseReceiptNumber(rest.receiptNumber),
       receivedAt: new Date(rest.receivedAt),
       recordedById: user.id,
     });

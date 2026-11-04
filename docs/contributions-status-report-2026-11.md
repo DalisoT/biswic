@@ -15,7 +15,7 @@ Since the cooperative was founded on 22 July 2026, **K17,200** has been collecte
 **K33,400** for the five months July–November 2026. **K16,200** is outstanding, spread across 162 member-months,
 giving a compliance rate of **51%**.
 
-**The ledger was corrected on 4 November 2026, and the position is now clean.** Nine changes were applied through
+**The ledger was corrected on 4 November 2026, and the position is now clean.** Ten changes were applied through
 the platform itself, and every one of them is recorded in the audit log (section 3):
 
 - **One payment that was never made was voided** — a row for Mwansa Jacob's October 2026 subscription that had been
@@ -26,6 +26,9 @@ the platform itself, and every one of them is recorded in the audit log (section
   months at once is now credited for each of those months.
 - **One payment that was on the paper list but missing from the ledger was recorded** — SSgt CHEWE D's October K100,
   which the Chairman confirmed on 4 November 2026 had been paid by mobile money but had never been entered.
+- **The cooperative's kitty was corrected by K18** — the old 15% and 3% shares of the two buckets closed in October had
+  been left credited to the active buckets while the closed ones were left in the hole. The platform's own bucket
+  adjustment control put them back, and **the kitty now reads K17,200 — the same as the contributions collected.**
 
 **The practical result is that both anomalies are gone.** The K500 that was received from three members for months
 before they joined, and the K500 that was paid ahead of the month it was booked against, are **both now K0**. Every
@@ -78,8 +81,8 @@ due.
 ## 3. The corrections made on 4 November 2026
 
 Every change below was made through the platform, by the Chairman, and every one of them appears in the audit log.
-Rows 1 to 8 each carry a written reason; row 9 is a payment that had never been entered. Nothing was edited behind
-the platform's back and nothing was deleted without a trace.
+Rows 1 to 8 each carry a written reason; row 9 is a payment that had never been entered; row 10 is a correction to
+the buckets themselves. Nothing was edited behind the platform's back and nothing was deleted without a trace.
 
 | # | Action | Member | What was changed |
 | --- | --- | --- | --- |
@@ -92,6 +95,18 @@ the platform's back and nothing was deleted without a trace.
 | 7 | Split (4 Nov) | KUNDA G (105469) | August K200 receipt RCT-2026-08-105469 split into **July and August 2026 at K100 each**. |
 | 8 | Moved (4 Nov) | KUNDA G (105469) | The September share was then **moved to July**, so that the ledger matches the Treasurer's August list, which records the K200 as "this month plus arrears from last month". The move is recorded in the audit log. **No total changed.** |
 | 9 | Recorded (4 Nov) | CHEWE D (104914) | October 2026 K100 **MOBILE MONEY** row added. The Chairman confirmed on 4 November 2026 that the member had paid; it was on the October paper list and had simply never been entered. Recorded with no receipt number, like the rest of the October import, and shown as received on 1 November 2026. |
+| 10 | Bucket adjustment (4 Nov) | Cooperative kitty | **The K18 was written back out of the four active buckets and into the two closed ones.** LAND K-10, FUNERAL +K15, MEDICAL +K3, SOFT_LOANS K-7, ADMIN K-1 — a net of zero, so no money moved. The four active buckets now hold **K17,200** in the 60/20/15/5 split, the two closed buckets hold **K0**, and the kitty on the dashboard reads K17,200 — the same figure as the contributions collected. The reason is written into the audit log. |
+
+**On the K18.** The dashboard's kitty card used to read K17,218 while the contributions read K17,200, and the two
+closed buckets sat at K-15 and K-3. **That gap was never money owed and never a hole in the kitty.** FUNERAL and
+MEDICAL were closed by the GENERAL MEETING of 12 October 2026, and the 15% and 3% they carried were rebalanced into
+the other buckets at the same meeting, at 10 parts to LAND, 7 to SOFT_LOANS and 1 to ADMIN. The 2 November void of
+CHAMA J's August K100 then reversed **all six** buckets' allocations, including the two closed ones, and the
+4 November restore credited **only the four active buckets** back, because the closed ones were no longer active.
+The result was a double reversal: the K18 stayed credited to the active buckets and stayed in the hole in the closed
+ones. The platform's own **Adjust the buckets** control booked it back on 4 November 2026 — LAND K-10, FUNERAL +K15,
+MEDICAL +K3, SOFT_LOANS K-7, ADMIN K-1 — with the reason written into the audit log. Every bucket still shows drift
+of K0, and the kitty now reads K17,200.
 
 **CHAMA J is now paid up through November**: five months paid, K500 contributed, **K0 arrears**, 100% compliance.
 
@@ -299,10 +314,11 @@ It is worth recording these, because they are the foundation any recovery has to
   evidently an accepted habit in the membership. Section 5 shows how each receipt was credited forward.
 - **The ledger and the report reconcile.** 172 contributions, K17,200 received against K33,400 expected. The monthly
   screens and the arrears report agree to the kwacha, and the difference between them is now nil.
-- **The buckets reconcile.** All six buckets — LAND, BUSINESS, SOFT_LOANS, ADMIN and the two closed buckets, FUNERAL
-  and MEDICAL — show **drift of K0** between their live balance and the running ledger of bucket transactions. The
-  active buckets hold K17,218 (LAND K10,330 · BUSINESS K3,440 · SOFT_LOANS K2,587 · ADMIN K861); the two closed
-  buckets carry K-15 and K-3 of historical net position, which is why the contributions total is K17,200.
+- **The buckets reconcile, and the kitty is exactly what the members paid.** All six buckets — LAND, BUSINESS,
+  SOFT_LOANS, ADMIN and the two closed buckets, FUNERAL and MEDICAL — show **drift of K0** between their live balance
+  and the running ledger of bucket transactions. The active buckets hold K17,200 (LAND K10,320 · BUSINESS K3,440 · SOFT_LOANS K2,580 · ADMIN K860)
+  and the two closed buckets hold K0. **The kitty on the dashboard now reads K17,200 — the same figure as the
+  contributions collected**, which is the point of the correction described in section 3.
 
 ---
 
@@ -334,8 +350,10 @@ It is worth recording these, because they are the foundation any recovery has to
    could not be administered. **The claims option was removed from the platform on 4 November 2026** — members can no
    longer submit a medical or funeral claim, and the committee no longer has a claims queue to work. The claim
    records and the bucket history were left in place so the audit trail stays intact; the table was empty, so nothing
-   was lost. The K-15 and K-3 sitting in the two closed buckets are historical net positions and are not recoverable
-   cash.
+   was lost. The two closed buckets now stand at **K0**: the K15 and K3 that briefly sat in them were the old 15% and
+   3% allocation shares, which the same resolution had already moved into the other buckets, and they were written
+   back on 4 November 2026 through the platform's own bucket adjustment control (section 3). **No money was lost** —
+   the kitty reads K17,200, exactly what the members paid.
 6. **Put the arrears report on the monthly meeting agenda**, with a named follow-up against the largest balances.
    The **15 members owing K500 each account for K7,500 of the K16,200 — 46% of the money owed in a quarter of the
    names.** That is a short enough list to work through in one sitting.
@@ -384,10 +402,12 @@ Four points so that the committee is not caught out by arithmetic that looks wro
 - Monthly contribution screens for July, August, September, October and November 2026, all read from the live platform
   on 4 November 2026.
 - The platform's audit log, read on 4 November 2026: two `CONTRIBUTION_VOIDED` entries, one
-  `CONTRIBUTION_RESTORED` entry, four `CONTRIBUTION_SPLIT` entries, five `CONTRIBUTION_MOVED` entries and one
-  `CONTRIBUTION_RECORDED` entry for SSgt CHEWE D's October payment — each adjustment with the reason written at
-  the time.
-- The dashboard's bucket reconciliation, read on 4 November 2026: all six buckets balanced, drift K0.
+  `CONTRIBUTION_RESTORED` entry, four `CONTRIBUTION_SPLIT` entries, five `CONTRIBUTION_MOVED` entries, one
+  `CONTRIBUTION_RECORDED` entry for SSgt CHEWE D's October payment and one `BUCKET_ADJUSTED` entry for the K18
+  correction — each adjustment with the reason written at the time.
+- The dashboard's bucket reconciliation and the bucket ledger at /finance/bucket-ledger, read on 4 November 2026:
+  all six buckets balanced, drift K0, the four active buckets holding K17,200 in the 60/20/15/5 split, the two closed
+  buckets holding K0, and the five `ADJUSTMENT` rows of 4 November 2026 visible in the ledger.
 - The chairman's confirmation of 2 November 2026 that 104784 BANDA L, 105257 KAKOMA R, 105046 CHIRWA J and 105065
   CHISENGA ABEL paid on 1 and 2 November **for October**.
 - The consolidated contribution register for July to October 2026, docs/consolidated-contribution-register-2026-07-to-10.md, checked against the live platform on 4 November 2026. It carries the four original paper lists, the cash figures month by month and the differences between the paper lists and the platform.
@@ -400,5 +420,6 @@ Four points so that the committee is not caught out by arithmetic that looks wro
   contributed and K100 in arrears.
 
 *Prepared from the live ledger on 1 November 2026 and re-verified against the live platform on 2 November 2026, again
-on 4 November 2026 after the seven ledger corrections, and once more on 4 November 2026 after SSgt CHEWE D's October
-payment was recorded. Figures are as at the date of preparation and will move as November contributions are recorded.*
+on 4 November 2026 after the seven ledger corrections, once more on 4 November 2026 after SSgt CHEWE D's October
+payment was recorded, and again on 4 November 2026 after the K18 bucket correction. Figures are as at the date of
+preparation and will move as November contributions are recorded.*

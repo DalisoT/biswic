@@ -5,7 +5,8 @@ Final reconciliation document and instructions for independent AI verification
 
 **Checked against the live BISWIC platform on 4 November 2026.** Every figure below was compared with the
 platform's own contributions ledger, and the differences are listed in section 9. Re-checked on 4 November 2026
-after SSgt CHEWE D's October payment was recorded on the platform.
+after SSgt CHEWE D's October payment was recorded on the platform, and again after the K18 bucket correction on
+4 November 2026, which changed no cash figure in this register.
 
 This register consolidates the four monthly contribution lists and the subsequent corrections discussed. It distinguishes actual payments received from advance payments, carried-forward contributions and outstanding balances.
 
@@ -37,6 +38,14 @@ July-to-October total is **K17,000**.
 same money: K17,000 is what actually came in across the four paper-list months, while K17,200 is every payment on
 the ledger since July — including K200 that was never received at all (section 9.1) and including advance payments
 credited forward to the months they covered.
+
+**The platform's kitty now reads K17,200, the same figure as the contributions collected.** Until 4 November 2026 the
+dashboard's kitty card read K17,218 because the old 15% (FUNERAL) and 3% (MEDICAL) allocation shares were still
+credited to the active buckets after the 12 October 2026 general meeting moved them, and a later void and restore
+reversed the two closed buckets a second time. The correction was booked through the platform's own bucket adjustment
+control on 4 November 2026 (LAND K-10, FUNERAL +K15, MEDICAL +K3, SOFT_LOANS K-7, ADMIN K-1 — a net of zero), so the
+four active buckets now hold K17,200 and the two closed buckets hold K0. **No cash figure in this register changes:**
+the K17,000 received and the K200 never received are unaffected.
 
 The two totals reconcile month by month:
 

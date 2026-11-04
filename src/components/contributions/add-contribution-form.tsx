@@ -34,7 +34,10 @@ export function AddContributionForm() {
     <Card>
       <CardHeader>
         <CardTitle className="text-base">Record a contribution</CardTitle>
-        <CardDescription>Allocated to all 6 buckets automatically</CardDescription>
+        <CardDescription>
+          Allocated to the active buckets automatically, in the percentages the
+          general meeting set
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-3">
