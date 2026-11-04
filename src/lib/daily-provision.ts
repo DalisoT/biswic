@@ -89,6 +89,7 @@ export function extractTeachingLines(markdown: string): string[] {
       .replace(/\x60([^\x60]*)\x60/g, '$1')
       .replace(/\*\*([^*]+)\*\*/g, '$1')
       .replace(/\*([^*]+)\*/g, '$1')
+      .replace(/^\d+[.)]\s+/, '')
       .replace(/\s+/g, ' ')
       .trim();
     if (cleaned.length < 30) continue;

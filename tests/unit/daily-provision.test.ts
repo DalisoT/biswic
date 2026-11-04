@@ -139,6 +139,13 @@ describe('extractTeachingLines', () => {
     );
   });
 
+  it('strips a leading enumerator left behind by bold text', () => {
+    const markdown =
+      '**1. Pay yourself first**, on payday, before you spend anything at all.';
+    const lines = extractTeachingLines(markdown);
+    expect(lines[0]).toBe('Pay yourself first, on payday, before you spend anything at all.');
+  });
+
   it('returns nothing for empty content', () => {
     expect(extractTeachingLines('')).toEqual([]);
   });
