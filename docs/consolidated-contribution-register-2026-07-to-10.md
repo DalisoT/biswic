@@ -4,7 +4,8 @@ BISWIC — Brothers in Service Welfare, Land & Investment Cooperative
 Final reconciliation document and instructions for independent AI verification
 
 **Checked against the live BISWIC platform on 4 November 2026.** Every figure below was compared with the
-platform's own contributions ledger, and the differences are listed in section 9.
+platform's own contributions ledger, and the differences are listed in section 9. Re-checked on 4 November 2026
+after SSgt CHEWE D's October payment was recorded on the platform.
 
 This register consolidates the four monthly contribution lists and the subsequent corrections discussed. It distinguishes actual payments received from advance payments, carried-forward contributions and outstanding balances.
 
@@ -32,9 +33,34 @@ contains one line that is not a new payment — "Cpl Mwansa Jacob" K100 — whic
 advance repeated, and which the platform removed. Cash received in August is therefore K5,000 and the
 July-to-October total is **K17,000**.
 
-**A second, unrelated K17,100.** The platform also reports K17,100 contributed, because it carries a November
-payment of K100 — CHAMA J's November share of his September K300 advance. The two K17,100 figures are not the
-same money: one is July–October cash, the other is every payment on the ledger since July.
+**The platform reports K17,200 contributed; the cash received over July to October is K17,000.** These are not the
+same money: K17,000 is what actually came in across the four paper-list months, while K17,200 is every payment on
+the ledger since July — including K200 that was never received at all (section 9.1) and including advance payments
+credited forward to the months they covered.
+
+The two totals reconcile month by month:
+
+| Month | Paper cash | Platform ledger | Never received | Ledger backed by cash | Difference |
+| --- | --- | --- | --- | --- | --- |
+| July 2026 | K5,000 | K5,100 | K0 | K5,100 | +K100 |
+| August 2026 | K5,000 | K5,000 | K100 | K4,900 | −K100 |
+| September 2026 | K4,100 | K4,000 | K100 | K3,900 | −K200 |
+| October 2026 | K2,900 | K3,000 | K0 | K3,000 | +K100 |
+| November 2026 | — | K100 | K0 | K100 | +K100 |
+| **Total** | **K17,000** | **K17,200** | **K200** | **K17,000** | **K0** |
+
+Every difference is a month-shift, not a difference in money:
+
+- **July +K100.** The July shares of the two advance payments received in August (MUTAMBO S and KUNDA G, K100
+  each) less MWANSA J's July receipt share, which was credited forward to August.
+- **August −K100.** The same two advances left K100 each of their August receipts behind in July, and MWANSA J's
+  July receipt share was booked to August.
+- **September −K200.** CHAMA J's K300 receipt of September, split into September, October and November at K100
+  each.
+- **October +K100 and November +K100.** CHAMA J's two forward shares of that same receipt.
+
+Strip out the K200 that was never received and the platform's ledger is backed by cash to the kwacha: K17,000
+against K17,000 of cash.
 
 2. July 2026 – Initial contributions
 48 contributors at K100 each, plus Sgt Mwansa J at K200.
@@ -228,7 +254,7 @@ Important: Chama's K300 was actually received in September. It was not an August
 25. SSgt Mkemba W — K100
 26. SSgt Kasambo P — K100
 27. Sgt Chisenga A — K100
-28. SSgt Chewe D — K100 — **on this paper list, but not on the platform's October ledger. See section 9.3.**
+28. SSgt Chewe D — K100 — **recorded on the platform on 4 November 2026. See section 9.3.**
 29. Treasurer (106302 NEEBA GEORGE) — K100
 30. SSgt Kakoma R — K100
 31. Sgt Chirwa J — K100
@@ -244,7 +270,7 @@ Sgt MWANSA J | 106140 | K300 | July K200 covering July and August; September K10
 Cpl MUTAMBO S | 106010 | K300 | August K200 covering July and August; September K100. Owes October (and November).
 Sgt KUNDA G | 105469 | K300 | August K200 covering July and August; October K100. Owes September (and November).
 Cpl KAPANGE H | 105346 | K200 | July K100; September K100. Owes August and October (and November).
-SSgt CHEWE D | 104914 | K300 | July, August, September. October is on the paper list but not on the ledger.
+SSgt CHEWE D | 104914 | K400 | July, August, September, October.
 LCPL Mwansa Jacob | 106139 | **K0** | Nothing received. Joined 30 August 2026. Owes August, September, October (and November).
 
 Outstanding contributions, July to October
@@ -255,7 +281,7 @@ Cpl KAPANGE H (105346) | K200 (August, October)
 **Total outstanding, these members** | **K600**
 
 **Scope of this table.** These are the members examined in this reconciliation, not the whole register. The
-cooperative's arrears across all 67 members are **K16,300** over 163 member-months, of which K7,500 is owed by the
+cooperative's arrears across all 67 members are **K16,200** over 162 member-months, of which K7,500 is owed by the
 fifteen members who have never paid a month. See the contributions status report for the full picture.
 
 7. Instructions for another AI to reconcile these records
@@ -317,6 +343,12 @@ Cpl Kapange H (105346)
 - August and October: not paid.
 - Total actually received: K200.
 - Outstanding: K200 within this register's period.
+SSgt Chewe D (104914)
+- July, August and September: K100 each, confirmed on the paper lists.
+- October: K100. The chairman confirmed on 4 November 2026 that he paid, by mobile money, and it was recorded on
+  the platform the same day.
+- Total actually received: K400.
+- Outstanding within this register's period: K0.
 4. Original monthly totals to verify
 Month | Paper list (as written) | Cash received (corrected)
 July | K5,000 | K5,000
@@ -395,8 +427,9 @@ K600
 My recommendation: Give the other AI the four original lists together with the instruction document above. Ask it to return its calculations and discrepancies, not just a summary. That will give you an independent check before you publish the final welfare accounts.
 
 9. Differences between this register and the BISWIC platform
-Checked on 4 November 2026. The cash figures in this register agree with the platform. Four differences remain, and
-each one needs a committee decision rather than a bookkeeping one.
+Checked on 4 November 2026. The cash figures in this register agree with the platform. Three differences remain
+(9.1, 9.2 and 9.4), and each one needs a committee decision rather than a bookkeeping one. A fourth, on SSgt CHEWE
+D, was resolved on 4 November 2026 and is written up in 9.3.
 
 9.1 The two Mwansa Jacobs — LCPL Mwansa Jacob (106139) has paid nothing, but the platform shows him as paid
 The platform's ledger carries three K100 payments for service number 106139 (LCPL Mwansa Jacob): August,
@@ -407,22 +440,29 @@ four paper lists.
 
 The October row was voided on 2 November 2026. **The August and September rows, K200 in total, are still on the
 ledger.** On the chairman's instruction of 4 November 2026 they were left in place, so that he does not lose access
-to the platform. The consequence is that the platform's contributed total of K17,100 and its arrears of K16,300
-both include K200 that was never received. Section 6 of this register does not include it.
+to the platform. The consequence is that the platform's contributed total of K17,200 and its arrears of K16,200
+both include K200 that was never received. Section 6 of this register does not include it. Those two script rows
+are also the reason the platform's August and September ledgers each stand K100 above the cash that was really
+collected in those months — see the table in section 1.
 
 9.2 Kunda G's August K200 — now booked to July and August
 This register and the Treasurer's August list both say Kunda's K200 covered July and August. The platform had
 credited August and September. On 4 November 2026 the September credit was moved to July through the platform's
 "Move month" control and the move is recorded in the audit log. The platform now reads July 51 rows / K5,100 and
-September 40 rows / K4,000. **No total changed** — K17,100 contributed, K16,300 arrears and 51% compliance are
-the same before and after.
+September 40 rows / K4,000. **No total changed** — the move moved K100 between months, not money.
 
-9.3 SSgt Chewe D (104914) — an October payment on the paper list that is not on the ledger
-He appears on the October paper list at K100, and the platform's October ledger has no row for him: October is 29
-rows, of which 28 are the paper list's October payers and the 29th is CHAMA J's September advance credited
-forward. The platform shows him at three months paid (July, August, September) with K200 in arrears. Either he
-paid in October and the payment was never recorded, or he did not pay and the paper list is wrong. **This is a
-K100 question and the Treasurer's answer settles it.**
+9.3 SSgt Chewe D (104914) — RESOLVED: the October payment was real and had never been entered
+He appears on the October paper list at K100, and until 4 November 2026 the platform's October ledger had no row
+for him. **The chairman confirmed on 4 November 2026 that he paid**, by mobile money, and the payment was recorded
+on the platform the same day — MOBILE MONEY, received 1 November 2026, no receipt number, matching the rest of the
+October import cohort, whose rows also carry a blank receipt. **The paper list was right and the ledger was
+short.**
+
+October now reads **30 rows / K3,000**: the 29 payers on the October paper list, plus CHAMA J's September advance
+credited forward. CHEWE D now stands at four months paid (July, August, September, October), K400 contributed and
+K100 in arrears, 80% compliance. The platform's totals move to **K17,200 contributed and K16,200 in arrears**, and
+the ledger's October (K3,000) stands K100 above the October cash (K2,900) because CHAMA J's October share was
+received in September.
 
 9.4 Two different denominators
 The contributions screen divides each month by the 52 currently active users; the dashboard and the reports page
@@ -433,7 +473,7 @@ The paper lists' names and ranks are reproduced above exactly as written, per ru
 roster carries a different rank for the same service number, the roster is the record:
 - 106140 MWANSA J — roster SGT, paper list "Cpl Mwansa J" and "Cpl Mwansa Jacob".
 - 106010 MUTAMBO S — roster CPL, paper list "Sgt Mutambo S".
-- 104914 CHEWE D — roster SSGT, paper list "Sgt Chewe D" in July and "SSgt Chewe D" in August and October.
+- 104914 CHEWE D — roster SSGT, paper list "Sgt Chewe D" in July and "SSgt Chewe D" in August, September and October.
 - 106708 SUCHILILA S — roster as printed; the August paper list reads "Sgt Siwale S" and the September list reads
   "Cpl Siwale S". Same service number on both.
 - 106139 Mwansa Jacob — roster LCPL, unit 5ZR, joined 30 August 2026.

@@ -2,7 +2,7 @@
 
 **Reporting period:** 22 July 2026 (founding) to 4 November 2026
 **Prepared for:** The Chairman and Committee of the Brothers in Service Welfare, Land & Investment Cooperative
-**Prepared:** 1 November 2026 · re-verified 2 November 2026 · **re-verified again on 4 November 2026, after seven ledger corrections**
+**Prepared:** 1 November 2026 · re-verified 2 November 2026 · **re-verified again on 4 November 2026, after seven ledger corrections, and re-checked once more after the Chairman recorded SSgt CHEWE D's October payment**
 **Source:** BISWIC member platform (live ledger) and the contributions report
 
 > November contributions were still being recorded as this report was written, so the figures move during the month.
@@ -11,12 +11,12 @@
 
 ## 1. Summary
 
-Since the cooperative was founded on 22 July 2026, **K17,100** has been collected from members against an expected
-**K33,400** for the five months July–November 2026. **K16,300** is outstanding, spread across 163 member-months,
+Since the cooperative was founded on 22 July 2026, **K17,200** has been collected from members against an expected
+**K33,400** for the five months July–November 2026. **K16,200** is outstanding, spread across 162 member-months,
 giving a compliance rate of **51%**.
 
-**The ledger was corrected on 4 November 2026, and the position is now clean.** Eight corrections were applied through
-the platform itself, every one of them recorded in the audit log with a written reason (section 3):
+**The ledger was corrected on 4 November 2026, and the position is now clean.** Nine changes were applied through
+the platform itself, and every one of them is recorded in the audit log (section 3):
 
 - **One payment that was never made was voided** — a row for Mwansa Jacob's October 2026 subscription that had been
   inserted by a script so that he could pass the good-standing check at sign-in. No money was ever received for it.
@@ -24,17 +24,19 @@ the platform itself, every one of them recorded in the audit log with a written 
   August K100. He paid it; it was a real receipt.
 - **Four lump payments were split across the months they actually cover**, so that every member who paid two or three
   months at once is now credited for each of those months.
+- **One payment that was on the paper list but missing from the ledger was recorded** — SSgt CHEWE D's October K100,
+  which the Chairman confirmed on 4 November 2026 had been paid by mobile money but had never been entered.
 
 **The practical result is that both anomalies are gone.** The K500 that was received from three members for months
 before they joined, and the K500 that was paid ahead of the month it was booked against, are **both now K0**. Every
-kwacha on the ledger cancels a month that was actually owed: K33,400 expected − K17,100 received = K16,300, which is
+kwacha on the ledger cancels a month that was actually owed: K33,400 expected − K17,200 received = K16,200, which is
 exactly the arrears. There is no unexplained gap left in the arithmetic.
 
-**One caveat, and it is not an arithmetic one.** K200 of the K17,100 has never been received: the ledger still
+**One caveat, and it is not an arithmetic one.** K200 of the K17,200 has never been received: the ledger still
 carries August and September payments of K100 each for 106139 Mwansa Jacob (LCPL) that were written by a script
 whose own header says they exist "so the login good standing gate will let him in". His October row was voided on
 2 November 2026; on the chairman's instruction of 4 November 2026 these two were left in place so that he does not
-lose access to the platform. **Cash actually received is K16,900 and the true arrears are K16,500.** Section 8 sets
+lose access to the platform. **Cash actually received is K17,000 and the true arrears are K16,400.** Section 8 sets
 this out. Everything else in this report is the platform's own figures.
 
 The committee should treat the arrears as **two separate problems**: roughly K3,500 of dead debt from the seven
@@ -42,8 +44,8 @@ members who left before their leaving month was recorded, and the rest from memb
 eight of whom (K4,000) were deactivated on 2 November 2026 and will need a personal approach before anything else can
 be done about them.
 
-Collection is still the bigger problem. The number of members paying fell from 51 in July and 50 in August to 29 in
-October — a 43% fall in the paying base — and the money collected with it, from K5,100 to K2,900.
+Collection is still the bigger problem. The number of members paying fell from 51 in July and 50 in August to 30 in
+October — a 41% fall in the paying base — and the money collected with it, from K5,100 to K3,000.
 
 ---
 
@@ -55,16 +57,16 @@ October — a 43% fall in the paying base — and the money collected with it, f
 | Active members | 52 (45 plain members + 7 officers) |
 | Member-months due (Jul–Nov 2026) | 334 |
 | Expected at K100 per member per month | K33,400 |
-| Contributions received | K17,100 (171 contributions) |
-| Member-months paid **inside the months each member owed** | 171 |
-| Member-months unpaid | 163 |
-| **Arrears outstanding** | **K16,300** |
+| Contributions received | K17,200 (172 contributions) |
+| Member-months paid **inside the months each member owed** | 172 |
+| Member-months unpaid | 162 |
+| **Arrears outstanding** | **K16,200** |
 | Received before joining | K0 (was K500 — section 5) |
 | Paid ahead of the month it is booked against | K0 (was K500 — section 3) |
 | Compliance rate | 51% |
 
-The arrears above are what the platform reports, and they are the arithmetic as well: 163 member-months at K100 each,
-and K33,400 expected less K17,100 received. **Both anomalies that made the old report need an explanation have been
+The arrears above are what the platform reports, and they are the arithmetic as well: 162 member-months at K100 each,
+and K33,400 expected less K17,200 received. **Both anomalies that made the old report need an explanation have been
 cleared**, so for the first time the headline figures reconcile without a footnote.
 
 The cooperative's first money was received on **15 July 2026** and the founding register was signed on **22 July 2026**.
@@ -75,8 +77,9 @@ due.
 
 ## 3. The corrections made on 4 November 2026
 
-Every correction below was made through the platform, by the Chairman, with a written reason recorded in the audit
-log. Nothing was edited behind the platform's back and nothing was deleted without a trace.
+Every change below was made through the platform, by the Chairman, and every one of them appears in the audit log.
+Rows 1 to 8 each carry a written reason; row 9 is a payment that had never been entered. Nothing was edited behind
+the platform's back and nothing was deleted without a trace.
 
 | # | Action | Member | What was changed |
 | --- | --- | --- | --- |
@@ -88,8 +91,11 @@ log. Nothing was edited behind the platform's back and nothing was deleted witho
 | 6 | Split (4 Nov) | MUTAMBO S (106010) | August K200 receipt RCT-2026-08-106010 split into **July and August 2026 at K100 each**. |
 | 7 | Split (4 Nov) | KUNDA G (105469) | August K200 receipt RCT-2026-08-105469 split into **July and August 2026 at K100 each**. |
 | 8 | Moved (4 Nov) | KUNDA G (105469) | The September share was then **moved to July**, so that the ledger matches the Treasurer's August list, which records the K200 as "this month plus arrears from last month". The move is recorded in the audit log. **No total changed.** |
+| 9 | Recorded (4 Nov) | CHEWE D (104914) | October 2026 K100 **MOBILE MONEY** row added. The Chairman confirmed on 4 November 2026 that the member had paid; it was on the October paper list and had simply never been entered. Recorded with no receipt number, like the rest of the October import, and shown as received on 1 November 2026. |
 
 **CHAMA J is now paid up through November**: five months paid, K500 contributed, **K0 arrears**, 100% compliance.
+
+**SSgt CHEWE D is now paid up through October**: four months paid, K400 contributed, K100 in arrears, 80% compliance.
 
 **The three members who paid in lump sums are now shown at three months paid and K200 in arrears**, which is what they
 actually owe. The pattern in every case was the same: a member hands over two months' money in one receipt and then
@@ -99,7 +105,7 @@ contribution is recorded against that month, so the second month was never credi
 **No money changed hands and no member was charged twice.** A split keeps the payment booked against its own month
 (reduced to that month's share) and creates a sibling row for each other month, with the same method and the same date
 received. The original bucket allocations are divided, not recomputed, so the cooperative's kitty is unchanged. The
-platform's bucket reconciliation shows **drift of K0 on all six buckets** after all seven corrections, which is the
+platform's bucket reconciliation shows **drift of K0 on all six buckets** after every change, which is the
 proof that not one kwacha was lost or duplicated in the process.
 
 ### The three controls that now exist
@@ -123,27 +129,28 @@ log:
 | July 2026 | 51 of 52 | K5,100 | K5,200 | 98% |
 | August 2026 | 50 of 52 | K5,000 | K5,200 | 96% |
 | September 2026 | 40 of 52 | K4,000 | K5,200 | 77% |
-| October 2026 | 29 of 52 | K2,900 | K5,200 | 56% |
+| October 2026 | 30 of 52 | K3,000 | K5,200 | 58% |
 | November 2026 *(to 4th)* | 1 of 52 | K100 | K5,200 | 2% |
-| **Total** | **171** | **K17,100** | **K26,000** | **66%** |
+| **Total** | **172** | **K17,200** | **K26,000** | **66%** |
 
 *The "of 52" and the K5,200 target are the monthly screen's own figures: it divides each month by the number of
 members who are **active today**, not by the number who were active then, and the percentage it shows is the
 **number of payments received**, not the cash. The 52 are 45 plain members plus the 7 officers; the dashboard's
 "45 active members" is the same number with the officers left out. On 1 November, when 60 members were active, the
-same months read 82%, 82%, 67%, 42% and 3% against a K6,000 target. **The money collected in each month does not
+same months read 82%, 82%, 67%, 42% and 3% against a K6,000 target (October has since moved to 30 payments and
+K3,000, as five payments were entered after that reading). **The money collected in each month does not
 change.** It is the K column and the number of members paying that carry the story, and both are the same on either
-basis. The total rate is the 171 member-months paid out of the 260 that 52 active members represent over five months;
+basis. The total rate is the 172 member-months paid out of the 260 that 52 active members represent over five months;
 the 51% in the position table is a stricter measure, because it tests each member against their own liability window.*
 
-171 contributions were recorded and every one of them credits exactly one month a member owed. **The money they carry
-is K17,100, and all K17,100 of it settles a month that was owed.** That was not true before 4 November: K500 was being
+172 contributions were recorded and every one of them credits exactly one month a member owed. **The money they carry
+is K17,200, and all K17,200 of it settles a month that was owed.** That was not true before 4 November: K500 was being
 held on account as received before joining and K500 as paid ahead of the month it was booked against. Both are now K0.
 
 **The trend is downward and it is steep.** Comparing the first two months with the next two:
 
-- Average collected per month fell from **K5,050** (July–August) to **K3,450** (September–October) — a **32% fall**.
-- The number of members paying fell from 51 to 29 between July and October — a **43% fall** in the paying base.
+- Average collected per month fell from **K5,050** (July–August) to **K3,500** (September–October) — a **31% fall**.
+- The number of members paying fell from 51 to 30 between July and October — a **41% fall** in the paying base.
 - **Only one payment has been received for November**, and it was a September catch-up being credited forward (CHAMA
   J's November share). **November must not be read as a collapse**; the month is four days old and it should be
   judged at the November meeting.
@@ -165,9 +172,9 @@ Assuming each contributing member pays the standard K100:
 
 | If November collects | Months paid | Contributed | Arrears | Compliance |
 | --- | --- | --- | --- | --- |
-| Like October (29 members) | 200 | K20,000 | K13,400 | 60% |
-| Like September (40 members) | 211 | K21,100 | K12,300 | 63% |
-| Like July (51 members) | 222 | K22,200 | K11,200 | 66% |
+| Like October (30 members) | 202 | K20,200 | K13,200 | 60% |
+| Like September (40 members) | 212 | K21,200 | K12,200 | 63% |
+| Like July (51 members) | 223 | K22,300 | K11,100 | 67% |
 
 Returning to the July rate alone would take **K5,100 of arrears out of the books in a single month**. Nothing in the
 ledger says that is beyond the membership — July and August each proved 50 members will pay.
@@ -183,10 +190,10 @@ Arrears are not spread evenly. They are concentrated in a small number of member
 | 0 of their months | 15 | K7,500 | 46% |
 | 1 of their months | 1 | K400 | 2% |
 | 2 of their months | 11 | K3,200 | 20% |
-| 3 of their months | 13 | K2,600 | 16% |
-| 4 of their months | 26 | K2,600 | 16% |
+| 3 of their months | 12 | K2,400 | 15% |
+| 4 of their months | 27 | K2,700 | 17% |
 | all of their months | 1 | K0 | 0% |
-| **Total** | **67** | **K16,300** | **100%** |
+| **Total** | **67** | **K16,200** | **100%** |
 
 *Shares are rounded.*
 
@@ -284,18 +291,18 @@ It is worth recording these, because they are the foundation any recovery has to
   chairman has confirmed it; the booking was moved to October on 2 November 2026, so he owes only November, like the
   other six officers.
 
-- **27 of the 52 active members (52%) have paid every month since they joined, through October.** These are the
+- **28 of the 52 active members (54%) have paid every month since they joined, through October.** These are the
   model's members and the proof that the K100 subscription is affordable. One of them — CHAMA J — has gone further
   and paid through November as well.
 - **Some members pay in lumps.** Four members paid above K100 in a month: CHAMA J (K300), and KUNDA G, MUTAMBO S and
   MWANSA J (K200 each). These members are ahead of their schedule rather than behind it, and lump-sum payment is
   evidently an accepted habit in the membership. Section 5 shows how each receipt was credited forward.
-- **The ledger and the report reconcile.** 171 contributions, K17,100 received against K33,400 expected. The monthly
+- **The ledger and the report reconcile.** 172 contributions, K17,200 received against K33,400 expected. The monthly
   screens and the arrears report agree to the kwacha, and the difference between them is now nil.
 - **The buckets reconcile.** All six buckets — LAND, BUSINESS, SOFT_LOANS, ADMIN and the two closed buckets, FUNERAL
   and MEDICAL — show **drift of K0** between their live balance and the running ledger of bucket transactions. The
-  active buckets hold K17,118 (LAND K10,270 · BUSINESS K3,420 · SOFT_LOANS K2,572 · ADMIN K856); the two closed
-  buckets carry K-15 and K-3 of historical net position, which is why the contributions total is K17,100.
+  active buckets hold K17,218 (LAND K10,330 · BUSINESS K3,440 · SOFT_LOANS K2,587 · ADMIN K861); the two closed
+  buckets carry K-15 and K-3 of historical net position, which is why the contributions total is K17,200.
 
 ---
 
@@ -304,7 +311,7 @@ It is worth recording these, because they are the foundation any recovery has to
 1. **Record the leaving month for the seven departed members** so their arrears can be closed off. All seven have
    paid nothing, so once their leaving months are on file most of the K3,500 comes off — each still owes at least
    the month they joined in, so at least K700 stays on the books and at most K2,800 comes away. In the best case (all
-   seven left in July 2026) the arrears fall from K16,300 to **K13,500**. The headline compliance rate moves from 51%
+   seven left in July 2026) the arrears fall from K16,200 to **K13,400**. The headline compliance rate moves from 51%
    to 56% — not because anything worsened, but because the seven still count as non-compliant while their liability
    window shrinks.
    *The platform now has the field for this*: a **"Month the member left"** picker on the member record
@@ -330,7 +337,7 @@ It is worth recording these, because they are the foundation any recovery has to
    was lost. The K-15 and K-3 sitting in the two closed buckets are historical net positions and are not recoverable
    cash.
 6. **Put the arrears report on the monthly meeting agenda**, with a named follow-up against the largest balances.
-   The **15 members owing K500 each account for K7,500 of the K16,300 — 46% of the money owed in a quarter of the
+   The **15 members owing K500 each account for K7,500 of the K16,200 — 46% of the money owed in a quarter of the
    names.** That is a short enough list to work through in one sitting.
 7. **Decide whether to bring the 15 members who paid nothing back onto the register.** They have not paid for a
    single month, and the platform has now recorded that fact plainly rather than letting a script row hide it. The
@@ -352,16 +359,16 @@ Four points so that the committee is not caught out by arithmetic that looks wro
 - **The two "of 52" and "of 45" figures are both right.** The contributions screen counts every active user, which
   includes the seven officers; the dashboard counts only members whose role is MEMBER. For November both read the
   same way: CHAMA J's payment is the one payment received, and he is one of the 45 members.
-- **K33,400 expected less K17,100 received is K16,300, and that is exactly the arrears.** There is no reconciling
+- **K33,400 expected less K17,200 received is K16,200, and that is exactly the arrears.** There is no reconciling
   item any more. Before 4 November the difference was K500, split between money received before joining and money
   paid ahead of the month it was booked against; both are now K0.
-- **K200 of the K17,100 has never been received.** The ledger still carries August and September payments of K100 each
+- **K200 of the K17,200 has never been received.** The ledger still carries August and September payments of K100 each
   for 106139 Mwansa Jacob (LCPL), written by a database script whose own header says they exist "so the login good
   standing gate will let him in", with receipts dated the 28th of each month — and the "August" receipt is dated two
   days before he joined on 30 August 2026. He is on none of the four paper lists. His October row was voided on
   2 November 2026; on the chairman's instruction of 4 November 2026 the August and September rows were left in
-  place so that he keeps access to the platform. **Cash actually received is therefore K16,900, and the true arrears
-  are K16,500 over 165 member-months.** The platform's K17,100 and K16,300 are the figures it reports; these are the
+  place so that he keeps access to the platform. **Cash actually received is therefore K17,000, and the true arrears
+  are K16,400 over 164 member-months.** The platform's K17,200 and K16,200 are the figures it reports; these are the
   cash figures.
 - **The K26,000 in the trend table and the K33,400 in the position table are both correct**, and the K7,400
   difference is fully explained: the fifteen members who have left were still on the register during the earlier
@@ -372,13 +379,14 @@ Four points so that the committee is not caught out by arithmetic that looks wro
 
 ## 9. Source data
 
-- Contributions report read from the live platform on 4 November 2026: 67 members, 171 of 334 member-months paid,
-  K17,100 contributed, K33,400 expected, K16,300 arrears, 51% compliance.
+- Contributions report read from the live platform on 4 November 2026: 67 members, 172 of 334 member-months paid,
+  K17,200 contributed, K33,400 expected, K16,200 arrears, 51% compliance.
 - Monthly contribution screens for July, August, September, October and November 2026, all read from the live platform
   on 4 November 2026.
 - The platform's audit log, read on 4 November 2026: two `CONTRIBUTION_VOIDED` entries, one
-  `CONTRIBUTION_RESTORED` entry, four `CONTRIBUTION_SPLIT` entries and four `CONTRIBUTION_MOVED` entries from
-  2 November, each with the reason written at the time.
+  `CONTRIBUTION_RESTORED` entry, four `CONTRIBUTION_SPLIT` entries, five `CONTRIBUTION_MOVED` entries and one
+  `CONTRIBUTION_RECORDED` entry for SSgt CHEWE D's October payment — each adjustment with the reason written at
+  the time.
 - The dashboard's bucket reconciliation, read on 4 November 2026: all six buckets balanced, drift K0.
 - The chairman's confirmation of 2 November 2026 that 104784 BANDA L, 105257 KAKOMA R, 105046 CHIRWA J and 105065
   CHISENGA ABEL paid on 1 and 2 November **for October**.
@@ -386,7 +394,11 @@ Four points so that the committee is not caught out by arithmetic that looks wro
 - The chairman's confirmation of 4 November 2026 that CHAMA J paid K100 in July, K100 in August and K300 in September,
   with the September receipt annotated "catch-up for 3 months" on the paper list, and that 106010 MUTAMBO S,
   106140 MWANSA J and 105469 KUNDA G each paid K200 in a single receipt covering two months.
+- The chairman's confirmation of 4 November 2026 that **SSgt CHEWE D (104914) paid K100 in October by mobile money**,
+  and its recording on the platform the same day: October is now 30 payments and K3,000 (the 29 payers on the October
+  paper list plus CHAMA J's September advance credited forward), and CHEWE D stands at four months paid, K400
+  contributed and K100 in arrears.
 
-*Prepared from the live ledger on 1 November 2026 and re-verified against the live platform on 2 November 2026 and again
-on 4 November 2026, after the seven ledger corrections. Figures are as at the date of preparation and will move as
-November contributions are recorded.*
+*Prepared from the live ledger on 1 November 2026 and re-verified against the live platform on 2 November 2026, again
+on 4 November 2026 after the seven ledger corrections, and once more on 4 November 2026 after SSgt CHEWE D's October
+payment was recorded. Figures are as at the date of preparation and will move as November contributions are recorded.*
