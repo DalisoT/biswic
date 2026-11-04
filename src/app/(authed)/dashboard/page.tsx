@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { config } from '@/lib/config';
 import { formatCurrency, formatDate, monthName, computeMonthlyInflow, computeBucketMonthly, anonymizeMember, toNumber } from '@/lib/utils';
 import { bucketColor, bucketLabel } from '@/lib/buckets';
-import { roleLabel } from '@/lib/permissions';
+import { roleLabel, OFFICER_ROLES, canActAs, canViewReconciliation } from '@/lib/permissions';
 import { FileText, Coins, Calendar, ArrowRight, KeyRound, X } from 'lucide-react';
 import Link from 'next/link';
 import { BucketBars } from '@/components/dashboard/bucket-bars';
@@ -20,7 +20,6 @@ import {
   ensureDailyProvisionForUser,
   getProvisionForUser,
 } from '@/server/services/daily-provision-service';
-import { OFFICER_ROLES } from '@/lib/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,50 +51,59 @@ export default async function DashboardPage() {
   });
   const totalKitty = buckets.reduce((s, b) => s + Number(b.balance), 0);
 
+  // The kitty card sums the active buckets only. The closed ones are kept in
+  // the database for the audit trail and are shown to the committee on the
+  // reconciliation card below, with their own balances.
+  const allBuckets = await prisma.bucket.findMany({ orderBy: { code: 'asc' } });
+  const closedBuckets = allBuckets
+    .filter((b) => !b.isActive)
+    .map((b) => ({ code: b.code, balance: Number(b.balance) }));
+
   // Reconciliation: compare each bucket's live balance to the running sum of
   // its BucketTransaction rows. Drift = balance - ledgerSum. If non-zero, a
   // balance change bypassed the ledger (manual SQL, partial transaction, etc.)
   // and needs investigation before month close.
   // Includes inactive buckets in the reconciliation card so a closed
   // bucket's sweep can still be verified against its ledger.
-  const allBuckets = await prisma.bucket.findMany({ orderBy: { code: 'asc' } });
-  // The kitty card sums the active buckets only. The closed ones are kept in
-  // the database for the audit trail and are shown on the reconciliation
-  // card below, with their own balances.
-  const closedBuckets = allBuckets
-    .filter((b) => !b.isActive)
-    .map((b) => ({ code: b.code, balance: Number(b.balance) }));
-  const ledgerGroups = await prisma.bucketTransaction.groupBy({
-    by: ['bucketId'],
-    _sum: { amount: true },
-    _count: { _all: true },
-    _max: { createdAt: true },
-  });
-  const lastTxByBucket: Record<string, string> = {};
-  const ledgerByBucket: Record<string, { sum: number; count: number }> = {};
-  for (const g of ledgerGroups) {
-    ledgerByBucket[g.bucketId] = {
-      sum: Number(g._sum.amount ?? 0),
-      count: g._count._all,
-    };
-    if (g._max.createdAt) {
-      lastTxByBucket[g.bucketId] = g._max.createdAt.toISOString();
+  //
+  // This is an officers-only view (plus the platform owner). Plain members
+  // do not need it on their dashboard, so the ledger query only runs for the
+  // people who will actually see the card.
+  const canSeeReconciliation = canActAs(user, canViewReconciliation);
+  let reconciliation: BucketReconciliation[] = [];
+  if (canSeeReconciliation) {
+    const ledgerGroups = await prisma.bucketTransaction.groupBy({
+      by: ['bucketId'],
+      _sum: { amount: true },
+      _count: { _all: true },
+      _max: { createdAt: true },
+    });
+    const lastTxByBucket: Record<string, string> = {};
+    const ledgerByBucket: Record<string, { sum: number; count: number }> = {};
+    for (const g of ledgerGroups) {
+      ledgerByBucket[g.bucketId] = {
+        sum: Number(g._sum.amount ?? 0),
+        count: g._count._all,
+      };
+      if (g._max.createdAt) {
+        lastTxByBucket[g.bucketId] = g._max.createdAt.toISOString();
+      }
     }
+    reconciliation = allBuckets.map((b) => {
+      const ledger = ledgerByBucket[b.id] ?? { sum: 0, count: 0 };
+      const balance = Number(b.balance);
+      return {
+        code: b.code,
+        name: b.name,
+        balance,
+        ledgerSum: ledger.sum,
+        drift: balance - ledger.sum,
+        ledgerEntryCount: ledger.count,
+        lastTransactionAt: lastTxByBucket[b.id] ?? null,
+        isActive: b.isActive,
+      };
+    });
   }
-  const reconciliation: BucketReconciliation[] = allBuckets.map((b) => {
-    const ledger = ledgerByBucket[b.id] ?? { sum: 0, count: 0 };
-    const balance = Number(b.balance);
-    return {
-      code: b.code,
-      name: b.name,
-      balance,
-      ledgerSum: ledger.sum,
-      drift: balance - ledger.sum,
-      ledgerEntryCount: ledger.count,
-      lastTransactionAt: lastTxByBucket[b.id] ?? null,
-      isActive: b.isActive,
-    };
-  });
 
   // This month collection progress
   const now = new Date();
@@ -204,7 +212,7 @@ export default async function DashboardPage() {
             <p className="text-xs text-muted-foreground">
               {activeMemberCount} active members
             </p>
-            <KittyScopeNote closed={closedBuckets} />
+            <KittyScopeNote closed={closedBuckets} showReconciliationCard={canSeeReconciliation} />
           </CardContent>
         </Card>
       </div>
@@ -319,22 +327,27 @@ export default async function DashboardPage() {
 
       {/* Reconciliation: live balance vs ledger total, per bucket.
           Catches manual SQL edits, partial transactions, and missed
-          year-end carry-overs before they compound at month close. */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Reconciliation</CardTitle>
-          <CardDescription>
-            Live bucket balance vs the running ledger total. Drift means a balance
-            change did not flow through the <code className="text-[11px]">BucketTransaction</code> ledger.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ReconciliationWidget
-            buckets={reconciliation}
-            generatedAt={new Date().toISOString()}
-          />
-        </CardContent>
-      </Card>
+          year-end carry-overs before they compound at month close.
+          Officers and the platform owner only -- it is an internal
+          accounting view, not something every member needs on their
+          dashboard. */}
+      {canSeeReconciliation && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Reconciliation</CardTitle>
+            <CardDescription>
+              Live bucket balance vs the running ledger total. Drift means a balance
+              change did not flow through the <code className="text-[11px]">BucketTransaction</code> ledger.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ReconciliationWidget
+              buckets={reconciliation}
+              generatedAt={new Date().toISOString()}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* My contribution timeline */}
       <Card>

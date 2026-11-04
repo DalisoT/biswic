@@ -1,5 +1,5 @@
 import { requireUser } from '@/lib/auth/require-user';
-import { canActAsAnyRole } from '@/lib/permissions';
+import { canActAs, canActAsAnyRole, canViewReconciliation } from '@/lib/permissions';
 import { prisma } from '@/lib/db';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -66,7 +66,7 @@ export default async function ReportsPage() {
           <CardHeader className="pb-2">
             <CardDescription>Total kitty (active buckets)</CardDescription>
             <CardTitle className="text-2xl">{formatCurrency(totalKitty)}</CardTitle>
-            <KittyScopeNote closed={closedBuckets} />
+            <KittyScopeNote closed={closedBuckets} showReconciliationCard={canActAs(user, canViewReconciliation)} />
           </CardHeader>
         </Card>
         <Card>

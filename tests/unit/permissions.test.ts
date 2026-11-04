@@ -15,6 +15,7 @@ import {
   hasAdminAccess,
   canRecordContributions,
   canViewAllMembers,
+  canViewReconciliation,
   canManageMembers,
 } from '../../src/lib/permissions';
 
@@ -76,6 +77,43 @@ describe('role sets', () => {
   it('allows the Chairman to view all members', () => {
     expect(canViewAllMembers('CHAIRPERSON')).toBe(true);
     expect(canViewAllMembers('MEMBER')).toBe(false);
+  });
+});
+
+describe('canViewReconciliation', () => {
+  it('allows every officer', () => {
+    for (const role of [
+      'CHAIRPERSON',
+      'VICE_CHAIRPERSON',
+      'CCD',
+      'FW',
+      'SECRETARY',
+      'TREASURER',
+      'DEPUTY_TREASURER',
+      'TRUSTEE',
+    ]) {
+      expect(canViewReconciliation(role)).toBe(true);
+    }
+  });
+
+  it('allows the internal auditor', () => {
+    expect(canViewReconciliation('INTERNAL_AUDITOR')).toBe(true);
+  });
+
+  it('denies a plain member', () => {
+    expect(canViewReconciliation('MEMBER')).toBe(false);
+  });
+
+  it('denies the plain-member sub-committee roles', () => {
+    expect(canViewReconciliation('LSC_MEMBER')).toBe(false);
+    expect(canViewReconciliation('BUSINESS_MEMBER')).toBe(false);
+    expect(canViewReconciliation('FINANCE_MEMBER')).toBe(false);
+  });
+
+  it('lets the admin override reach it', () => {
+    expect(canActAs({ role: 'MEMBER', isAdmin: true }, canViewReconciliation)).toBe(true);
+    expect(canActAs({ role: 'MEMBER', isAdmin: false }, canViewReconciliation)).toBe(false);
+    expect(canActAs({ role: 'MEMBER' }, canViewReconciliation)).toBe(false);
   });
 });
 

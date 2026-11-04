@@ -67,6 +67,20 @@ export const MANAGE_BUSINESS_ROLES: Role[] = [ROLES.CCD, ROLES.BUSINESS_MEMBER];
 export const MANAGE_EVENTS_ROLES: Role[] = [ROLES.CHAIRPERSON, ROLES.SECRETARY, ROLES.IT_COMMS_LEAD];
 export const MANAGE_DOCUMENTS_ROLES: Role[] = [ROLES.CHAIRPERSON, ROLES.SECRETARY, ROLES.FW, ROLES.CCD];
 export const ADD_MEMBERS_ROLES: Role[] = [ROLES.CHAIRPERSON, ROLES.SECRETARY];
+
+/**
+ * Who may see the bucket reconciliation -- the live balance of each bucket
+ * against the running BucketTransaction ledger, with the drift.
+ *
+ * This is an internal accounting view. It answers "did every balance change
+ * go through the ledger", which is a question for the committee closing the
+ * month, not something a member needs on their dashboard. Plain members see
+ * the kitty allocation and nothing about drift or ledger entry counts.
+ */
+export const VIEW_RECONCILIATION_ROLES: Role[] = [
+  ...OFFICER_ROLES,
+  ROLES.INTERNAL_AUDITOR,
+];
 export const POST_MEETING_MINUTES_ROLES: Role[] = [ROLES.SECRETARY];
 
 /**
@@ -87,6 +101,14 @@ export function canViewAllMembers(role: Role | string): boolean {
 
 export function canViewAuditLog(role: Role | string): boolean {
   return VIEW_AUDIT_LOG_ROLES.includes(role as Role);
+}
+
+/**
+ * Whether a role may see the bucket reconciliation card.
+ * See VIEW_RECONCILIATION_ROLES for why it is restricted.
+ */
+export function canViewReconciliation(role: Role | string): boolean {
+  return VIEW_RECONCILIATION_ROLES.includes(role as Role);
 }
 
 export function canManageLand(role: Role | string): boolean {
